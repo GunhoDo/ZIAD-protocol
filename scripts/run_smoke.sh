@@ -46,7 +46,7 @@ except ImportError:
     cfg['stream'] = stream_section
 
 baseline = cfg.get('baseline', 'PatchCore')
-baseline_path = cfg.get('baseline_path', 'external/PatchCore')
+baseline_path = cfg.get('baseline_path', 'external/patchcore-inspection')
 dataset_root = cfg.get('dataset_root', 'data/mvtec_ad')
 category = cfg.get('category', 'bottle')
 stream_type = cfg.get('stream_type', 'iid')
@@ -62,6 +62,13 @@ NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 mkdir -p results/latest
 
+BASELINE_REPO_URL="TBD"
+BASELINE_COMMIT_HASH="TBD"
+if [ -d "${SMOKE_BASELINE_PATH}/.git" ]; then
+  BASELINE_REPO_URL="$(git -C "${SMOKE_BASELINE_PATH}" remote get-url origin 2>/dev/null || echo TBD)"
+  BASELINE_COMMIT_HASH="$(git -C "${SMOKE_BASELINE_PATH}" rev-parse HEAD 2>/dev/null || echo TBD)"
+fi
+
 echo "=== Smoke Run: ${SMOKE_BASELINE} / ${SMOKE_CATEGORY} ==="
 echo "Config: ${CONFIG_FILE}"
 echo ""
@@ -70,7 +77,7 @@ echo ""
 SETUP_COMPLETE=true
 if [ ! -d "${SMOKE_BASELINE_PATH}" ]; then
   echo "MISSING BASELINE: ${SMOKE_BASELINE_PATH} not found." >&2
-  echo "  Repo URL/commit: TBD — see experiments/configs/baselines.yaml" >&2
+  echo "  Expected path/URL/commit: see experiments/configs/baselines.yaml" >&2
   echo "  Run: bash scripts/setup_baselines.sh" >&2
   SETUP_COMPLETE=false
 fi
@@ -87,18 +94,18 @@ if [ "$SETUP_COMPLETE" = "false" ]; then
   echo ""
   echo "Status: setup_incomplete — writing non-final provenance (paper_allowed=false)."
   python3 - \
-    "$SMOKE_BASELINE" "$SMOKE_BASELINE_PATH" "$SMOKE_DATASET_ROOT" \
+    "$SMOKE_BASELINE" "$SMOKE_BASELINE_PATH" "$BASELINE_REPO_URL" "$BASELINE_COMMIT_HASH" "$SMOKE_DATASET_ROOT" \
     "$SMOKE_CATEGORY" "$SMOKE_STREAM_TYPE" "$SMOKE_STREAM_PATH" \
     "$LATEST_RUN" "$MANIFEST" "$NOW" <<'PY'
 import json, pathlib, sys
 args = sys.argv[1:]
-baseline, bpath, droot, cat, stype, spath, run_path, mpath, ts = args
+baseline, bpath, repo_url, commit_hash, droot, cat, stype, spath, run_path, mpath, ts = args
 run = {
     "status": "setup_incomplete",
     "baseline": baseline,
     "baseline_path": bpath,
-    "baseline_repo_url": "TBD",
-    "baseline_commit_hash": "TBD",
+    "baseline_repo_url": repo_url,
+    "baseline_commit_hash": commit_hash,
     "dataset": "MVTec AD",
     "dataset_root": droot,
     "category": cat,
@@ -161,17 +168,17 @@ PY
 
 # --- Write success provenance ---
 python3 - \
-  "$SMOKE_BASELINE" "$SMOKE_BASELINE_PATH" "$SMOKE_DATASET_ROOT" \
+  "$SMOKE_BASELINE" "$SMOKE_BASELINE_PATH" "$BASELINE_REPO_URL" "$BASELINE_COMMIT_HASH" "$SMOKE_DATASET_ROOT" \
   "$SMOKE_CATEGORY" "$SMOKE_STREAM_TYPE" "$SMOKE_STREAM_PATH" \
   "$LATEST_RUN" "$NOW" <<'PY'
 import json, pathlib, sys
-baseline, bpath, droot, cat, stype, spath, run_path, ts = sys.argv[1:]
+baseline, bpath, repo_url, commit_hash, droot, cat, stype, spath, run_path, ts = sys.argv[1:]
 run = {
     "status": "success",
     "baseline": baseline,
     "baseline_path": bpath,
-    "baseline_repo_url": "TBD",
-    "baseline_commit_hash": "TBD",
+    "baseline_repo_url": repo_url,
+    "baseline_commit_hash": commit_hash,
     "dataset": "MVTec AD",
     "dataset_root": droot,
     "category": cat,
@@ -182,7 +189,7 @@ run = {
     "command": "bash scripts/run_smoke.sh",
     "timestamp": ts,
     "paper_allowed": False,
-    "notes": "First success gate A passed. paper_allowed stays false until repo_url/commit_hash are pinned and results reviewed."
+    "notes": "First success gate A passed. paper_allowed stays false until measured results are reviewed."
 }
 pathlib.Path(run_path).write_text(json.dumps(run, indent=2))
 print(f"Wrote success provenance to {run_path}.")
@@ -193,5 +200,5 @@ echo "RESULT: First success gate A passed."
 echo "  scores.csv: ${SCORES_CSV}"
 echo "  latest_run: ${LATEST_RUN}"
 echo ""
-echo "NOTE: paper_allowed remains false until baseline repo_url/commit_hash are"
-echo "      pinned and results are reviewed for paper eligibility."
+echo "NOTE: paper_allowed remains false until measured results are reviewed"
+echo "      for paper eligibility."

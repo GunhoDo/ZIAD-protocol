@@ -1,9 +1,9 @@
 # Smoke run configuration: first success gate A
 # One baseline + one dataset category + one stream -> results/latest/scores.csv
-# Change baseline/category here; URLs/commits must be configured in baselines.yaml first.
+# Change baseline/category here; repo URLs/commits are pinned in baselines.yaml, while wrappers/checkpoints may still be TBD.
 
 baseline: PatchCore
-baseline_path: external/PatchCore
+baseline_path: external/patchcore-inspection
 
 dataset: MVTec AD
 dataset_root: data/mvtec_ad

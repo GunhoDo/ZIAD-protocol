@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Setup baseline clone directories for CLIP ZSAD P0 experiments.
-# Repo URLs and commits are TBD — this script creates directory slots
-# and prints clone instructions; it does NOT pretend URLs are pinned.
+# Report baseline clone directories for CLIP ZSAD P0 experiments.
+# The current project registry pins repo URLs and commits from local clones, but
+# this script does not clone, checkout, or modify external repositories.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -12,23 +12,41 @@ echo ""
 echo "Expected baseline directories (external/ is gitignored):"
 echo ""
 
-for BASELINE in RareCLIP PatchCore WinCLIP AnomalyCLIP; do
-  TARGET="external/${BASELINE}"
-  if [ -d "$TARGET" ]; then
-    echo "  [FOUND]   ${TARGET}"
+BASELINES=(RareCLIP PatchCore WinCLIP AnomalyCLIP)
+PATHS=(external/RareCLIP external/patchcore-inspection external/WinClip external/AnomalyCLIP)
+URLS=(
+  https://github.com/hjf02/RareCLIP.git
+  https://github.com/amazon-science/patchcore-inspection.git
+  https://github.com/caoyunkang/WinClip.git
+  https://github.com/zqhang/AnomalyCLIP.git
+)
+COMMITS=(
+  a8e6d46ee2612a0edbf48c3b88e9998497e2b422
+  fcaa92f124fb1ad74a7acf56726decd4b27cbcad
+  a2ee822d77d01fb7beaed54314e61fe34d5027a4
+  3911738c0867544f545a076ad78f3f11d9ecbfdf
+)
+
+for i in "${!BASELINES[@]}"; do
+  BASELINE="${BASELINES[$i]}"
+  TARGET="${PATHS[$i]}"
+  URL="${URLS[$i]}"
+  COMMIT="${COMMITS[$i]}"
+  if [ -d "$TARGET/.git" ]; then
+    ORIGIN="$(git -C "$TARGET" remote get-url origin 2>/dev/null || echo unknown)"
+    HEAD="$(git -C "$TARGET" rev-parse HEAD 2>/dev/null || echo unknown)"
+    echo "  [FOUND]   ${BASELINE}: ${TARGET}"
+    echo "            origin: ${ORIGIN}"
+    echo "            HEAD:   ${HEAD}"
+  elif [ -d "$TARGET" ]; then
+    echo "  [FOUND]   ${BASELINE}: ${TARGET} (not a git clone)"
   else
-    echo "  [MISSING] ${TARGET}"
-    echo "            Repo URL/commit: TBD — see experiments/configs/baselines.yaml"
-    echo "            Once URL is pinned, clone with:"
-    echo "              git clone <REPO_URL> ${TARGET}"
-    echo "              cd ${TARGET} && git checkout <COMMIT_HASH>"
-    echo ""
+    echo "  [MISSING] ${BASELINE}: ${TARGET}"
+    echo "            git clone ${URL} ${TARGET}"
+    echo "            cd ${TARGET} && git checkout ${COMMIT}"
   fi
+  echo ""
 done
 
-echo ""
-echo "NOTE: Repo URLs and commit hashes remain TBD until explicitly researched and"
-echo "      pinned. Do not clone from unverified sources."
-echo ""
 echo "See experiments/configs/baselines.yaml for the full registry."
-echo "See docs/experiment-prd.md for the Runnable now / TBD later status."
+echo "See docs/experiment-prd.md for gates and remaining wrapper/data/checkpoint status."

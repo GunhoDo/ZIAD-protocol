@@ -3,7 +3,7 @@ import os
 from .base import BaselineWrapper, _setup_error
 
 BASELINE_NAME = "WinCLIP"
-LOCAL_PATH = "external/WinCLIP"
+LOCAL_PATH = "external/WinClip"
 
 
 class WinCLIPWrapper(BaselineWrapper):

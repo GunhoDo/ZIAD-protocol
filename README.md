@@ -10,14 +10,14 @@ The final paper artifact is `paper/paper.pdf`, which may only reference `results
 
 ```text
 1. Place datasets under data/        (gitignored — download MVTec AD / VisA locally)
-2. Clone baselines under external/   (gitignored — repo URL/commit TBD, see below)
+2. Clone baselines under external/   (gitignored — current URLs/commits pinned in baselines.yaml)
 3. Run smoke:  bash scripts/run_smoke.sh
 4. Build paper: make paper
 ```
 
 - `data/` and `external/` are gitignored. Real datasets and baseline clones must be placed locally.
-- Baseline repo URLs and commit hashes are **TBD** until researched and pinned (see `experiments/configs/baselines.yaml`).
-- Use `bash scripts/setup_baselines.sh` to see per-baseline clone slot instructions.
+- Baseline repo URLs and commit hashes are pinned from current local clones (see `experiments/configs/baselines.yaml`).
+- Use `bash scripts/setup_baselines.sh` to see per-baseline clone slot status and pinned clone commands.
 - See [`docs/experiment-prd.md`](docs/experiment-prd.md) for the full experiment PRD including gates, schema, and P0 scope.
 
 ---

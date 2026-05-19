@@ -3,7 +3,7 @@ import os
 from .base import BaselineWrapper, _setup_error
 
 BASELINE_NAME = "PatchCore"
-LOCAL_PATH = "external/PatchCore"
+LOCAL_PATH = "external/patchcore-inspection"
 
 
 class PatchCoreWrapper(BaselineWrapper):

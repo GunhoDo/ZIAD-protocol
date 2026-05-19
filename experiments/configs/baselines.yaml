@@ -1,13 +1,13 @@
 # Baseline registry for P0 experiment setup.
-# repo_url and commit_hash are TBD until explicitly researched and pinned.
-# Do not fabricate URLs or pretend TBD entries are configured.
+# repo_url and commit_hash are pinned from the current local clones under external/.
+# Do not fabricate replacement URLs or pretend wrappers/checkpoints are configured before integration.
 
 baselines:
   RareCLIP:
     name: RareCLIP
     local_path: external/RareCLIP
-    repo_url: TBD
-    commit_hash: TBD
+    repo_url: https://github.com/hjf02/RareCLIP.git
+    commit_hash: a8e6d46ee2612a0edbf48c3b88e9998497e2b422
     checkpoint_path: TBD
     setup_command: TBD
     smoke_command: TBD
@@ -16,9 +16,9 @@ baselines:
 
   PatchCore:
     name: PatchCore
-    local_path: external/PatchCore
-    repo_url: TBD
-    commit_hash: TBD
+    local_path: external/patchcore-inspection
+    repo_url: https://github.com/amazon-science/patchcore-inspection.git
+    commit_hash: fcaa92f124fb1ad74a7acf56726decd4b27cbcad
     checkpoint_path: TBD_or_not_required
     setup_command: TBD
     smoke_command: TBD
@@ -27,9 +27,9 @@ baselines:
 
   WinCLIP:
     name: WinCLIP
-    local_path: external/WinCLIP
-    repo_url: TBD
-    commit_hash: TBD
+    local_path: external/WinClip
+    repo_url: https://github.com/caoyunkang/WinClip.git
+    commit_hash: a2ee822d77d01fb7beaed54314e61fe34d5027a4
     checkpoint_path: TBD_or_not_required
     setup_command: TBD
     smoke_command: TBD
@@ -39,8 +39,8 @@ baselines:
   AnomalyCLIP:
     name: AnomalyCLIP
     local_path: external/AnomalyCLIP
-    repo_url: TBD
-    commit_hash: TBD
+    repo_url: https://github.com/zqhang/AnomalyCLIP.git
+    commit_hash: 3911738c0867544f545a076ad78f3f11d9ecbfdf
     checkpoint_path: TBD
     setup_command: TBD
     smoke_command: TBD

@@ -6,17 +6,17 @@ Baseline model repositories are NOT committed to this repository. Clone them her
 
 ```
 external/
-  RareCLIP/        # RareCLIP baseline — repo URL TBD
-  PatchCore/       # PatchCore baseline — repo URL TBD
-  WinCLIP/         # WinCLIP baseline — repo URL TBD
-  AnomalyCLIP/     # AnomalyCLIP baseline — repo URL TBD
+  RareCLIP/              # RareCLIP baseline — https://github.com/hjf02/RareCLIP.git
+  patchcore-inspection/  # PatchCore baseline — https://github.com/amazon-science/patchcore-inspection.git
+  WinClip/               # WinCLIP baseline — https://github.com/caoyunkang/WinClip.git
+  AnomalyCLIP/           # AnomalyCLIP baseline — https://github.com/zqhang/AnomalyCLIP.git
 ```
 
 ## Baseline registry
 
 See `experiments/configs/baselines.yaml` for the full registry including `local_path`, `repo_url`, `commit_hash`, `checkpoint_path`, `setup_command`, and `smoke_command`.
 
-All `repo_url` and `commit_hash` values are **TBD** until explicitly researched and pinned in a later step.
+The current `repo_url`, `commit_hash`, and `local_path` values are pinned from the local clones. Wrapper integration and checkpoint/setup commands may still be **TBD**.
 
 ## Notes
 

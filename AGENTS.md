@@ -10,10 +10,11 @@ Canonical experiment reference: [`docs/experiment-prd.md`](docs/experiment-prd.m
 ## Current Status
 
 **Setup smoke gate: PASSED** — docs, configs, scripts, and wrapper stubs exist.
-**First success gate A: NOT YET** — requires real baseline clone + real dataset.
+**First success gate A: NOT YET** — requires wrapper integration + real dataset.
 **Paper gate: NOT YET** — requires real measured results.
 
-All baseline repo URLs and commit hashes are **TBD** — do not fabricate them.
+Baseline repo URLs and commit hashes are pinned in `experiments/configs/baselines.yaml`
+from the current local clones. Do not fabricate replacement URLs or commit hashes.
 
 ---
 
@@ -28,11 +29,11 @@ ZIAD-protocol/
   experiments/
     configs/
       smoke.yaml              # Smoke run: PatchCore + MVTec AD/bottle (one baseline/category)
-      baselines.yaml          # Registry: 4 baselines, all repo_url/commit_hash TBD
+      baselines.yaml          # Registry: 4 baselines with pinned repo_url/commit_hash
       p0.yaml                 # Full P0 matrix (future path, not required for first success)
     baselines/
       base.py                 # BaselineWrapper ABC + _setup_error() helper
-      patchcore.py            # PatchCore wrapper stub (raises RuntimeError until cloned)
+      patchcore.py            # PatchCore wrapper stub (raises RuntimeError until implemented)
       rareclip.py             # RareCLIP wrapper stub
       winclip.py              # WinCLIP wrapper stub
       anomalyclip.py          # AnomalyCLIP wrapper stub
@@ -43,7 +44,7 @@ ZIAD-protocol/
 
   scripts/
     run_smoke.sh              # Smoke runner → results/latest/scores.csv (exits if baseline/data missing)
-    setup_baselines.sh        # Prints TBD clone slot instructions (does not clone)
+    setup_baselines.sh        # Checks clone slots and prints pinned clone commands if missing
     run_p0.sh                 # Refreshes P0 placeholder outputs (no real inference)
     build_paper.sh            # Builds paper/paper.pdf (or placeholder if no LaTeX)
 
@@ -54,10 +55,10 @@ ZIAD-protocol/
 
   external/
     README.md                 # Baseline clone layout doc (gitignored except this file)
-    RareCLIP/                 # NOT committed — clone locally once URL is pinned
-    PatchCore/                # NOT committed — clone locally once URL is pinned
-    WinCLIP/                  # NOT committed
-    AnomalyCLIP/              # NOT committed
+    RareCLIP/                 # NOT committed — current RareCLIP clone slot
+    patchcore-inspection/     # NOT committed — current PatchCore clone slot
+    WinClip/                  # NOT committed — current WinCLIP clone slot
+    AnomalyCLIP/              # NOT committed — current AnomalyCLIP clone slot
 
   results/latest/
     scores.csv                # Score contract (currently placeholder)
@@ -86,11 +87,10 @@ Docs/config/scripts exist. `bash scripts/run_smoke.sh` exits with `setup_incompl
 ### Gate 2: First Success A
 One configured baseline + real dataset category + stream file → schema-valid `results/latest/scores.csv` with non-placeholder rows.
 Requires:
-1. Pin baseline repo URL/commit in `experiments/configs/baselines.yaml`
-2. `git clone <URL> external/<Baseline> && cd external/<Baseline> && git checkout <COMMIT>`
-3. Download dataset to `data/mvtec_ad/` (or configured root)
-4. Implement `experiments/baselines/<baseline>.py` `run()` method
-5. `bash scripts/run_smoke.sh`
+1. Ensure the configured `local_path`, `repo_url`, and `commit_hash` in `experiments/configs/baselines.yaml` match the local clone.
+2. Download dataset to `data/mvtec_ad/` (or configured root).
+3. Implement `experiments/baselines/<baseline>.py` `run()` method.
+4. `bash scripts/run_smoke.sh`
 
 ### Gate 3: Paper Gate
 `manifest.paper_allowed=true` — only after real measured results are produced and reviewed. Placeholder outputs must keep `paper_allowed: false`.
@@ -100,7 +100,7 @@ Requires:
 ## Key Commands
 
 ```bash
-bash scripts/setup_baselines.sh   # Show TBD clone instructions for all 4 baselines
+bash scripts/setup_baselines.sh   # Show clone-slot status for all 4 baselines
 bash scripts/run_smoke.sh         # Smoke run (fails clearly if baseline/data missing)
 make paper                        # Build paper/paper.pdf
 make p0                           # Refresh P0 placeholder outputs (no real inference)

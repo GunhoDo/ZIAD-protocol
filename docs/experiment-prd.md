@@ -27,15 +27,15 @@ required for first success.
 | `.gitignore` with data/external/checkpoint rules | **Runnable now** |
 | `data/README.md`, `external/README.md` | **Runnable now** |
 | `experiments/configs/smoke.yaml` | **Runnable now** |
-| `experiments/configs/baselines.yaml` (TBD fields) | **Runnable now** (registry exists; URLs are TBD) |
+| `experiments/configs/baselines.yaml` | **Runnable now** (repo URLs/commits pinned from current local clones; wrappers/checkpoints may still be TBD) |
 | `experiments/baselines/` wrapper stubs | **Runnable now** (stubs raise clear setup errors) |
-| `scripts/setup_baselines.sh` | **Runnable now** (prints TBD clone instructions) |
+| `scripts/setup_baselines.sh` | **Runnable now** (checks current clone slots and prints pinned clone commands if missing) |
 | `scripts/run_smoke.sh` | **Runnable now** (fails explicitly if baseline/data missing) |
-| Actual baseline repo URLs and commit hashes | **TBD** — must be researched and pinned |
-| Real baseline clones under `external/` | **TBD** — clone after URLs are pinned |
+| Actual baseline repo URLs and commit hashes | **Pinned** — see `experiments/configs/baselines.yaml` |
+| Real baseline clones under `external/` | **Present locally** — gitignored, not committed |
 | Real datasets under `data/` | **TBD** — download and place locally |
-| Real checkpoint files | **TBD** — obtain after baseline URLs are pinned |
-| First success gate A (real scores.csv) | **TBD** — requires configured baseline + real data |
+| Real checkpoint files | **TBD** — obtain where the selected baseline requires them |
+| First success gate A (real scores.csv) | **TBD** — requires wrapper integration + real data |
 | Full P0 matrix | **TBD** — future path after first success |
 
 ---
@@ -46,17 +46,18 @@ All four P0 baselines are cloned locally under `external/` (gitignored):
 
 ```
 external/
-  RareCLIP/        # repo URL TBD — see experiments/configs/baselines.yaml
-  PatchCore/       # repo URL TBD
-  WinCLIP/         # repo URL TBD
-  AnomalyCLIP/     # repo URL TBD
+  RareCLIP/              # https://github.com/hjf02/RareCLIP.git
+  patchcore-inspection/  # https://github.com/amazon-science/patchcore-inspection.git
+  WinClip/               # https://github.com/caoyunkang/WinClip.git
+  AnomalyCLIP/           # https://github.com/zqhang/AnomalyCLIP.git
 ```
 
-Repo URLs and commit hashes are **TBD** until explicitly researched and pinned.
-Do not fabricate URLs or treat TBD entries as configured.
+Repo URLs and commit hashes are pinned in `experiments/configs/baselines.yaml`
+from the current local clones. Do not fabricate replacement URLs or commit
+hashes.
 
 See `experiments/configs/baselines.yaml` for the full registry.
-See `scripts/setup_baselines.sh` for clone slot instructions.
+See `scripts/setup_baselines.sh` for clone slot status and pinned clone commands.
 
 ---
 
@@ -143,7 +144,7 @@ generated stream file (`results/latest/stream_smoke.json`) produces schema-valid
 `results/latest/scores.csv` with non-placeholder rows.
 
 **Pass criteria**:
-- `external/<baseline>/` is present (baseline cloned and configured).
+- The configured baseline `local_path` is present (baseline cloned and configured).
 - `data/mvtec_ad/bottle/` (or configured category) is present.
 - `bash scripts/run_smoke.sh` completes without error.
 - `results/latest/scores.csv` has the required header and at least one row with
@@ -151,7 +152,7 @@ generated stream file (`results/latest/stream_smoke.json`) produces schema-valid
 - `results/latest/latest_run.json` records baseline provenance, dataset/category,
   stream_path, command, and `paper_allowed: false`.
 
-**Not yet achieved. Requires baseline URL pinning + dataset download.**
+**Not yet achieved. Requires wrapper integration + dataset download.**
 
 ### Gate 3: Paper Gate
 
