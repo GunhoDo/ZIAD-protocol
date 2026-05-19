@@ -60,6 +60,10 @@ class EvaluateSmokeMetricsTest(unittest.TestCase):
         self.assertEqual(metric["status"], "placeholder_not_measured")
         self.assertEqual(metric["image_auroc"], "TODO")
 
+    def test_unknown_status_is_rejected(self):
+        with self.assertRaisesRegex(RuntimeError, "Unknown score row status"):
+            evaluate.compute_metric_row([score_row(0, 1, 0.9, status="failed")], {})
+
     def test_evaluate_writes_metrics_and_manifest(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

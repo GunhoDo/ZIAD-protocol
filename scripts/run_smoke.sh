@@ -19,7 +19,7 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 # Parse config fields with python (avoids yq dependency)
-read -r SMOKE_BASELINE SMOKE_BASELINE_PATH SMOKE_DATASET_ROOT SMOKE_CATEGORY SMOKE_STREAM_TYPE SMOKE_STREAM_PATH < <(python3 - "$CONFIG_FILE" <<'PY'
+read -r SMOKE_BASELINE SMOKE_BASELINE_PATH SMOKE_DATASET_ROOT SMOKE_CATEGORY SMOKE_STREAM_TYPE SMOKE_STREAM_PATH SMOKE_PREVALENCE SMOKE_EPSILON SMOKE_STREAM_SEED SMOKE_STREAM_LENGTH SMOKE_BURST_LENGTH < <(python3 - "$CONFIG_FILE" <<'PY'
 import sys, pathlib
 
 cfg_text = pathlib.Path(sys.argv[1]).read_text()
@@ -36,13 +36,18 @@ except ImportError:
             cfg[k.strip()] = v.strip().strip('"').strip("'")
     stream_section = {}
     in_stream = False
-    for line in cfg_text.splitlines():
-        stripped = line.strip()
-        if stripped == 'stream:':
+    for raw in cfg_text.splitlines():
+        if raw.strip() == 'stream:':
             in_stream = True
-        elif in_stream and stripped.startswith('path:'):
-            stream_section['path'] = stripped.partition(':')[2].strip().strip('"').strip("'")
-            in_stream = False
+            continue
+        if in_stream:
+            if raw and not raw.startswith(' ') and not raw.startswith('\t'):
+                in_stream = False
+                continue
+            stripped = raw.strip()
+            if ':' in stripped and not stripped.startswith('#'):
+                k, _, v = stripped.partition(':')
+                stream_section[k.strip()] = v.strip().strip('\"').strip("'") or None
     cfg['stream'] = stream_section
 
 baseline = cfg.get('baseline', 'PatchCore')
@@ -50,8 +55,15 @@ baseline_path = cfg.get('baseline_path', 'external/patchcore-inspection')
 dataset_root = cfg.get('dataset_root', 'data/mvtec_ad')
 category = cfg.get('category', 'bottle')
 stream_type = cfg.get('stream_type', 'iid')
-stream_path = (cfg.get('stream') or {}).get('path', 'results/latest/stream_smoke.json')
-print(baseline, baseline_path, dataset_root, category, stream_type, stream_path)
+stream = cfg.get('stream') or {}
+stream_path = stream.get('path', 'results/latest/stream_smoke.json')
+prevalence = cfg.get('prevalence', 0.05)
+epsilon = cfg.get('contamination_epsilon', 0)
+seed = stream.get('seed', 0)
+length = stream.get('length')
+burst_length = stream.get('burst_length', 1)
+length = '__NONE__' if length in {None, '', 'null', 'None'} else length
+print(baseline, baseline_path, dataset_root, category, stream_type, stream_path, prevalence, epsilon, seed, length, burst_length)
 PY
 )
 
@@ -96,10 +108,12 @@ if [ "$SETUP_COMPLETE" = "false" ]; then
   python3 - \
     "$SMOKE_BASELINE" "$SMOKE_BASELINE_PATH" "$BASELINE_REPO_URL" "$BASELINE_COMMIT_HASH" "$SMOKE_DATASET_ROOT" \
     "$SMOKE_CATEGORY" "$SMOKE_STREAM_TYPE" "$SMOKE_STREAM_PATH" \
+    "$SMOKE_PREVALENCE" "$SMOKE_EPSILON" "$SMOKE_STREAM_SEED" "$SMOKE_STREAM_LENGTH" "$SMOKE_BURST_LENGTH" \
     "$LATEST_RUN" "$MANIFEST" "$NOW" <<'PY'
 import json, pathlib, sys
 args = sys.argv[1:]
-baseline, bpath, repo_url, commit_hash, droot, cat, stype, spath, run_path, mpath, ts = args
+baseline, bpath, repo_url, commit_hash, droot, cat, stype, spath, prevalence, epsilon, seed, length, burst_length, run_path, mpath, ts = args
+stream_metadata = {}
 run = {
     "status": "setup_incomplete",
     "baseline": baseline,
@@ -111,8 +125,26 @@ run = {
     "category": cat,
     "stream_type": stype,
     "stream_path": spath,
-    "prevalence": 0.05,
-    "contamination_epsilon": 0,
+    "prevalence": float(prevalence),
+    "contamination_epsilon": float(epsilon),
+    "stream_seed": int(seed),
+    "stream_length": None if length == "__NONE__" else int(length),
+    "burst_length": int(burst_length),
+    "scoring_mode": stream_metadata.get("scoring_mode", "stream_ordered_offline"),
+    "latency_semantics": stream_metadata.get("latency_semantics", "offline_batch_amortized"),
+    "training_source": stream_metadata.get("training_source", "train/good"),
+    "stream_source": stream_metadata.get("stream_source", "test/*"),
+    "stream_metadata": {
+        key: stream_metadata.get(key)
+        for key in [
+            "target_anomaly_fraction", "applied_anomaly_fraction",
+            "applied_epsilon_equivalent", "requested_stream_length",
+            "applied_stream_length", "selected_normal_count",
+            "selected_anomaly_count", "applied_burst_count",
+            "applied_burst_lengths", "applied_max_burst_length", "warnings",
+        ]
+        if key in stream_metadata
+    },
     "command": "bash scripts/run_smoke.sh",
     "timestamp": ts,
     "paper_allowed": False,
@@ -131,8 +163,26 @@ PY
   exit 1
 fi
 
-# --- Gate 3: Run wrapper (only reached when baseline + dataset are present) ---
-echo "Baseline and dataset found. Running wrapper..."
+# --- Gate 3: Generate stream (only reached when baseline + dataset are present) ---
+echo "Baseline and dataset found. Generating stream..."
+STREAM_ARGS=(
+  --dataset-root "$SMOKE_DATASET_ROOT"
+  --dataset "MVTec AD"
+  --category "$SMOKE_CATEGORY"
+  --stream-type "$SMOKE_STREAM_TYPE"
+  --prevalence "$SMOKE_PREVALENCE"
+  --contamination-epsilon "$SMOKE_EPSILON"
+  --seed "$SMOKE_STREAM_SEED"
+  --burst-length "$SMOKE_BURST_LENGTH"
+  --output "$SMOKE_STREAM_PATH"
+)
+if [ "$SMOKE_STREAM_LENGTH" != "__NONE__" ]; then
+  STREAM_ARGS+=(--length "$SMOKE_STREAM_LENGTH")
+fi
+python3 experiments/make_streams.py "${STREAM_ARGS[@]}"
+
+# --- Gate 4: Run wrapper ---
+echo "Running wrapper..."
 python3 - "$SMOKE_BASELINE" "$SMOKE_STREAM_PATH" "$SMOKE_DATASET_ROOT" "$SCORES_CSV" "$SMOKE_CATEGORY" "$SMOKE_STREAM_TYPE" <<'PY'
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path.cwd()))
@@ -143,26 +193,37 @@ try:
     mod = importlib.import_module(f"experiments.baselines.{module_name}")
 except ImportError as e:
     raise SystemExit(f"Cannot import wrapper experiments.baselines.{module_name}: {e}")
-config = {"baseline": baseline, "category": category, "stream_type": stream_type}
+config = {"baseline": baseline, "category": category, "stream_type": stream_type, "scoring_mode": "stream_ordered_offline", "latency_semantics": "offline_batch_amortized"}
 mod.run(stream_path, dataset_root, output_csv, config)
 PY
 
 echo "Wrapper returned. Validating output..."
 
 # --- Validate scores.csv schema ---
-python3 - "$SCORES_CSV" <<'PY'
-import csv, pathlib, sys
+python3 - "$SCORES_CSV" "$SMOKE_STREAM_PATH" <<'PY'
+import csv, json, pathlib, sys
 REQUIRED = ["stream_index","image_path","label","category","anomaly_score","latency_ms","peak_vram_mb","status"]
 path = pathlib.Path(sys.argv[1])
+stream_path = pathlib.Path(sys.argv[2])
 if not path.exists():
     raise SystemExit(f"scores.csv not found at {path}")
 header = next(csv.reader(path.open()))
 if header != REQUIRED:
     raise SystemExit(f"scores.csv header mismatch.\n  Expected: {REQUIRED}\n  Got:      {header}")
 rows = list(csv.DictReader(path.open()))
-real_rows = [r for r in rows if r.get("status") != "placeholder_not_measured"]
+unknown_statuses = sorted({r.get("status", "") for r in rows} - {"measured", "placeholder_not_measured"})
+if unknown_statuses:
+    raise SystemExit(f"Unknown score row status value(s): {unknown_statuses}")
+real_rows = [r for r in rows if r.get("status") == "measured"]
 if not real_rows:
     raise SystemExit("No non-placeholder rows in scores.csv. Not first success gate A.")
+if stream_path.exists():
+    stream = json.loads(stream_path.read_text())
+    stream_items = stream.get("items") or []
+    if stream_items and len(real_rows) != len(stream_items):
+        raise SystemExit(
+            f"scores.csv row count {len(real_rows)} does not match stream item count {len(stream_items)}"
+        )
 print(f"scores.csv valid: {len(real_rows)} non-placeholder row(s).")
 PY
 
@@ -170,9 +231,14 @@ PY
 python3 - \
   "$SMOKE_BASELINE" "$SMOKE_BASELINE_PATH" "$BASELINE_REPO_URL" "$BASELINE_COMMIT_HASH" "$SMOKE_DATASET_ROOT" \
   "$SMOKE_CATEGORY" "$SMOKE_STREAM_TYPE" "$SMOKE_STREAM_PATH" \
+  "$SMOKE_PREVALENCE" "$SMOKE_EPSILON" "$SMOKE_STREAM_SEED" "$SMOKE_STREAM_LENGTH" "$SMOKE_BURST_LENGTH" \
   "$LATEST_RUN" "$MANIFEST" "$NOW" <<'PY'
 import json, pathlib, sys
-baseline, bpath, repo_url, commit_hash, droot, cat, stype, spath, run_path, mpath, ts = sys.argv[1:]
+baseline, bpath, repo_url, commit_hash, droot, cat, stype, spath, prevalence, epsilon, seed, length, burst_length, run_path, mpath, ts = sys.argv[1:]
+stream_payload = json.loads(pathlib.Path(spath).read_text())
+if not isinstance(stream_payload, dict) or not isinstance(stream_payload.get("metadata"), dict):
+    raise SystemExit(f"Stream metadata missing or invalid in {spath}")
+stream_metadata = stream_payload["metadata"]
 run = {
     "status": "success",
     "baseline": baseline,
@@ -184,8 +250,26 @@ run = {
     "category": cat,
     "stream_type": stype,
     "stream_path": spath,
-    "prevalence": 0.05,
-    "contamination_epsilon": 0,
+    "prevalence": float(prevalence),
+    "contamination_epsilon": float(epsilon),
+    "stream_seed": int(seed),
+    "stream_length": None if length == "__NONE__" else int(length),
+    "burst_length": int(burst_length),
+    "scoring_mode": stream_metadata.get("scoring_mode", "stream_ordered_offline"),
+    "latency_semantics": stream_metadata.get("latency_semantics", "offline_batch_amortized"),
+    "training_source": stream_metadata.get("training_source", "train/good"),
+    "stream_source": stream_metadata.get("stream_source", "test/*"),
+    "stream_metadata": {
+        key: stream_metadata.get(key)
+        for key in [
+            "target_anomaly_fraction", "applied_anomaly_fraction",
+            "applied_epsilon_equivalent", "requested_stream_length",
+            "applied_stream_length", "selected_normal_count",
+            "selected_anomaly_count", "applied_burst_count",
+            "applied_burst_lengths", "applied_max_burst_length", "warnings",
+        ]
+        if key in stream_metadata
+    },
     "command": "bash scripts/run_smoke.sh",
     "timestamp": ts,
     "paper_allowed": False,

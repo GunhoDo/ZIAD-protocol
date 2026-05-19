@@ -14,8 +14,13 @@ prevalence: 0.05
 contamination_epsilon: 0
 
 stream:
-  # Consumed if present; generated as a minimal stub if missing.
+  # Generated before smoke inference and then consumed by the wrapper.
   path: results/latest/stream_smoke.json
+  seed: 0
+  # Optional. Omit/null to select the closest feasible no-duplicate length.
+  length:
+  # Used for bursty streams; ignored for iid metadata except as config context.
+  burst_length: 5
 
 outputs:
   scores_csv: results/latest/scores.csv

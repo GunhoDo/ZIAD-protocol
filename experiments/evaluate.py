@@ -96,7 +96,12 @@ def _load_scores(scores_csv: Path) -> list[dict[str, str]]:
 
 
 def _measured_rows(rows: list[dict[str, str]]) -> list[dict[str, str]]:
-    return [row for row in rows if row.get("status") != "placeholder_not_measured"]
+    statuses = {row.get("status", "") for row in rows}
+    allowed = {"measured", "placeholder_not_measured"}
+    unknown = sorted(statuses - allowed)
+    if unknown:
+        raise RuntimeError(f"Unknown score row status value(s): {unknown}")
+    return [row for row in rows if row.get("status") == "measured"]
 
 
 def _binary_labels(rows: list[dict[str, str]]) -> list[int]:
@@ -201,7 +206,7 @@ def compute_metric_row(
 def write_metrics_csv(path: Path, row: dict[str, str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=METRIC_FIELDS)
+        writer = csv.DictWriter(handle, fieldnames=METRIC_FIELDS, lineterminator="\n")
         writer.writeheader()
         writer.writerow(row)
 

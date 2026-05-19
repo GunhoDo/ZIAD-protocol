@@ -82,54 +82,127 @@ def _score_to_float(score: Any) -> float:
     return float(np.asarray(score).reshape(-1)[0])
 
 
-def _load_stream_order(stream_path: str) -> list[str]:
-    """Return optional ordered image paths from a stream JSON file.
+REQUIRED_STREAM_ITEM_FIELDS = {
+    "stream_index",
+    "image_path",
+    "label",
+    "category",
+    "source_split",
+    "anomaly_type",
+}
 
-    Placeholder streams have empty `items`; in that case the wrapper evaluates
-    the full category test split in the upstream dataset order.
+
+def _load_stream_items(stream_path: str, *, required: bool = False) -> list[dict[str, Any]]:
+    """Return validated stream items from a stream JSON file.
+
+    Missing or empty stream files preserve the legacy full-test-split behavior.
+    Non-empty streams are strict because they are now part of the experiment
+    contract: each item must carry label/category/source metadata and contiguous
+    ``stream_index`` values.
     """
     path = Path(stream_path)
     if not path.exists():
+        if required:
+            raise RuntimeError(f"Stream file is required but missing: {stream_path}")
         return []
     payload = json.loads(path.read_text())
     items = payload.get("items") or []
-    ordered: list[str] = []
+    if not items:
+        if required:
+            raise RuntimeError(f"Stream file has no items: {stream_path}")
+        return []
+    validated: list[dict[str, Any]] = []
     for item in items:
-        if isinstance(item, str):
-            ordered.append(item)
-        elif isinstance(item, dict):
-            image_path = item.get("image_path") or item.get("path") or item.get("file")
-            if image_path:
-                ordered.append(str(image_path))
-    return ordered
+        if not isinstance(item, dict):
+            raise RuntimeError("Stream items must be objects with required metadata fields.")
+        missing = sorted(REQUIRED_STREAM_ITEM_FIELDS - set(item))
+        if missing:
+            raise RuntimeError(f"Stream item missing required field(s): {missing}")
+        copy = dict(item)
+        copy["stream_index"] = int(copy["stream_index"])
+        copy["label"] = int(copy["label"])
+        validated.append(copy)
+    indices = [item["stream_index"] for item in validated]
+    if sorted(indices) != list(range(len(validated))):
+        raise RuntimeError("Stream item stream_index values must be contiguous from 0.")
+    return sorted(validated, key=lambda item: item["stream_index"])
 
 
-def _apply_stream_order(rows: list[dict[str, Any]], stream_path: str) -> list[dict[str, Any]]:
-    ordered_paths = _load_stream_order(stream_path)
-    if not ordered_paths:
+def _ensure_inside_dataset(path: Path, dataset_root: Path) -> Path:
+    root = dataset_root.resolve()
+    resolved = path.resolve()
+    try:
+        resolved.relative_to(root)
+    except ValueError as error:
+        raise RuntimeError(
+            f"Stream image path resolves outside dataset_root: {path}"
+        ) from error
+    return resolved
+
+
+def _resolve_stream_image_path(image_path: str, dataset_root: str | Path) -> Path:
+    root = Path(dataset_root)
+    candidate = Path(image_path)
+    if not candidate.is_absolute():
+        candidate = root / candidate
+    resolved = _ensure_inside_dataset(candidate, root)
+    if not resolved.is_file():
+        raise RuntimeError(f"Stream references missing image: {image_path}")
+    return resolved
+
+
+def _row_resolved_path(row: dict[str, Any]) -> Path:
+    row_path = Path(str(row["image_path"]))
+    if not row_path.is_absolute():
+        row_path = Path.cwd() / row_path
+    return row_path.resolve()
+
+
+def _apply_stream_order(
+    rows: list[dict[str, Any]],
+    stream_path: str,
+    dataset_root: str | Path = ".",
+    *,
+    require_stream: bool = False,
+) -> list[dict[str, Any]]:
+    stream_items = _load_stream_items(stream_path, required=require_stream)
+    if not stream_items:
         return rows
 
     by_key: dict[str, dict[str, Any]] = {}
     for row in rows:
-        rel = str(row["image_path"])
-        by_key[rel] = row
-        by_key[str(Path(rel).resolve())] = row
+        by_key[str(_row_resolved_path(row))] = row
 
     ordered_rows: list[dict[str, Any]] = []
     missing: list[str] = []
-    for image_path in ordered_paths:
-        keys = [image_path, _relative_path(image_path), str(Path(image_path).resolve())]
-        row = next((by_key[key] for key in keys if key in by_key), None)
+    for item in stream_items:
+        image_path = str(item["image_path"])
+        resolved = _resolve_stream_image_path(image_path, dataset_root)
+        row = by_key.get(str(resolved))
         if row is None:
             missing.append(image_path)
             continue
-        ordered_rows.append(dict(row))
+        if int(row.get("label", item["label"])) != int(item["label"]):
+            raise RuntimeError(
+                "Stream label mismatch for "
+                f"{image_path}: stream={item['label']} row={row.get('label')}"
+            )
+        ordered = dict(row)
+        ordered["stream_index"] = item["stream_index"]
+        ordered["image_path"] = image_path
+        ordered["label"] = int(item["label"])
+        ordered["category"] = str(item["category"])
+        ordered_rows.append(ordered)
 
     if missing:
         raise RuntimeError(
             "Stream references image(s) outside the evaluated PatchCore split: "
             + ", ".join(missing[:5])
             + (" ..." if len(missing) > 5 else "")
+        )
+    if len(ordered_rows) != len(stream_items):
+        raise RuntimeError(
+            "PatchCore stream filtering did not produce exactly one row per stream item."
         )
     return ordered_rows
 
@@ -247,14 +320,14 @@ class PatchCoreWrapper(BaselineWrapper):
             max_test_images=max_test_images,
             torch=torch,
         )
-        rows = _apply_stream_order(rows, stream_path)
+        rows = _apply_stream_order(rows, stream_path, dataset_root, require_stream=True)
         for idx, row in enumerate(rows):
             row["stream_index"] = idx
 
         output_path = Path(output_csv)
         output_path.parent.mkdir(parents=True, exist_ok=True)
         with output_path.open("w", newline="") as handle:
-            writer = csv.DictWriter(handle, fieldnames=SCORE_FIELDS)
+            writer = csv.DictWriter(handle, fieldnames=SCORE_FIELDS, lineterminator="\n")
             writer.writeheader()
             writer.writerows(rows)
 
