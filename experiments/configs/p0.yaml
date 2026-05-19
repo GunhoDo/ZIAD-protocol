@@ -1,0 +1,42 @@
+# Minimal P0 configuration for the paper.pdf pipeline.
+# This file documents the intended matrix; scripts/run_p0.sh currently emits
+# placeholder outputs until real datasets/checkpoints are configured.
+datasets:
+  - MVTec AD
+  - VisA
+stream_types:
+  - iid
+  - bursty
+prevalence: 0.05
+contamination_epsilon:
+  - 0
+  - 0.01
+  - 0.05
+baselines:
+  - RareCLIP
+  - PatchCore
+  - WinCLIP
+  - AnomalyCLIP
+memory_policy_scope:
+  - RareCLIP
+  - PatchCore
+memory_policies:
+  - default/SCS
+  - FIFO
+  - Reservoir
+  - Prototype-EMA
+calibration:
+  - none
+  - temperature_scaling
+metrics:
+  - Image AUROC
+  - AUPR
+  - ECE
+  - latency
+  - CRD-lite
+outputs:
+  root: results/latest
+  latest_run: results/latest/latest_run.json
+  manifest: results/latest/manifest.json
+  scores_csv: results/latest/scores.csv
+  metrics_csv: results/latest/metrics.csv

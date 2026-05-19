@@ -1,0 +1,48 @@
+# Baseline registry for P0 experiment setup.
+# repo_url and commit_hash are TBD until explicitly researched and pinned.
+# Do not fabricate URLs or pretend TBD entries are configured.
+
+baselines:
+  RareCLIP:
+    name: RareCLIP
+    local_path: external/RareCLIP
+    repo_url: TBD
+    commit_hash: TBD
+    checkpoint_path: TBD
+    setup_command: TBD
+    smoke_command: TBD
+    wrapper_module: experiments.baselines.rareclip
+    expected_output_schema: "stream_index,image_path,label,category,anomaly_score,latency_ms,peak_vram_mb,status"
+
+  PatchCore:
+    name: PatchCore
+    local_path: external/PatchCore
+    repo_url: TBD
+    commit_hash: TBD
+    checkpoint_path: TBD_or_not_required
+    setup_command: TBD
+    smoke_command: TBD
+    wrapper_module: experiments.baselines.patchcore
+    expected_output_schema: "stream_index,image_path,label,category,anomaly_score,latency_ms,peak_vram_mb,status"
+
+  WinCLIP:
+    name: WinCLIP
+    local_path: external/WinCLIP
+    repo_url: TBD
+    commit_hash: TBD
+    checkpoint_path: TBD_or_not_required
+    setup_command: TBD
+    smoke_command: TBD
+    wrapper_module: experiments.baselines.winclip
+    expected_output_schema: "stream_index,image_path,label,category,anomaly_score,latency_ms,peak_vram_mb,status"
+
+  AnomalyCLIP:
+    name: AnomalyCLIP
+    local_path: external/AnomalyCLIP
+    repo_url: TBD
+    commit_hash: TBD
+    checkpoint_path: TBD
+    setup_command: TBD
+    smoke_command: TBD
+    wrapper_module: experiments.baselines.anomalyclip
+    expected_output_schema: "stream_index,image_path,label,category,anomaly_score,latency_ms,peak_vram_mb,status"

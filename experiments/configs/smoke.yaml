@@ -1,0 +1,23 @@
+# Smoke run configuration: first success gate A
+# One baseline + one dataset category + one stream -> results/latest/scores.csv
+# Change baseline/category here; URLs/commits must be configured in baselines.yaml first.
+
+baseline: PatchCore
+baseline_path: external/PatchCore
+
+dataset: MVTec AD
+dataset_root: data/mvtec_ad
+category: bottle
+
+stream_type: iid
+prevalence: 0.05
+contamination_epsilon: 0
+
+stream:
+  # Consumed if present; generated as a minimal stub if missing.
+  path: results/latest/stream_smoke.json
+
+outputs:
+  scores_csv: results/latest/scores.csv
+  latest_run: results/latest/latest_run.json
+  manifest: results/latest/manifest.json

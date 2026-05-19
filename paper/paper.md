@@ -1,0 +1,29 @@
+# Streaming Zero-Shot Industrial Anomaly Detection with CLIP: A Minimal ACCV/LNCS Paper Scaffold
+
+## Abstract
+
+TODO: Replace this placeholder abstract after real P0 results exist. This paper targets a CLIP-based zero-shot industrial anomaly detection evaluation protocol under streaming conditions. The current build intentionally avoids measured-result claims until `results/latest/manifest.json` is marked `final`.
+
+## 1 Introduction
+
+Industrial anomaly detection is often evaluated on static test sets, but practical inspection systems receive images over time. This scaffold focuses on the paper pipeline for a streaming CLIP-based zero-shot anomaly detection study.
+
+TODO: Add evidence-backed motivation and citations.
+
+## 2 Evaluation Protocol
+
+The minimal P0 protocol covers MVTec AD and VisA, i.i.d. and bursty streams, prevalence 0.05, contamination levels 0, 0.01, and 0.05, and the baselines RareCLIP, PatchCore, WinCLIP, and AnomalyCLIP.
+
+## 3 Results
+
+TODO: Results are intentionally placeholders. Do not report measured AUROC, AUPR, ECE, latency, or CRD-lite until `results/latest/manifest.json` has `status: "final"` and `paper_allowed: true`.
+
+The paper may only consume result files from `results/latest/`.
+
+## 4 Limitations
+
+TODO: Replace this section after real P0 runs. Expected interpretations from the protocol are not findings until validated by generated outputs.
+
+## References
+
+TODO: Add numeric citations in ACCV/LNCS style.

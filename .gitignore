@@ -1,0 +1,43 @@
+# Datasets — place locally, never commit real data
+data/**
+!data/README.md
+
+# External baseline clones — place locally, never commit
+external/**
+!external/README.md
+
+# Checkpoints and model weights
+checkpoints/**
+*.pt
+*.pth
+*.ckpt
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+
+# Results — track only lightweight paper-facing files
+results/archive/**
+results/latest/raw/**
+results/latest/logs/**
+results/latest/**/*.npy
+results/latest/**/*.npz
+results/latest/**/*.pt
+results/latest/**/*.pth
+results/latest/streams/**
+
+# OMX planning state — not source of truth
+.omx/
+.omc
+
+# OS and editor noise
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/

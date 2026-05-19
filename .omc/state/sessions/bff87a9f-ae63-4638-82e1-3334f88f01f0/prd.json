@@ -1,0 +1,23 @@
+{
+  "title": "Create AGENTS.md for next agent",
+  "stories": [
+    {
+      "id": "US-001",
+      "title": "Create AGENTS.md with accurate, information-dense project documentation",
+      "acceptanceCriteria": [
+        "AGENTS.md exists at repo root",
+        "AGENTS.md documents the project purpose (CLIP ZSAD streaming anomaly detection)",
+        "AGENTS.md lists all key directories with their responsibilities",
+        "AGENTS.md documents the three experiment gates (setup smoke, first success A, paper gate)",
+        "AGENTS.md documents the common CSV schema",
+        "AGENTS.md documents the no-fake-results rule",
+        "AGENTS.md documents which files are gitignored vs tracked",
+        "AGENTS.md documents the run commands: run_smoke.sh, build_paper.sh, setup_baselines.sh",
+        "AGENTS.md documents the wrapper interface contract",
+        "AGENTS.md does not fabricate baseline URLs or claim gates are passed",
+        "AGENTS.md references docs/experiment-prd.md for full detail"
+      ],
+      "passes": true
+    }
+  ]
+}

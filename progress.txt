@@ -1,0 +1,43 @@
+# Ralph Progress: Portable Baseline Experiment Setup
+
+## Session
+Source PRD: .omx/plans/prd-baseline-experiment-setup.md
+Started: 2026-05-19
+
+## Stories — ALL COMPLETE (49/49 checks pass)
+- US-001: docs/experiment-prd.md — DONE
+- US-002: .gitignore — DONE
+- US-003: data/README.md + external/README.md — DONE
+- US-004: smoke.yaml + baselines.yaml — DONE
+- US-005: experiments/baselines/ wrappers (4 stubs + base) — DONE
+- US-006: setup_baselines.sh + run_smoke.sh — DONE
+- US-007: README.md quickstart — DONE
+- US-008: latest_run.json + manifest.json schema — DONE
+
+## Files Created
+- docs/experiment-prd.md
+- .gitignore
+- data/README.md
+- external/README.md
+- experiments/configs/smoke.yaml
+- experiments/configs/baselines.yaml
+- experiments/baselines/__init__.py
+- experiments/baselines/base.py
+- experiments/baselines/rareclip.py
+- experiments/baselines/patchcore.py
+- experiments/baselines/winclip.py
+- experiments/baselines/anomalyclip.py
+- scripts/setup_baselines.sh
+- scripts/run_smoke.sh
+
+## Files Modified
+- README.md (added Experiment Setup section)
+- results/latest/latest_run.json (updated to PRD-required schema)
+- results/latest/manifest.json (added tracking_policy)
+
+## Learnings
+- Subagents do not have Write/Bash permissions in this session — all files must be created by the orchestrator directly.
+- Inline YAML comments on value lines (e.g. `path: foo.json  # comment`) get picked up by the fallback parser; move comments to their own line.
+- A hook runs run_smoke.sh after file writes; this is expected behavior and confirms the script works correctly.
+- scores.csv already had the correct header schema — no changes needed.
+- Wrapper stubs must raise RuntimeError rather than writing any numeric values.
