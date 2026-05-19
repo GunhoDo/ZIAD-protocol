@@ -170,9 +170,9 @@ PY
 python3 - \
   "$SMOKE_BASELINE" "$SMOKE_BASELINE_PATH" "$BASELINE_REPO_URL" "$BASELINE_COMMIT_HASH" "$SMOKE_DATASET_ROOT" \
   "$SMOKE_CATEGORY" "$SMOKE_STREAM_TYPE" "$SMOKE_STREAM_PATH" \
-  "$LATEST_RUN" "$NOW" <<'PY'
+  "$LATEST_RUN" "$MANIFEST" "$NOW" <<'PY'
 import json, pathlib, sys
-baseline, bpath, repo_url, commit_hash, droot, cat, stype, spath, run_path, ts = sys.argv[1:]
+baseline, bpath, repo_url, commit_hash, droot, cat, stype, spath, run_path, mpath, ts = sys.argv[1:]
 run = {
     "status": "success",
     "baseline": baseline,
@@ -192,7 +192,12 @@ run = {
     "notes": "First success gate A passed. paper_allowed stays false until measured results are reviewed."
 }
 pathlib.Path(run_path).write_text(json.dumps(run, indent=2))
-print(f"Wrote success provenance to {run_path}.")
+manifest_path = pathlib.Path(mpath)
+manifest = json.loads(manifest_path.read_text())
+manifest["status"] = "first_success_a"
+manifest["paper_allowed"] = False
+manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
+print(f"Wrote success provenance to {run_path} and {mpath}.")
 PY
 
 echo ""

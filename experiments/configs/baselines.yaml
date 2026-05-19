@@ -20,8 +20,8 @@ baselines:
     repo_url: https://github.com/amazon-science/patchcore-inspection.git
     commit_hash: fcaa92f124fb1ad74a7acf56726decd4b27cbcad
     checkpoint_path: TBD_or_not_required
-    setup_command: TBD
-    smoke_command: TBD
+    setup_command: python3 -m pip install -r external/patchcore-inspection/requirements.txt timm
+    smoke_command: bash scripts/run_smoke.sh
     wrapper_module: experiments.baselines.patchcore
     expected_output_schema: "stream_index,image_path,label,category,anomaly_score,latency_ms,peak_vram_mb,status"
 
