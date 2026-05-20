@@ -60,6 +60,16 @@ The aggregate mini-matrix step also writes a CRD-lite smoke summary such as
 `results/latest/mini_matrix/crd_lite_winclip_bottle.csv`. CRD-lite is derived
 from epsilon-0 AUROC/AUPR drops and is diagnostic until full P0 review.
 
+## Run a category quick sweep
+
+```bash
+bash scripts/run_category_quick_sweep.sh experiments/configs/category_quick_sweep.yaml
+```
+
+This runs a small PatchCore/WinCLIP × bottle/capsule/hazelnut smoke sweep to
+catch category-specific failures before full P0. It is measured but still
+paper-ineligible.
+
 ## Current result contract
 
 - `results/latest/latest_run.json`: one current run/status summary.

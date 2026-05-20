@@ -1,0 +1,39 @@
+# Fast MVTec AD category quick sweep for category-specific smoke failures.
+dataset: MVTec AD
+dataset_root: data/mvtec_ad
+categories:
+  - bottle
+  - capsule
+  - hazelnut
+
+baselines:
+  - name: PatchCore
+    baseline_path: external/patchcore-inspection
+    provenance:
+      scoring_mode: stream_ordered_offline
+      latency_semantics: offline_batch_amortized
+      training_source: train/good
+      stream_source: test/*
+  - name: WinCLIP
+    baseline_path: external/WinClip
+    provenance:
+      scoring_mode: stream_ordered_zero_shot
+      latency_semantics: wrapper_batch_amortized
+      training_source: zero_shot_text_prompts
+      stream_source: test/*
+
+prevalence: 0.05
+stream_types:
+  - iid
+contamination_epsilon:
+  - 0
+stream:
+  seed: 0
+  length: 20
+  burst_length: 5
+
+outputs:
+  root: results/latest/category_quick_sweep
+  aggregate_metrics: results/latest/category_quick_sweep/metrics_mvtec_category_quick_sweep.csv
+  aggregate_manifest: results/latest/category_quick_sweep/manifest_mvtec_category_quick_sweep.json
+  crd_lite_summary: results/latest/category_quick_sweep/crd_lite_mvtec_category_quick_sweep.csv

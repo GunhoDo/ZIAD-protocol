@@ -46,3 +46,7 @@ results/latest/streams/**
 results/latest/mini_matrix/configs/**
 results/latest/mini_matrix/*_eps_*/**
 results/latest/mini_matrix/patchcore_*/**
+
+# Category quick-sweep generated details; keep combined aggregate CSV/manifest trackable.
+results/latest/category_quick_sweep/configs/**
+results/latest/category_quick_sweep/details/**

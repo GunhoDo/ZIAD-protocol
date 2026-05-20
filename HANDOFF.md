@@ -50,6 +50,11 @@
   - epsilon 0 대비 현재 epsilon의 `image_auroc`/`aupr` signed drop 평균
   - positive는 contamination degradation, 0은 measured drop 없음, negative는 smoke metric improvement
   - full P0 전까지 pipeline diagnostic이며 paper-ready metric 아님
+- MVTec category quick sweep 구현 완료:
+  - helper: `experiments/category_sweep.py`
+  - runner: `scripts/run_category_quick_sweep.sh`
+  - config: `experiments/configs/category_quick_sweep.yaml`
+  - PatchCore/WinCLIP × bottle/capsule/hazelnut × iid × ε=0, length=20
 
 ### 실제 실행 완료
 
@@ -87,6 +92,17 @@
   - stream types: `iid`, `bursty`
   - epsilon: `0.0`, `0.01`, `0.05`
   - `paper_allowed=false`
+- MVTec category quick sweep 실행 완료:
+  - config: `experiments/configs/category_quick_sweep.yaml`
+  - command: `bash scripts/run_category_quick_sweep.sh experiments/configs/category_quick_sweep.yaml`
+  - aggregate metrics: `results/latest/category_quick_sweep/metrics_mvtec_category_quick_sweep.csv`
+  - CRD-lite summary: `results/latest/category_quick_sweep/crd_lite_mvtec_category_quick_sweep.csv`
+  - manifest: `results/latest/category_quick_sweep/manifest_mvtec_category_quick_sweep.json`
+  - rows: 6 measured_smoke rows
+  - categories: `bottle`, `capsule`, `hazelnut`
+  - baselines: `PatchCore`, `WinCLIP`
+  - stream/epsilon: `iid`, `0.0`
+  - `paper_allowed=false`
 
 ## 2. 검증 증거
 
@@ -109,6 +125,7 @@ python3 experiments/evaluate.py \
 bash scripts/run_baseline_mini_matrix.sh experiments/configs/winclip_mini_matrix.yaml
 python3 experiments/mini_matrix.py aggregate experiments/configs/patchcore_mini_matrix.yaml
 python3 experiments/mini_matrix.py aggregate experiments/configs/winclip_mini_matrix.yaml
+bash scripts/run_category_quick_sweep.sh experiments/configs/category_quick_sweep.yaml
 python3 -m unittest discover -v
 python3 -m compileall experiments tests
 git diff --check
@@ -123,6 +140,7 @@ git diff --check
 - WinCLIP smoke: 20 measured rows, evaluated smoke manifest `paper_allowed=false`
 - WinCLIP mini-matrix aggregate: 6 rows, all `measured_smoke`, `paper_allowed=false`
 - CRD-lite summaries: PatchCore/WinCLIP 각 6 rows, all `derived_smoke`, `paper_allowed=false`
+- Category quick sweep: 6 rows, categories `bottle/capsule/hazelnut`, baselines `PatchCore/WinCLIP`, all `measured_smoke`, `paper_allowed=false`
 
 ## 3. 지금 논문 관점에서 어디까지 왔나
 
@@ -135,13 +153,14 @@ git diff --check
 3. epsilon sweep의 no-duplicate/closest-ratio/warning 정책이 실제 metadata로 남는다.
 4. baseline-parametric mini-matrix runner가 동작한다.
 5. PatchCore와 WinCLIP 모두 bottle에서 `iid/bursty × ε 0/0.01/0.05` aggregate metric CSV와 CRD-lite smoke summary까지 생성된다.
+6. PatchCore와 WinCLIP은 bottle/capsule/hazelnut iid ε=0 quick sweep까지 통과했다.
 
 하지만 아직 **논문 결과 단계는 아니다**.
 
 부족한 것:
 
 - CLIP baseline은 WinCLIP bottle mini-matrix만 완료: RareCLIP/AnomalyCLIP 미완, WinCLIP full sweep 미실행
-- MVTec 전체 category 미실행
+- MVTec 전체 category 미실행; quick sweep은 bottle/capsule/hazelnut만 완료
 - VisA 미실행
 - full P0 matrix 미실행
 - CRD-lite는 bottle mini-matrix smoke summary만 구현됨; full P0/category/VisA 검증 미완
@@ -150,29 +169,33 @@ git diff --check
 
 ## 4. 다음 에이전트가 빠르게 해야 할 일
 
-### 1순위 — MVTec category quick sweep
+### 1순위 — paper table pipeline
 
-PatchCore/WinCLIP이 bottle만 통과했으므로 2~3개 category quick sweep으로 category-specific path 문제를 먼저 찾는다.
+CRD-lite summary, mini-matrix, category quick-sweep outputs를 paper-facing table 형식으로 정리한다. 단, paper text는 아직 TODO 유지하고 `paper_allowed=false`를 유지한다.
 
-권장 category: `bottle`, `capsule`, `hazelnut` 또는 실제 데이터가 준비된 category.
+시작 파일:
 
-목표:
+- `experiments/mini_matrix.py`
+- `experiments/category_sweep.py`
+- `results/latest/mini_matrix/*.csv`
+- `results/latest/category_quick_sweep/*.csv`
+- `results/latest/tables/`
 
-category를 config parameter로 넘겨 `scripts/run_baseline_mini_matrix.sh`를 재사용하고, aggregate metrics/CRD-lite summary가 category별로 충돌 없이 생성되는지 확인한다.
+### 2순위 — MVTec full category sweep
 
-### 2순위 — paper table pipeline
+quick sweep 이후 MVTec 전체 category로 확장한다.
 
-CRD-lite summary와 mini/full matrix outputs를 paper-facing table 형식으로 정리한다. 단, paper text는 아직 TODO 유지하고 `paper_allowed=false`를 유지한다.
+권장 접근:
+
+1. `experiments/configs/category_quick_sweep.yaml`의 `categories`를 전체 MVTec category로 확장한 별도 config 작성
+2. 먼저 WinCLIP-only 또는 PatchCore-only로 runtime 확인
+3. full P0 전까지 `paper_allowed=false` 유지
 
 ### 3순위 — RareCLIP / AnomalyCLIP wrapper 구현
 
 WinCLIP 이후 남은 CLIP baseline을 하나씩 같은 stream contract에 맞춘다. fake score 금지, upstream loader가 stream order를 무시하면 wrapper가 직접 stream JSON을 읽어야 한다.
 
-### 4순위 — MVTec full category sweep
-
-quick sweep 이후 MVTec 전체 category로 확장한다.
-
-### 5순위 — VisA 연결
+### 4순위 — VisA 연결
 
 VisA는 dataset/helper 성격상 `external/spot-diff`와 `data/visa/` 구조를 확인한 뒤 MVTec stream item schema와 동일하게 맞춘다.
 
@@ -184,3 +207,4 @@ VisA는 dataset/helper 성격상 `external/spot-diff`와 `data/visa/` 구조를 
 - WinCLIP smoke latency는 wrapper batch inference amortized latency다. full benchmark 전에는 pipeline evidence로만 해석한다.
 - 현재 ECE는 baseline anomaly score min-max 기반 diagnostic이다. calibrated probability로 해석 금지.
 - 현재 CRD-lite는 bottle mini-matrix aggregate에서 파생한 signed smoke diagnostic이다. full P0 결과처럼 해석 금지.
+- Category quick sweep은 iid ε=0 length=20 smoke이다. category 확장성 확인용이며 full-category/full-epsilon benchmark가 아니다.

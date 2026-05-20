@@ -10,7 +10,7 @@ Canonical experiment reference: [`docs/experiment-prd.md`](docs/experiment-prd.m
 ## Current Status
 
 **Setup smoke gate: PASSED** — docs, configs, scripts, and wrapper stubs exist.
-**First success gate A: PASSED for PatchCore and WinCLIP on MVTec AD/bottle smoke/mini-matrix** — real stream files, measured score rows, iid/bursty × ε artifacts, and CRD-lite smoke summaries exist for both baselines; not full P0.
+**First success gate A: PASSED for PatchCore and WinCLIP on MVTec AD/bottle smoke/mini-matrix plus a 3-category quick sweep** — real stream files, measured score rows, iid/bursty × ε artifacts, CRD-lite smoke summaries, and bottle/capsule/hazelnut quick-sweep artifacts exist; not full P0.
 **Paper gate: NOT YET** — current outputs remain smoke/mini-matrix evidence with `paper_allowed: false`; full reviewed P0 results are still required.
 
 Baseline repo URLs and commit hashes are pinned in `experiments/configs/baselines.yaml`
@@ -30,6 +30,7 @@ ZIAD-protocol/
     configs/
       smoke.yaml              # Smoke run: PatchCore + MVTec AD/bottle (one baseline/category)
       baselines.yaml          # Registry: 4 baselines with pinned repo_url/commit_hash
+      category_quick_sweep.yaml # PatchCore/WinCLIP bottle/capsule/hazelnut quick sweep
       winclip_mini_matrix.yaml # WinCLIP bottle iid/bursty × epsilon smoke matrix
       p0.yaml                 # Full P0 matrix (future path, not required for first success)
     baselines/
@@ -39,6 +40,7 @@ ZIAD-protocol/
       winclip.py              # Implemented WinCLIP wrapper for stream-ordered MVTec smoke
       anomalyclip.py          # AnomalyCLIP wrapper stub
     evaluate.py               # Score evaluator for smoke/mini-matrix metrics
+    category_sweep.py         # Multi-category quick-sweep config/aggregate helper
     mini_matrix.py            # Baseline-parametric mini-matrix config/aggregate helper
     make_streams.py           # Deterministic MVTec stream generator (iid/bursty)
     prepare_data.py           # Placeholder data prep
@@ -47,6 +49,7 @@ ZIAD-protocol/
   scripts/
     run_smoke.sh              # Smoke runner → results/latest/scores.csv (exits if baseline/data missing)
     run_baseline_mini_matrix.sh # Generic baseline mini-matrix runner
+    run_category_quick_sweep.sh # PatchCore/WinCLIP category quick-sweep runner
     run_patchcore_mini_matrix.sh # Compatibility wrapper around generic mini-matrix runner
     setup_baselines.sh        # Checks clone slots and prints pinned clone commands if missing
     run_p0.sh                 # Refreshes P0 placeholder outputs (no real inference)
@@ -107,6 +110,7 @@ Requires:
 bash scripts/setup_baselines.sh   # Show clone-slot status for all 4 baselines
 bash scripts/run_smoke.sh         # Smoke run (fails clearly if baseline/data missing)
 bash scripts/run_baseline_mini_matrix.sh experiments/configs/winclip_mini_matrix.yaml
+bash scripts/run_category_quick_sweep.sh experiments/configs/category_quick_sweep.yaml
 make paper                        # Build paper/paper.pdf
 make p0                           # Refresh P0 placeholder outputs (no real inference)
 ```
