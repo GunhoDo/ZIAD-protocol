@@ -55,6 +55,13 @@
   - runner: `scripts/run_category_quick_sweep.sh`
   - config: `experiments/configs/category_quick_sweep.yaml`
   - PatchCore/WinCLIP × bottle/capsule/hazelnut × iid × ε=0, length=20
+- paper-facing smoke evidence table pipeline 구현 완료:
+  - renderer: `experiments/render_paper_tables.py`
+  - runner: `scripts/render_paper_tables.sh`
+  - Make target: `make paper-tables`
+  - output: `results/latest/tables/smoke_evidence_summary.tex`
+  - `scripts/build_paper.sh`가 paper build 전에 table renderer를 호출함
+  - table caption/comment에 non-final, paper-ineligible, `paper_allowed=false`가 명시됨
 
 ### 실제 실행 완료
 
@@ -103,6 +110,12 @@
   - baselines: `PatchCore`, `WinCLIP`
   - stream/epsilon: `iid`, `0.0`
   - `paper_allowed=false`
+- Paper table renderer 실행 완료:
+  - command: `bash scripts/render_paper_tables.sh`
+  - generated table: `results/latest/tables/smoke_evidence_summary.tex`
+  - source metrics: `results/latest/category_quick_sweep/metrics_mvtec_category_quick_sweep.csv`
+  - source manifest: `results/latest/category_quick_sweep/manifest_mvtec_category_quick_sweep.json`
+  - `paper_allowed=false` 유지
 
 ## 2. 검증 증거
 
@@ -126,6 +139,8 @@ bash scripts/run_baseline_mini_matrix.sh experiments/configs/winclip_mini_matrix
 python3 experiments/mini_matrix.py aggregate experiments/configs/patchcore_mini_matrix.yaml
 python3 experiments/mini_matrix.py aggregate experiments/configs/winclip_mini_matrix.yaml
 bash scripts/run_category_quick_sweep.sh experiments/configs/category_quick_sweep.yaml
+bash scripts/render_paper_tables.sh
+bash scripts/build_paper.sh
 python3 -m unittest discover -v
 python3 -m compileall experiments tests
 git diff --check
@@ -133,9 +148,10 @@ git diff --check
 
 검증 결과:
 
-- unittest: 27 tests OK
+- unittest: 31 tests OK
 - compileall: OK
 - diff check: OK
+- paper build: OK, local environment has no `pdflatex`, so dependency-free placeholder PDF fallback was written
 - mini-matrix aggregate: 6 rows, all `measured_smoke`, `paper_allowed=false`
 - WinCLIP smoke: 20 measured rows, evaluated smoke manifest `paper_allowed=false`
 - WinCLIP mini-matrix aggregate: 6 rows, all `measured_smoke`, `paper_allowed=false`
@@ -164,24 +180,12 @@ git diff --check
 - VisA 미실행
 - full P0 matrix 미실행
 - CRD-lite는 bottle mini-matrix smoke summary만 구현됨; full P0/category/VisA 검증 미완
-- paper table/figure가 full matrix 기반이 아님
+- paper table pipeline은 smoke evidence table만 생성함; full matrix 기반 table/figure는 아직 아님
 - review 전이므로 `paper_allowed=true` 금지
 
 ## 4. 다음 에이전트가 빠르게 해야 할 일
 
-### 1순위 — paper table pipeline
-
-CRD-lite summary, mini-matrix, category quick-sweep outputs를 paper-facing table 형식으로 정리한다. 단, paper text는 아직 TODO 유지하고 `paper_allowed=false`를 유지한다.
-
-시작 파일:
-
-- `experiments/mini_matrix.py`
-- `experiments/category_sweep.py`
-- `results/latest/mini_matrix/*.csv`
-- `results/latest/category_quick_sweep/*.csv`
-- `results/latest/tables/`
-
-### 2순위 — MVTec full category sweep
+### 1순위 — MVTec full category sweep
 
 quick sweep 이후 MVTec 전체 category로 확장한다.
 
@@ -191,11 +195,11 @@ quick sweep 이후 MVTec 전체 category로 확장한다.
 2. 먼저 WinCLIP-only 또는 PatchCore-only로 runtime 확인
 3. full P0 전까지 `paper_allowed=false` 유지
 
-### 3순위 — RareCLIP / AnomalyCLIP wrapper 구현
+### 2순위 — RareCLIP / AnomalyCLIP wrapper 구현
 
 WinCLIP 이후 남은 CLIP baseline을 하나씩 같은 stream contract에 맞춘다. fake score 금지, upstream loader가 stream order를 무시하면 wrapper가 직접 stream JSON을 읽어야 한다.
 
-### 4순위 — VisA 연결
+### 3순위 — VisA 연결
 
 VisA는 dataset/helper 성격상 `external/spot-diff`와 `data/visa/` 구조를 확인한 뒤 MVTec stream item schema와 동일하게 맞춘다.
 
@@ -208,3 +212,4 @@ VisA는 dataset/helper 성격상 `external/spot-diff`와 `data/visa/` 구조를 
 - 현재 ECE는 baseline anomaly score min-max 기반 diagnostic이다. calibrated probability로 해석 금지.
 - 현재 CRD-lite는 bottle mini-matrix aggregate에서 파생한 signed smoke diagnostic이다. full P0 결과처럼 해석 금지.
 - Category quick sweep은 iid ε=0 length=20 smoke이다. category 확장성 확인용이며 full-category/full-epsilon benchmark가 아니다.
+- `render_paper_tables.py`는 결과를 “논문 결론”으로 승격하지 않는다. 현재 생성 표는 smoke evidence table이며 `paper_allowed=false`를 명시한다.

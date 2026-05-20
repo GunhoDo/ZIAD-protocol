@@ -35,7 +35,21 @@ bash scripts/build_paper.sh
 make paper
 ```
 
-The build script produces `paper/paper.pdf`. If no LaTeX engine is installed, it writes a dependency-free placeholder PDF that preserves the TODO/no-fake-results rule.
+The build script first refreshes generated tables under `results/latest/tables/`,
+then produces `paper/paper.pdf`. If no LaTeX engine is installed, it writes a
+dependency-free placeholder PDF that preserves the TODO/no-fake-results rule.
+
+## Refresh paper-facing tables only
+
+```bash
+bash scripts/render_paper_tables.sh
+# or
+make paper-tables
+```
+
+This renders checked result CSVs into LaTeX tables. Current quick-sweep tables
+are explicitly marked non-final and paper-ineligible because `paper_allowed`
+remains `false`.
 
 ## Refresh placeholder P0 outputs
 

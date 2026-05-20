@@ -27,6 +27,8 @@ if find results -path "*run_manifest.json" -print | grep -q .; then
   exit 1
 fi
 
+bash scripts/render_paper_tables.sh
+
 python3 - <<'PY'
 import json
 from pathlib import Path

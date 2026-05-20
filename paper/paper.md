@@ -20,6 +20,10 @@ TODO: Results are intentionally placeholders. Do not report measured AUROC, AUPR
 
 The paper may only consume result files from `results/latest/`.
 
+The manuscript build may include generated smoke evidence tables from
+`results/latest/tables/`, but they remain explicitly paper-ineligible until the
+manifest is final and `paper_allowed` is true.
+
 ## 4 Limitations
 
 TODO: Replace this section after real P0 runs. Expected interpretations from the protocol are not findings until validated by generated outputs.

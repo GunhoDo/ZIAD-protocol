@@ -11,7 +11,7 @@ Canonical experiment reference: [`docs/experiment-prd.md`](docs/experiment-prd.m
 
 **Setup smoke gate: PASSED** — docs, configs, scripts, and wrapper stubs exist.
 **First success gate A: PASSED for PatchCore and WinCLIP on MVTec AD/bottle smoke/mini-matrix plus a 3-category quick sweep** — real stream files, measured score rows, iid/bursty × ε artifacts, CRD-lite smoke summaries, and bottle/capsule/hazelnut quick-sweep artifacts exist; not full P0.
-**Paper gate: NOT YET** — current outputs remain smoke/mini-matrix evidence with `paper_allowed: false`; full reviewed P0 results are still required.
+**Paper gate: NOT YET** — current outputs remain smoke/mini-matrix evidence with `paper_allowed: false`; generated paper-facing tables are non-final smoke evidence only; full reviewed P0 results are still required.
 
 Baseline repo URLs and commit hashes are pinned in `experiments/configs/baselines.yaml`
 from the current local clones. Do not fabricate replacement URLs or commit hashes.
@@ -43,6 +43,7 @@ ZIAD-protocol/
     category_sweep.py         # Multi-category quick-sweep config/aggregate helper
     mini_matrix.py            # Baseline-parametric mini-matrix config/aggregate helper
     make_streams.py           # Deterministic MVTec stream generator (iid/bursty)
+    render_paper_tables.py    # Renders paper-ineligible smoke evidence tables
     prepare_data.py           # Placeholder data prep
     run_baselines.py          # Placeholder baseline runner
 
@@ -51,6 +52,7 @@ ZIAD-protocol/
     run_baseline_mini_matrix.sh # Generic baseline mini-matrix runner
     run_category_quick_sweep.sh # PatchCore/WinCLIP category quick-sweep runner
     run_patchcore_mini_matrix.sh # Compatibility wrapper around generic mini-matrix runner
+    render_paper_tables.sh    # Refreshes generated LaTeX tables from result CSVs
     setup_baselines.sh        # Checks clone slots and prints pinned clone commands if missing
     run_p0.sh                 # Refreshes P0 placeholder outputs (no real inference)
     build_paper.sh            # Builds paper/paper.pdf (or placeholder if no LaTeX)
@@ -111,6 +113,7 @@ bash scripts/setup_baselines.sh   # Show clone-slot status for all 4 baselines
 bash scripts/run_smoke.sh         # Smoke run (fails clearly if baseline/data missing)
 bash scripts/run_baseline_mini_matrix.sh experiments/configs/winclip_mini_matrix.yaml
 bash scripts/run_category_quick_sweep.sh experiments/configs/category_quick_sweep.yaml
+bash scripts/render_paper_tables.sh # Refresh paper-facing non-final smoke evidence tables
 make paper                        # Build paper/paper.pdf
 make p0                           # Refresh P0 placeholder outputs (no real inference)
 ```
