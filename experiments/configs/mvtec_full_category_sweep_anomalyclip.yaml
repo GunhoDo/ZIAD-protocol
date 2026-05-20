@@ -1,0 +1,47 @@
+# MVTec AD full-category smoke sweep for AnomalyCLIP.
+# This is still paper-ineligible: iid only, epsilon 0 only, short stream length.
+dataset: MVTec AD
+dataset_root: data/mvtec_ad
+categories:
+  - bottle
+  - cable
+  - capsule
+  - carpet
+  - grid
+  - hazelnut
+  - leather
+  - metal_nut
+  - pill
+  - screw
+  - tile
+  - toothbrush
+  - transistor
+  - wood
+  - zipper
+
+baselines:
+  - name: AnomalyCLIP
+    baseline_path: external/AnomalyCLIP
+    provenance:
+      scoring_mode: stream_ordered_zero_shot
+      latency_semantics: wrapper_single_image
+      training_source: learned_text_prompt_checkpoint
+      stream_source: test/*
+
+prevalence: 0.05
+stream_types:
+  - iid
+contamination_epsilon:
+  - 0
+stream:
+  seed: 0
+  length: 20
+  burst_length: 5
+
+outputs:
+  root: results/latest/mvtec_full_category_sweep_anomalyclip
+  aggregate_metrics: results/latest/mvtec_full_category_sweep_anomalyclip/metrics_mvtec_full_category_sweep_anomalyclip.csv
+  aggregate_manifest: results/latest/mvtec_full_category_sweep_anomalyclip/manifest_mvtec_full_category_sweep_anomalyclip.json
+  crd_lite_summary: results/latest/mvtec_full_category_sweep_anomalyclip/crd_lite_mvtec_full_category_sweep_anomalyclip.csv
+  status: mvtec_full_category_sweep_anomalyclip_complete
+  notes: MVTec full-category AnomalyCLIP smoke evidence only; not full P0 or paper gate.

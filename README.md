@@ -129,6 +129,16 @@ This uses the same all-category smoke shape for PatchCore. It exercises the
 train/good setup and stream-ordered offline scoring path across all MVTec
 categories. It is still smoke evidence and remains paper-ineligible.
 
+## Run the MVTec full-category AnomalyCLIP smoke sweep
+
+```bash
+bash scripts/run_mvtec_full_category_sweep_anomalyclip.sh
+```
+
+This uses the same all-category smoke shape for AnomalyCLIP with iid,
+epsilon-zero, length-20 streams. It is CPU single-image inference and remains
+smoke evidence with `paper_allowed=false`.
+
 ## Current result contract
 
 - `results/latest/latest_run.json`: one current run/status summary.

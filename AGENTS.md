@@ -10,7 +10,7 @@ Canonical experiment reference: [`docs/experiment-prd.md`](docs/experiment-prd.m
 ## Current Status
 
 **Setup smoke gate: PASSED** — docs, configs, scripts, and wrapper stubs exist.
-**First success gate A: PASSED for PatchCore, WinCLIP, and AnomalyCLIP smoke paths** — real stream files, measured score rows, iid/bursty × ε artifacts, CRD-lite smoke summaries, bottle/capsule/hazelnut PatchCore/WinCLIP quick-sweep artifacts, PatchCore/WinCLIP all-15-category iid ε=0 smoke artifacts, and AnomalyCLIP bottle mini-matrix artifacts exist; not full P0.
+**First success gate A: PASSED for PatchCore, WinCLIP, and AnomalyCLIP smoke paths** — real stream files, measured score rows, iid/bursty × ε artifacts, CRD-lite smoke summaries, bottle/capsule/hazelnut PatchCore/WinCLIP quick-sweep artifacts, and PatchCore/WinCLIP/AnomalyCLIP all-15-category iid ε=0 smoke artifacts exist; not full P0.
 **Paper gate: NOT YET** — current outputs remain smoke/mini-matrix evidence with `paper_allowed: false`; generated paper-facing tables are non-final smoke evidence only; full reviewed P0 results are still required.
 
 Baseline repo URLs and commit hashes are pinned in `experiments/configs/baselines.yaml`
@@ -31,6 +31,7 @@ ZIAD-protocol/
       smoke.yaml              # Smoke run: PatchCore + MVTec AD/bottle (one baseline/category)
       baselines.yaml          # Registry: 4 baselines with pinned repo_url/commit_hash
       category_quick_sweep.yaml # PatchCore/WinCLIP bottle/capsule/hazelnut quick sweep
+      mvtec_full_category_sweep_anomalyclip.yaml # AnomalyCLIP all-category iid epsilon-zero smoke sweep
       mvtec_full_category_sweep_patchcore.yaml # PatchCore all-category iid epsilon-zero smoke sweep
       mvtec_full_category_sweep_winclip.yaml # WinCLIP all-category iid epsilon-zero smoke sweep
       anomalyclip_mini_matrix.yaml # AnomalyCLIP bottle iid/bursty × epsilon smoke matrix
@@ -55,6 +56,7 @@ ZIAD-protocol/
     run_smoke.sh              # Smoke runner → results/latest/scores.csv (exits if baseline/data missing)
     run_baseline_mini_matrix.sh # Generic baseline mini-matrix runner
     run_category_quick_sweep.sh # PatchCore/WinCLIP category quick-sweep runner
+    run_mvtec_full_category_sweep_anomalyclip.sh # AnomalyCLIP all-category MVTec smoke sweep runner
     run_mvtec_full_category_sweep.sh # WinCLIP all-category MVTec smoke sweep runner
     run_mvtec_full_category_sweep_patchcore.sh # PatchCore all-category MVTec smoke sweep runner
     run_patchcore_mini_matrix.sh # Compatibility wrapper around generic mini-matrix runner
@@ -123,6 +125,7 @@ bash scripts/run_baseline_mini_matrix.sh experiments/configs/anomalyclip_mini_ma
 bash scripts/run_category_quick_sweep.sh experiments/configs/category_quick_sweep.yaml
 bash scripts/run_mvtec_full_category_sweep.sh
 bash scripts/run_mvtec_full_category_sweep_patchcore.sh
+bash scripts/run_mvtec_full_category_sweep_anomalyclip.sh
 bash scripts/render_paper_tables.sh # Refresh paper-facing non-final smoke evidence tables
 make paper                        # Build paper/paper.pdf
 make p0                           # Refresh P0 placeholder outputs (no real inference)
