@@ -41,3 +41,7 @@ results/latest/streams/**
 *.swo
 .idea/
 .vscode/
+
+# Mini-matrix per-run generated details; keep aggregate CSV/manifest trackable.
+results/latest/mini_matrix/configs/**
+results/latest/mini_matrix/patchcore_*/**

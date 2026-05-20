@@ -474,8 +474,71 @@ def write_placeholder_streams(output_dir: str | Path = "results/latest/streams")
             print(path)
 
 
+def _load_config(path: str | Path) -> dict[str, Any]:
+    """Load a smoke-style YAML config without making PyYAML a hard dependency."""
+    config_path = Path(path)
+    text = config_path.read_text()
+    try:
+        import yaml  # type: ignore
+    except ImportError:
+        cfg: dict[str, Any] = {}
+        current_section: str | None = None
+        for raw in text.splitlines():
+            stripped = raw.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            if not raw.startswith((" ", "\t")) and stripped.endswith(":"):
+                current_section = stripped[:-1]
+                cfg[current_section] = {}
+                continue
+            if ":" not in stripped:
+                continue
+            key, _, value = stripped.partition(":")
+            parsed: Any = value.strip().strip('"').strip("'")
+            if parsed in {"", "null", "None"}:
+                parsed = None
+            elif parsed.lower() in {"true", "false"}:
+                parsed = parsed.lower() == "true"
+            target = cfg.get(current_section) if current_section and raw.startswith((" ", "\t")) else cfg
+            if not isinstance(target, dict):
+                target = cfg
+            target[key.strip()] = parsed
+        return cfg
+    loaded = yaml.safe_load(text)
+    if not isinstance(loaded, dict):
+        raise ValueError(f"Config must be a mapping: {config_path}")
+    return loaded
+
+
+def _build_stream_from_config(config: dict[str, Any]) -> tuple[dict[str, Any], Path]:
+    stream = config.get("stream") or {}
+    outputs = config.get("outputs") or {}
+    if not isinstance(stream, dict):
+        raise ValueError("config.stream must be a mapping")
+    if not isinstance(outputs, dict):
+        raise ValueError("config.outputs must be a mapping")
+    output = Path(stream.get("path") or outputs.get("stream") or "results/latest/stream_smoke.json")
+    payload = build_stream(
+        dataset_root=config.get("dataset_root", "data/mvtec_ad"),
+        dataset=config.get("dataset", "MVTec AD"),
+        category=config.get("category", "bottle"),
+        stream_type=config.get("stream_type", "iid"),
+        prevalence=config.get("prevalence", "0.05"),
+        contamination_epsilon=config.get("contamination_epsilon", "0"),
+        seed=stream.get("seed", "0"),
+        length=stream.get("length"),
+        burst_length=stream.get("burst_length", "1"),
+    )
+    return payload, output
+
+
 def parse_args(argv: Iterable[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--config",
+        type=Path,
+        help="Smoke-style YAML config to build a stream from.",
+    )
     parser.add_argument("--dataset-root", default="data/mvtec_ad")
     parser.add_argument("--dataset", default="MVTec AD")
     parser.add_argument("--category", default="bottle")
@@ -505,21 +568,25 @@ def main(argv: Iterable[str] | None = None) -> None:
     if args.placeholder_p0:
         write_placeholder_streams(args.output_dir)
         return
-    payload = build_stream(
-        dataset_root=args.dataset_root,
-        dataset=args.dataset,
-        category=args.category,
-        stream_type=args.stream_type,
-        prevalence=args.prevalence,
-        contamination_epsilon=args.contamination_epsilon,
-        seed=args.seed,
-        length=args.length,
-        burst_length=args.burst_length,
-    )
-    write_stream(payload, args.output)
+    if args.config:
+        payload, output = _build_stream_from_config(_load_config(args.config))
+    else:
+        payload = build_stream(
+            dataset_root=args.dataset_root,
+            dataset=args.dataset,
+            category=args.category,
+            stream_type=args.stream_type,
+            prevalence=args.prevalence,
+            contamination_epsilon=args.contamination_epsilon,
+            seed=args.seed,
+            length=args.length,
+            burst_length=args.burst_length,
+        )
+        output = args.output
+    write_stream(payload, output)
     for warning in payload["metadata"].get("warnings", []):
         print(f"WARNING[{warning['code']}]: {warning['message']}", file=sys.stderr)
-    print(args.output)
+    print(output)
 
 
 if __name__ == "__main__":

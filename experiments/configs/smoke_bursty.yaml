@@ -1,0 +1,22 @@
+# Bursty smoke run: PatchCore + MVTec AD/bottle with contiguous anomaly block(s).
+baseline: PatchCore
+baseline_path: external/patchcore-inspection
+
+dataset: MVTec AD
+dataset_root: data/mvtec_ad
+category: bottle
+
+stream_type: bursty
+prevalence: 0.05
+contamination_epsilon: 0
+
+stream:
+  path: results/latest/stream_smoke_bursty.json
+  seed: 0
+  length:
+  burst_length: 5
+
+outputs:
+  scores_csv: results/latest/scores_bursty.csv
+  latest_run: results/latest/latest_run_bursty.json
+  manifest: results/latest/manifest_bursty.json

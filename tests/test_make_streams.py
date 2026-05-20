@@ -190,6 +190,33 @@ class MakeStreamsTest(unittest.TestCase):
             payload = json.loads(output.read_text())
             make_streams.validate_stream_payload(payload)
 
+
+    def test_config_mode_writes_configured_stream_path(self):
+        tmp, root = self._fixture()
+        with tmp:
+            output = root / "configured_stream.json"
+            config = root / "smoke.yaml"
+            config.write_text(
+                f"""
+dataset: MVTec AD
+dataset_root: {root}
+category: bottle
+stream_type: bursty
+prevalence: 0.25
+contamination_epsilon: 0
+stream:
+  path: {output}
+  seed: 11
+  length: 4
+  burst_length: 2
+"""
+            )
+            make_streams.main(["--config", str(config)])
+            payload = json.loads(output.read_text())
+            make_streams.validate_stream_payload(payload)
+            self.assertEqual(payload["metadata"]["stream_type"], "bursty")
+            self.assertEqual(payload["metadata"]["requested_burst_length"], 2)
+
     def test_placeholder_p0_mode_writes_empty_placeholder_contracts(self):
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "streams"

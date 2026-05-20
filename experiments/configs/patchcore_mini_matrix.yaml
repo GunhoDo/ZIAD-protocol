@@ -1,0 +1,25 @@
+# Fast PatchCore-only matrix to validate paper-run plumbing before full P0.
+baseline: PatchCore
+baseline_path: external/patchcore-inspection
+
+dataset: MVTec AD
+dataset_root: data/mvtec_ad
+category: bottle
+
+prevalence: 0.05
+stream_types:
+  - iid
+  - bursty
+contamination_epsilon:
+  - 0
+  - 0.01
+  - 0.05
+stream:
+  seed: 0
+  length:
+  burst_length: 5
+
+outputs:
+  root: results/latest/mini_matrix
+  aggregate_metrics: results/latest/mini_matrix/metrics_patchcore_bottle.csv
+  aggregate_manifest: results/latest/mini_matrix/manifest_patchcore_bottle.json

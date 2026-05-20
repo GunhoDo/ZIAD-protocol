@@ -19,7 +19,7 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 # Parse config fields with python (avoids yq dependency)
-read -r SMOKE_BASELINE SMOKE_BASELINE_PATH SMOKE_DATASET_ROOT SMOKE_CATEGORY SMOKE_STREAM_TYPE SMOKE_STREAM_PATH SMOKE_PREVALENCE SMOKE_EPSILON SMOKE_STREAM_SEED SMOKE_STREAM_LENGTH SMOKE_BURST_LENGTH < <(python3 - "$CONFIG_FILE" <<'PY'
+read -r SMOKE_BASELINE SMOKE_BASELINE_PATH SMOKE_DATASET_ROOT SMOKE_CATEGORY SMOKE_STREAM_TYPE SMOKE_STREAM_PATH SMOKE_PREVALENCE SMOKE_EPSILON SMOKE_STREAM_SEED SMOKE_STREAM_LENGTH SMOKE_BURST_LENGTH SCORES_CSV LATEST_RUN MANIFEST < <(python3 - "$CONFIG_FILE" <<'PY'
 import sys, pathlib
 
 cfg_text = pathlib.Path(sys.argv[1]).read_text()
@@ -62,17 +62,19 @@ epsilon = cfg.get('contamination_epsilon', 0)
 seed = stream.get('seed', 0)
 length = stream.get('length')
 burst_length = stream.get('burst_length', 1)
+outputs = cfg.get('outputs') or {}
+scores_csv = outputs.get('scores_csv', 'results/latest/scores.csv')
+latest_run = outputs.get('latest_run', 'results/latest/latest_run.json')
+manifest = outputs.get('manifest', 'results/latest/manifest.json')
 length = '__NONE__' if length in {None, '', 'null', 'None'} else length
-print(baseline, baseline_path, dataset_root, category, stream_type, stream_path, prevalence, epsilon, seed, length, burst_length)
+print(baseline, baseline_path, dataset_root, category, stream_type, stream_path, prevalence, epsilon, seed, length, burst_length, scores_csv, latest_run, manifest)
 PY
 )
 
-SCORES_CSV="results/latest/scores.csv"
-LATEST_RUN="results/latest/latest_run.json"
-MANIFEST="results/latest/manifest.json"
 NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 mkdir -p results/latest
+mkdir -p "$(dirname "$SCORES_CSV")" "$(dirname "$LATEST_RUN")" "$(dirname "$MANIFEST")" "$(dirname "$SMOKE_STREAM_PATH")"
 
 BASELINE_REPO_URL="TBD"
 BASELINE_COMMIT_HASH="TBD"
@@ -151,10 +153,11 @@ run = {
     "notes": "setup_incomplete: baseline or dataset missing. Not a first-success run."
 }
 pathlib.Path(run_path).write_text(json.dumps(run, indent=2))
-manifest = json.loads(pathlib.Path(mpath).read_text())
+manifest_path = pathlib.Path(mpath)
+manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
 manifest["status"] = "setup_incomplete"
 manifest["paper_allowed"] = False
-pathlib.Path(mpath).write_text(json.dumps(manifest, indent=2))
+manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
 print(f"Wrote setup_incomplete provenance to {run_path} and {mpath}.")
 PY
   echo ""
@@ -277,7 +280,7 @@ run = {
 }
 pathlib.Path(run_path).write_text(json.dumps(run, indent=2))
 manifest_path = pathlib.Path(mpath)
-manifest = json.loads(manifest_path.read_text())
+manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
 manifest["status"] = "first_success_a"
 manifest["paper_allowed"] = False
 manifest_path.write_text(json.dumps(manifest, indent=2) + "\n")
