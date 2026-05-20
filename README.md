@@ -56,6 +56,10 @@ bash scripts/run_baseline_mini_matrix.sh experiments/configs/winclip_mini_matrix
 Mini-matrix outputs are measured pipeline evidence but remain paper-ineligible:
 `paper_allowed` must stay `false` until full reviewed P0 results exist.
 
+The aggregate mini-matrix step also writes a CRD-lite smoke summary such as
+`results/latest/mini_matrix/crd_lite_winclip_bottle.csv`. CRD-lite is derived
+from epsilon-0 AUROC/AUPR drops and is diagnostic until full P0 review.
+
 ## Current result contract
 
 - `results/latest/latest_run.json`: one current run/status summary.

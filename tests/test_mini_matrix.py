@@ -96,6 +96,66 @@ class MiniMatrixTest(unittest.TestCase):
             manifest = json.loads(manifest_path.read_text())
             self.assertEqual(manifest["status"], "winclip_mini_matrix_complete")
             self.assertFalse(manifest["paper_allowed"])
+            self.assertEqual(
+                manifest["crd_lite_summary"],
+                str(matrix_root / "crd_lite_winclip_bottle.csv"),
+            )
+
+    def test_compute_crd_lite_uses_epsilon_zero_drop_by_stream(self):
+        rows = [
+            {
+                "dataset": "MVTec AD",
+                "stream_type": "iid",
+                "prevalence": "0.05",
+                "contamination_epsilon": "0.0",
+                "baseline": "WinCLIP",
+                "memory_policy": "default/SCS",
+                "calibration": "none",
+                "image_auroc": "0.900000",
+                "aupr": "0.800000",
+                "crd_lite": "NA",
+                "status": "measured_smoke",
+                "run_dir": "iid_0",
+            },
+            {
+                "dataset": "MVTec AD",
+                "stream_type": "iid",
+                "prevalence": "0.05",
+                "contamination_epsilon": "0.05",
+                "baseline": "WinCLIP",
+                "memory_policy": "default/SCS",
+                "calibration": "none",
+                "image_auroc": "0.850000",
+                "aupr": "0.740000",
+                "crd_lite": "NA",
+                "status": "measured_smoke",
+                "run_dir": "iid_005",
+            },
+            {
+                "dataset": "MVTec AD",
+                "stream_type": "bursty",
+                "prevalence": "0.05",
+                "contamination_epsilon": "0.05",
+                "baseline": "WinCLIP",
+                "memory_policy": "default/SCS",
+                "calibration": "none",
+                "image_auroc": "0.700000",
+                "aupr": "0.600000",
+                "crd_lite": "NA",
+                "status": "measured_smoke",
+                "run_dir": "bursty_missing_base",
+            },
+        ]
+
+        summary, by_run_dir = mini_matrix.compute_crd_lite(rows, category="bottle")
+
+        self.assertEqual(by_run_dir["iid_0"], "0.000000")
+        self.assertEqual(by_run_dir["iid_005"], "0.055000")
+        self.assertEqual(by_run_dir["bursty_missing_base"], "NA")
+        self.assertEqual(summary[1]["image_auroc_drop"], "0.050000")
+        self.assertEqual(summary[1]["aupr_drop"], "0.060000")
+        self.assertEqual(summary[1]["status"], "derived_smoke")
+        self.assertEqual(summary[2]["status"], "not_available")
 
 
 if __name__ == "__main__":

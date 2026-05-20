@@ -10,7 +10,7 @@ Canonical experiment reference: [`docs/experiment-prd.md`](docs/experiment-prd.m
 ## Current Status
 
 **Setup smoke gate: PASSED** — docs, configs, scripts, and wrapper stubs exist.
-**First success gate A: PASSED for PatchCore and WinCLIP on MVTec AD/bottle smoke/mini-matrix** — real stream files, measured score rows, and iid/bursty × ε artifacts exist for both baselines; not full P0.
+**First success gate A: PASSED for PatchCore and WinCLIP on MVTec AD/bottle smoke/mini-matrix** — real stream files, measured score rows, iid/bursty × ε artifacts, and CRD-lite smoke summaries exist for both baselines; not full P0.
 **Paper gate: NOT YET** — current outputs remain smoke/mini-matrix evidence with `paper_allowed: false`; full reviewed P0 results are still required.
 
 Baseline repo URLs and commit hashes are pinned in `experiments/configs/baselines.yaml`

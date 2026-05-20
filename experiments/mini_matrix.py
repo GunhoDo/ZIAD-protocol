@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 import re
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,26 @@ except ImportError as error:  # pragma: no cover - environment-dependent
     raise SystemExit("PyYAML is required for mini-matrix config parsing") from error
 
 DEFAULT_ROOT = Path("results/latest/mini_matrix")
+CRD_LITE_FIELDS = [
+    "dataset",
+    "category",
+    "stream_type",
+    "baseline",
+    "memory_policy",
+    "calibration",
+    "prevalence",
+    "baseline_epsilon",
+    "contamination_epsilon",
+    "image_auroc_base",
+    "image_auroc",
+    "image_auroc_drop",
+    "aupr_base",
+    "aupr",
+    "aupr_drop",
+    "crd_lite",
+    "status",
+    "run_dir",
+]
 
 
 def slug(value: Any) -> str:
@@ -66,6 +87,17 @@ def default_aggregate_paths(cfg: dict[str, Any], root: Path) -> tuple[Path, Path
         )
     )
     return aggregate_metrics, aggregate_manifest
+
+
+def default_crd_lite_path(cfg: dict[str, Any], root: Path) -> Path:
+    baseline_slug = slug(cfg.get("baseline", "PatchCore"))
+    category_slug = slug(cfg.get("category", "bottle"))
+    outputs = cfg.get("outputs") or {}
+    return Path(
+        outputs.get(
+            "crd_lite_summary", root / f"crd_lite_{baseline_slug}_{category_slug}.csv"
+        )
+    )
 
 
 def generate_run_configs(matrix_config: Path) -> list[Path]:
@@ -126,11 +158,121 @@ def run_dir_for_config(config_path: Path) -> Path:
     return config_path.parent.parent / config_path.stem
 
 
+def _float_or_none(value: Any) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(number):
+        return None
+    return number
+
+
+def _format_number(value: float | None) -> str:
+    if value is None or not math.isfinite(value):
+        return "NA"
+    return f"{value:.6f}"
+
+
+def _epsilon(row: dict[str, str]) -> float | None:
+    return _float_or_none(row.get("contamination_epsilon"))
+
+
+def _crd_group_key(row: dict[str, str]) -> tuple[str, str, str, str, str, str]:
+    return (
+        row.get("dataset", "unknown"),
+        row.get("stream_type", "unknown"),
+        row.get("baseline", "unknown"),
+        row.get("memory_policy", "unknown"),
+        row.get("calibration", "unknown"),
+        row.get("prevalence", "unknown"),
+    )
+
+
+def compute_crd_lite(
+    rows: list[dict[str, str]], *, category: str
+) -> tuple[list[dict[str, str]], dict[str, str]]:
+    """Compute contamination robustness degradation against epsilon=0 rows.
+
+    CRD-lite is a signed smoke diagnostic:
+
+        mean((AUROC at ε=0 - AUROC at ε), (AUPR at ε=0 - AUPR at ε))
+
+    Positive values indicate degradation under contamination, zero indicates no
+    measured drop, and negative values indicate an improvement in the measured
+    smoke metric. The value is derived only from measured aggregate rows and is
+    not a paper-ready full-P0 metric.
+    """
+    baselines: dict[tuple[str, str, str, str, str, str], dict[str, str]] = {}
+    for row in rows:
+        epsilon = _epsilon(row)
+        if epsilon is not None and math.isclose(epsilon, 0.0):
+            baselines[_crd_group_key(row)] = row
+
+    summary_rows: list[dict[str, str]] = []
+    crd_by_run_dir: dict[str, str] = {}
+    for row in rows:
+        baseline_row = baselines.get(_crd_group_key(row))
+        auroc_base = _float_or_none(
+            baseline_row.get("image_auroc") if baseline_row else None
+        )
+        aupr_base = _float_or_none(baseline_row.get("aupr") if baseline_row else None)
+        auroc = _float_or_none(row.get("image_auroc"))
+        aupr = _float_or_none(row.get("aupr"))
+
+        auroc_drop = None if auroc_base is None or auroc is None else auroc_base - auroc
+        aupr_drop = None if aupr_base is None or aupr is None else aupr_base - aupr
+        drops = [drop for drop in [auroc_drop, aupr_drop] if drop is not None]
+        crd = sum(drops) / len(drops) if drops else None
+
+        crd_value = _format_number(crd)
+        run_dir = row.get("run_dir", "")
+        if run_dir:
+            crd_by_run_dir[run_dir] = crd_value
+
+        summary_rows.append(
+            {
+                "dataset": row.get("dataset", "unknown"),
+                "category": category,
+                "stream_type": row.get("stream_type", "unknown"),
+                "baseline": row.get("baseline", "unknown"),
+                "memory_policy": row.get("memory_policy", "unknown"),
+                "calibration": row.get("calibration", "unknown"),
+                "prevalence": row.get("prevalence", "unknown"),
+                "baseline_epsilon": "0.0",
+                "contamination_epsilon": row.get("contamination_epsilon", "unknown"),
+                "image_auroc_base": _format_number(auroc_base),
+                "image_auroc": _format_number(auroc),
+                "image_auroc_drop": _format_number(auroc_drop),
+                "aupr_base": _format_number(aupr_base),
+                "aupr": _format_number(aupr),
+                "aupr_drop": _format_number(aupr_drop),
+                "crd_lite": crd_value,
+                "status": (
+                    "derived_smoke"
+                    if row.get("status") == "measured_smoke" and crd is not None
+                    else "not_available"
+                ),
+                "run_dir": run_dir,
+            }
+        )
+    return summary_rows, crd_by_run_dir
+
+
+def write_crd_lite_summary(path: Path, rows: list[dict[str, str]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=CRD_LITE_FIELDS, lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def aggregate_metrics(matrix_config: Path) -> tuple[Path, Path, list[dict[str, str]]]:
     cfg = _load_config(matrix_config)
     outputs = cfg.get("outputs") or {}
     root = Path(outputs.get("root", DEFAULT_ROOT))
     aggregate_metrics, aggregate_manifest = default_aggregate_paths(cfg, root)
+    crd_lite_summary = default_crd_lite_path(cfg, root)
     baseline = cfg.get("baseline", "PatchCore")
     category = cfg.get("category", "bottle")
     stream_types, epsilons = _matrix_values(cfg)
@@ -152,12 +294,17 @@ def aggregate_metrics(matrix_config: Path) -> tuple[Path, Path, list[dict[str, s
     if not rows:
         raise SystemExit(f"No mini-matrix metrics found under {root} for {slug(baseline)}")
 
+    crd_rows, crd_by_run_dir = compute_crd_lite(rows, category=str(category))
+    for row in rows:
+        row["crd_lite"] = crd_by_run_dir.get(row.get("run_dir", ""), "NA")
+
     fieldnames = list(rows[0].keys())
     aggregate_metrics.parent.mkdir(parents=True, exist_ok=True)
     with aggregate_metrics.open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
+    write_crd_lite_summary(crd_lite_summary, crd_rows)
 
     manifest = {
         "status": f"{slug(baseline)}_mini_matrix_complete",
@@ -168,11 +315,14 @@ def aggregate_metrics(matrix_config: Path) -> tuple[Path, Path, list[dict[str, s
         "stream_types": [str(value) for value in stream_types],
         "contamination_epsilon": [str(value) for value in epsilons],
         "aggregate_metrics": str(aggregate_metrics),
+        "crd_lite_summary": str(crd_lite_summary),
         "run_count": len(rows),
         "runs": rows,
+        "crd_lite": crd_rows,
         "notes": (
             "Baseline mini-matrix smoke results for pipeline validation only; "
-            "not full P0 or paper gate."
+            "CRD-lite is derived from epsilon=0 metric drops and is not full P0 "
+            "or paper gate."
         ),
     }
     aggregate_manifest.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
