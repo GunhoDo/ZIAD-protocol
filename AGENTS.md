@@ -10,7 +10,7 @@ Canonical experiment reference: [`docs/experiment-prd.md`](docs/experiment-prd.m
 ## Current Status
 
 **Setup smoke gate: PASSED** — docs, configs, scripts, and wrapper stubs exist.
-**First success gate A: PASSED for PatchCore, WinCLIP, and AnomalyCLIP smoke paths** — real stream files, measured score rows, iid/bursty × ε artifacts, CRD-lite smoke summaries, bottle/capsule/hazelnut PatchCore/WinCLIP quick-sweep artifacts, PatchCore/WinCLIP all-15-category iid ε=0 smoke artifacts, and AnomalyCLIP bottle iid ε=0 smoke artifacts exist; not full P0.
+**First success gate A: PASSED for PatchCore, WinCLIP, and AnomalyCLIP smoke paths** — real stream files, measured score rows, iid/bursty × ε artifacts, CRD-lite smoke summaries, bottle/capsule/hazelnut PatchCore/WinCLIP quick-sweep artifacts, PatchCore/WinCLIP all-15-category iid ε=0 smoke artifacts, and AnomalyCLIP bottle mini-matrix artifacts exist; not full P0.
 **Paper gate: NOT YET** — current outputs remain smoke/mini-matrix evidence with `paper_allowed: false`; generated paper-facing tables are non-final smoke evidence only; full reviewed P0 results are still required.
 
 Baseline repo URLs and commit hashes are pinned in `experiments/configs/baselines.yaml`
@@ -33,6 +33,7 @@ ZIAD-protocol/
       category_quick_sweep.yaml # PatchCore/WinCLIP bottle/capsule/hazelnut quick sweep
       mvtec_full_category_sweep_patchcore.yaml # PatchCore all-category iid epsilon-zero smoke sweep
       mvtec_full_category_sweep_winclip.yaml # WinCLIP all-category iid epsilon-zero smoke sweep
+      anomalyclip_mini_matrix.yaml # AnomalyCLIP bottle iid/bursty × epsilon smoke matrix
       smoke_anomalyclip.yaml # AnomalyCLIP bottle iid epsilon-zero smoke
       winclip_mini_matrix.yaml # WinCLIP bottle iid/bursty × epsilon smoke matrix
       p0.yaml                 # Full P0 matrix (future path, not required for first success)
@@ -118,6 +119,7 @@ bash scripts/setup_baselines.sh   # Show clone-slot status for all 4 baselines
 bash scripts/run_smoke.sh         # Smoke run (fails clearly if baseline/data missing)
 bash scripts/run_smoke.sh experiments/configs/smoke_anomalyclip.yaml
 bash scripts/run_baseline_mini_matrix.sh experiments/configs/winclip_mini_matrix.yaml
+bash scripts/run_baseline_mini_matrix.sh experiments/configs/anomalyclip_mini_matrix.yaml
 bash scripts/run_category_quick_sweep.sh experiments/configs/category_quick_sweep.yaml
 bash scripts/run_mvtec_full_category_sweep.sh
 bash scripts/run_mvtec_full_category_sweep_patchcore.sh

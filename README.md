@@ -89,6 +89,16 @@ This uses the local AnomalyCLIP checkpoint and the upstream image-level
 `text_probs[:, 0, 1]` anomaly score on the project stream order. It remains
 smoke evidence with `paper_allowed=false`.
 
+## Run the AnomalyCLIP bottle mini-matrix
+
+```bash
+bash scripts/run_baseline_mini_matrix.sh experiments/configs/anomalyclip_mini_matrix.yaml
+```
+
+This runs AnomalyCLIP on MVTec AD bottle for `iid/bursty × ε 0/0.01/0.05`,
+then writes aggregate metrics and a CRD-lite smoke summary under
+`results/latest/mini_matrix/`. It is measured smoke evidence only.
+
 ## Run a category quick sweep
 
 ```bash
