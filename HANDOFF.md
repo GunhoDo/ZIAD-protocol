@@ -62,11 +62,18 @@
   - output: `results/latest/tables/smoke_evidence_summary.tex`
   - `scripts/build_paper.sh`가 paper build 전에 table renderer를 호출함
   - table caption/comment에 non-final, paper-ineligible, `paper_allowed=false`가 명시됨
-- MVTec full-category WinCLIP smoke sweep 구성 완료:
+- MVTec full-category WinCLIP smoke sweep 구성/실행 완료:
   - config: `experiments/configs/mvtec_full_category_sweep_winclip.yaml`
   - runner: `scripts/run_mvtec_full_category_sweep.sh`
   - categories: all 15 MVTec AD categories
   - baseline: WinCLIP only
+  - stream/epsilon: iid, ε=0, length=20
+  - generated details/configs are ignored; combined aggregate files remain trackable
+- MVTec full-category PatchCore smoke sweep 구성/실행 완료:
+  - config: `experiments/configs/mvtec_full_category_sweep_patchcore.yaml`
+  - runner: `scripts/run_mvtec_full_category_sweep_patchcore.sh`
+  - categories: all 15 MVTec AD categories
+  - baseline: PatchCore only
   - stream/epsilon: iid, ε=0, length=20
   - generated details/configs are ignored; combined aggregate files remain trackable
 
@@ -134,6 +141,17 @@
   - stream/epsilon: `iid`, `0.0`
   - `toothbrush` emitted the expected feasible-ratio warning due sample-count constraints
   - `paper_allowed=false`
+- MVTec full-category PatchCore smoke sweep 실행 완료:
+  - command: `bash scripts/run_mvtec_full_category_sweep_patchcore.sh`
+  - aggregate metrics: `results/latest/mvtec_full_category_sweep_patchcore/metrics_mvtec_full_category_sweep_patchcore.csv`
+  - CRD-lite summary: `results/latest/mvtec_full_category_sweep_patchcore/crd_lite_mvtec_full_category_sweep_patchcore.csv`
+  - manifest: `results/latest/mvtec_full_category_sweep_patchcore/manifest_mvtec_full_category_sweep_patchcore.json`
+  - rows: 15 measured_smoke rows
+  - categories: all MVTec AD categories (`bottle,cable,capsule,carpet,grid,hazelnut,leather,metal_nut,pill,screw,tile,toothbrush,transistor,wood,zipper`)
+  - baseline: `PatchCore`
+  - stream/epsilon: `iid`, `0.0`
+  - `toothbrush` emitted the expected feasible-ratio warning due sample-count constraints
+  - `paper_allowed=false`
 
 ## 2. 검증 증거
 
@@ -160,6 +178,7 @@ bash scripts/run_category_quick_sweep.sh experiments/configs/category_quick_swee
 bash scripts/render_paper_tables.sh
 bash scripts/build_paper.sh
 bash scripts/run_mvtec_full_category_sweep.sh
+bash scripts/run_mvtec_full_category_sweep_patchcore.sh
 python3 -m unittest discover -v
 python3 -m compileall experiments tests
 git diff --check
@@ -177,6 +196,7 @@ git diff --check
 - CRD-lite summaries: PatchCore/WinCLIP 각 6 rows, all `derived_smoke`, `paper_allowed=false`
 - Category quick sweep: 6 rows, categories `bottle/capsule/hazelnut`, baselines `PatchCore/WinCLIP`, all `measured_smoke`, `paper_allowed=false`
 - MVTec full-category WinCLIP sweep: 15 rows, all MVTec AD categories, all `measured_smoke`, `paper_allowed=false`
+- MVTec full-category PatchCore sweep: 15 rows, all MVTec AD categories, all `measured_smoke`, `paper_allowed=false`
 
 ## 3. 지금 논문 관점에서 어디까지 왔나
 
@@ -190,14 +210,14 @@ git diff --check
 4. baseline-parametric mini-matrix runner가 동작한다.
 5. PatchCore와 WinCLIP 모두 bottle에서 `iid/bursty × ε 0/0.01/0.05` aggregate metric CSV와 CRD-lite smoke summary까지 생성된다.
 6. PatchCore와 WinCLIP은 bottle/capsule/hazelnut iid ε=0 quick sweep까지 통과했다.
-7. WinCLIP은 all-15-category MVTec AD iid ε=0 smoke sweep까지 통과했다.
+7. PatchCore와 WinCLIP 모두 all-15-category MVTec AD iid ε=0 smoke sweep까지 통과했다.
 
 하지만 아직 **논문 결과 단계는 아니다**.
 
 부족한 것:
 
 - CLIP baseline은 WinCLIP bottle mini-matrix와 all-category iid ε=0 smoke만 완료: RareCLIP/AnomalyCLIP 미완, WinCLIP bursty/epsilon full sweep 미실행
-- MVTec 전체 category는 WinCLIP iid ε=0 smoke만 완료; PatchCore all-category와 full epsilon/bursty matrix는 미완
+- MVTec 전체 category는 PatchCore/WinCLIP iid ε=0 smoke만 완료; full epsilon/bursty matrix는 미완
 - VisA 미실행
 - full P0 matrix 미실행
 - CRD-lite는 bottle mini-matrix smoke summary만 구현됨; full P0/category/VisA 검증 미완
@@ -206,21 +226,13 @@ git diff --check
 
 ## 4. 다음 에이전트가 빠르게 해야 할 일
 
-### 1순위 — PatchCore all-category smoke sweep
-
-WinCLIP all-category smoke가 통과했으므로, 다음은 PatchCore all-category smoke를 별도 config로 추가한다.
-
-권장 접근:
-
-1. `experiments/configs/mvtec_full_category_sweep_patchcore.yaml` 작성
-2. output root는 `results/latest/mvtec_full_category_sweep_patchcore`
-3. runtime이 길 수 있으므로 all-category iid ε=0 length=20부터 실행
-4. aggregate metrics/manifest row count와 `paper_allowed=false` 확인
-4. full P0 전까지 `paper_allowed=false` 유지
-
-### 2순위 — RareCLIP / AnomalyCLIP wrapper 구현
+### 1순위 — RareCLIP / AnomalyCLIP wrapper 구현
 
 WinCLIP 이후 남은 CLIP baseline을 하나씩 같은 stream contract에 맞춘다. fake score 금지, upstream loader가 stream order를 무시하면 wrapper가 직접 stream JSON을 읽어야 한다.
+
+### 2순위 — all-category epsilon/bursty 확장
+
+PatchCore/WinCLIP 모두 all-category iid ε=0 smoke는 통과했다. 다음 확장은 full P0 전에 `bursty`와 ε=`0.01/0.05`를 카테고리 전체로 넓히는 것이다. 실행 시간과 산출물 크기가 커지므로 baseline별로 분리하고 aggregate row count, feasible-ratio warnings, `paper_allowed=false`를 검증한다.
 
 ### 3순위 — VisA 연결
 
@@ -235,5 +247,5 @@ VisA는 dataset/helper 성격상 `external/spot-diff`와 `data/visa/` 구조를 
 - 현재 ECE는 baseline anomaly score min-max 기반 diagnostic이다. calibrated probability로 해석 금지.
 - 현재 CRD-lite는 bottle mini-matrix aggregate에서 파생한 signed smoke diagnostic이다. full P0 결과처럼 해석 금지.
 - Category quick sweep은 iid ε=0 length=20 smoke이다. category 확장성 확인용이며 full-category/full-epsilon benchmark가 아니다.
-- MVTec full-category WinCLIP sweep도 iid ε=0 length=20 smoke이다. all-category path 검증용이며 bursty/epsilon/full-P0 benchmark가 아니다.
+- MVTec full-category PatchCore/WinCLIP sweeps도 iid ε=0 length=20 smoke이다. all-category path 검증용이며 bursty/epsilon/full-P0 benchmark가 아니다.
 - `render_paper_tables.py`는 결과를 “논문 결론”으로 승격하지 않는다. 현재 생성 표는 smoke evidence table이며 `paper_allowed=false`를 명시한다.

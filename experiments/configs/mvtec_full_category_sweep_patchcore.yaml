@@ -1,0 +1,47 @@
+# MVTec AD full-category smoke sweep for PatchCore.
+# This is still paper-ineligible: iid only, epsilon 0 only, short stream length.
+dataset: MVTec AD
+dataset_root: data/mvtec_ad
+categories:
+  - bottle
+  - cable
+  - capsule
+  - carpet
+  - grid
+  - hazelnut
+  - leather
+  - metal_nut
+  - pill
+  - screw
+  - tile
+  - toothbrush
+  - transistor
+  - wood
+  - zipper
+
+baselines:
+  - name: PatchCore
+    baseline_path: external/patchcore-inspection
+    provenance:
+      scoring_mode: stream_ordered_offline
+      latency_semantics: offline_batch_amortized
+      training_source: train/good
+      stream_source: test/*
+
+prevalence: 0.05
+stream_types:
+  - iid
+contamination_epsilon:
+  - 0
+stream:
+  seed: 0
+  length: 20
+  burst_length: 5
+
+outputs:
+  root: results/latest/mvtec_full_category_sweep_patchcore
+  aggregate_metrics: results/latest/mvtec_full_category_sweep_patchcore/metrics_mvtec_full_category_sweep_patchcore.csv
+  aggregate_manifest: results/latest/mvtec_full_category_sweep_patchcore/manifest_mvtec_full_category_sweep_patchcore.json
+  crd_lite_summary: results/latest/mvtec_full_category_sweep_patchcore/crd_lite_mvtec_full_category_sweep_patchcore.csv
+  status: mvtec_full_category_sweep_patchcore_complete
+  notes: MVTec full-category PatchCore smoke evidence only; not full P0 or paper gate.

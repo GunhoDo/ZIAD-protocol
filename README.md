@@ -94,6 +94,16 @@ This expands the category coverage to all 15 MVTec AD categories for WinCLIP
 with iid, epsilon-zero, length-20 streams. It is still smoke evidence, not a
 full P0 result.
 
+## Run the MVTec full-category PatchCore smoke sweep
+
+```bash
+bash scripts/run_mvtec_full_category_sweep_patchcore.sh
+```
+
+This uses the same all-category smoke shape for PatchCore. It exercises the
+train/good setup and stream-ordered offline scoring path across all MVTec
+categories. It is still smoke evidence and remains paper-ineligible.
+
 ## Current result contract
 
 - `results/latest/latest_run.json`: one current run/status summary.

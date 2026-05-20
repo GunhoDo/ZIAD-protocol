@@ -54,3 +54,5 @@ results/latest/category_quick_sweep/details/**
 # Full-category sweep generated details; keep combined aggregate CSV/manifest trackable.
 results/latest/mvtec_full_category_sweep_winclip/configs/**
 results/latest/mvtec_full_category_sweep_winclip/details/**
+results/latest/mvtec_full_category_sweep_patchcore/configs/**
+results/latest/mvtec_full_category_sweep_patchcore/details/**
