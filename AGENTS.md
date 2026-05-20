@@ -10,7 +10,7 @@ Canonical experiment reference: [`docs/experiment-prd.md`](docs/experiment-prd.m
 ## Current Status
 
 **Setup smoke gate: PASSED** — docs, configs, scripts, and wrapper stubs exist.
-**First success gate A: PASSED for PatchCore and WinCLIP on MVTec AD/bottle smoke/mini-matrix plus a 3-category quick sweep** — real stream files, measured score rows, iid/bursty × ε artifacts, CRD-lite smoke summaries, and bottle/capsule/hazelnut quick-sweep artifacts exist; not full P0.
+**First success gate A: PASSED for PatchCore and WinCLIP on MVTec AD/bottle smoke/mini-matrix plus category sweeps** — real stream files, measured score rows, iid/bursty × ε artifacts, CRD-lite smoke summaries, bottle/capsule/hazelnut PatchCore/WinCLIP quick-sweep artifacts, and WinCLIP all-15-category iid ε=0 smoke artifacts exist; not full P0.
 **Paper gate: NOT YET** — current outputs remain smoke/mini-matrix evidence with `paper_allowed: false`; generated paper-facing tables are non-final smoke evidence only; full reviewed P0 results are still required.
 
 Baseline repo URLs and commit hashes are pinned in `experiments/configs/baselines.yaml`
@@ -31,6 +31,7 @@ ZIAD-protocol/
       smoke.yaml              # Smoke run: PatchCore + MVTec AD/bottle (one baseline/category)
       baselines.yaml          # Registry: 4 baselines with pinned repo_url/commit_hash
       category_quick_sweep.yaml # PatchCore/WinCLIP bottle/capsule/hazelnut quick sweep
+      mvtec_full_category_sweep_winclip.yaml # WinCLIP all-category iid epsilon-zero smoke sweep
       winclip_mini_matrix.yaml # WinCLIP bottle iid/bursty × epsilon smoke matrix
       p0.yaml                 # Full P0 matrix (future path, not required for first success)
     baselines/
@@ -51,6 +52,7 @@ ZIAD-protocol/
     run_smoke.sh              # Smoke runner → results/latest/scores.csv (exits if baseline/data missing)
     run_baseline_mini_matrix.sh # Generic baseline mini-matrix runner
     run_category_quick_sweep.sh # PatchCore/WinCLIP category quick-sweep runner
+    run_mvtec_full_category_sweep.sh # WinCLIP all-category MVTec smoke sweep runner
     run_patchcore_mini_matrix.sh # Compatibility wrapper around generic mini-matrix runner
     render_paper_tables.sh    # Refreshes generated LaTeX tables from result CSVs
     setup_baselines.sh        # Checks clone slots and prints pinned clone commands if missing
@@ -113,6 +115,7 @@ bash scripts/setup_baselines.sh   # Show clone-slot status for all 4 baselines
 bash scripts/run_smoke.sh         # Smoke run (fails clearly if baseline/data missing)
 bash scripts/run_baseline_mini_matrix.sh experiments/configs/winclip_mini_matrix.yaml
 bash scripts/run_category_quick_sweep.sh experiments/configs/category_quick_sweep.yaml
+bash scripts/run_mvtec_full_category_sweep.sh
 bash scripts/render_paper_tables.sh # Refresh paper-facing non-final smoke evidence tables
 make paper                        # Build paper/paper.pdf
 make p0                           # Refresh P0 placeholder outputs (no real inference)

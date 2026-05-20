@@ -84,6 +84,16 @@ This runs a small PatchCore/WinCLIP × bottle/capsule/hazelnut smoke sweep to
 catch category-specific failures before full P0. It is measured but still
 paper-ineligible.
 
+## Run the MVTec full-category WinCLIP smoke sweep
+
+```bash
+bash scripts/run_mvtec_full_category_sweep.sh
+```
+
+This expands the category coverage to all 15 MVTec AD categories for WinCLIP
+with iid, epsilon-zero, length-20 streams. It is still smoke evidence, not a
+full P0 result.
+
 ## Current result contract
 
 - `results/latest/latest_run.json`: one current run/status summary.

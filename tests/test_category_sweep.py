@@ -69,6 +69,8 @@ class CategorySweepTest(unittest.TestCase):
                             "aggregate_metrics": str(root / "metrics.csv"),
                             "aggregate_manifest": str(root / "manifest.json"),
                             "crd_lite_summary": str(root / "crd.csv"),
+                            "status": "custom_sweep_complete",
+                            "notes": "custom smoke notes",
                         },
                     },
                     sort_keys=False,
@@ -121,9 +123,10 @@ class CategorySweepTest(unittest.TestCase):
             self.assertEqual(len(rows), 2)
             self.assertEqual({row["category"] for row in rows}, {"bottle", "capsule"})
             manifest_payload = json.loads(manifest.read_text())
-            self.assertEqual(manifest_payload["status"], "category_quick_sweep_complete")
+            self.assertEqual(manifest_payload["status"], "custom_sweep_complete")
             self.assertFalse(manifest_payload["paper_allowed"])
             self.assertEqual(manifest_payload["run_count"], 2)
+            self.assertEqual(manifest_payload["notes"], "custom smoke notes")
 
 
 if __name__ == "__main__":

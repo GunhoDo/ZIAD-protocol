@@ -1,0 +1,47 @@
+# MVTec AD full-category smoke sweep for WinCLIP.
+# This is still paper-ineligible: iid only, epsilon 0 only, short stream length.
+dataset: MVTec AD
+dataset_root: data/mvtec_ad
+categories:
+  - bottle
+  - cable
+  - capsule
+  - carpet
+  - grid
+  - hazelnut
+  - leather
+  - metal_nut
+  - pill
+  - screw
+  - tile
+  - toothbrush
+  - transistor
+  - wood
+  - zipper
+
+baselines:
+  - name: WinCLIP
+    baseline_path: external/WinClip
+    provenance:
+      scoring_mode: stream_ordered_zero_shot
+      latency_semantics: wrapper_batch_amortized
+      training_source: zero_shot_text_prompts
+      stream_source: test/*
+
+prevalence: 0.05
+stream_types:
+  - iid
+contamination_epsilon:
+  - 0
+stream:
+  seed: 0
+  length: 20
+  burst_length: 5
+
+outputs:
+  root: results/latest/mvtec_full_category_sweep_winclip
+  aggregate_metrics: results/latest/mvtec_full_category_sweep_winclip/metrics_mvtec_full_category_sweep_winclip.csv
+  aggregate_manifest: results/latest/mvtec_full_category_sweep_winclip/manifest_mvtec_full_category_sweep_winclip.json
+  crd_lite_summary: results/latest/mvtec_full_category_sweep_winclip/crd_lite_mvtec_full_category_sweep_winclip.csv
+  status: mvtec_full_category_sweep_winclip_complete
+  notes: MVTec full-category WinCLIP smoke evidence only; not full P0 or paper gate.

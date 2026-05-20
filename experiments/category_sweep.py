@@ -194,6 +194,7 @@ def default_output_paths(cfg: dict[str, Any]) -> tuple[Path, Path, Path]:
 
 def aggregate_sweep(sweep_config: Path) -> tuple[Path, Path, Path, list[dict[str, str]]]:
     cfg = _load_config(sweep_config)
+    outputs = cfg.get("outputs") or {}
     aggregate_metrics, aggregate_manifest, crd_lite_summary = default_output_paths(cfg)
     metric_rows: list[dict[str, str]] = []
     crd_rows: list[dict[str, str]] = []
@@ -214,7 +215,7 @@ def aggregate_sweep(sweep_config: Path) -> tuple[Path, Path, Path, list[dict[str
     _write_csv(crd_lite_summary, crd_rows)
 
     manifest = {
-        "status": "category_quick_sweep_complete",
+        "status": str(outputs.get("status", "category_quick_sweep_complete")),
         "paper_allowed": False,
         "dataset": str(cfg.get("dataset", "MVTec AD")),
         "categories": [str(value) for value in _as_list(cfg.get("categories", cfg.get("category")), ["bottle"])],
@@ -226,7 +227,12 @@ def aggregate_sweep(sweep_config: Path) -> tuple[Path, Path, Path, list[dict[str
         "run_count": len(metric_rows),
         "crd_lite_row_count": len(crd_rows),
         "matrix_manifests": manifests,
-        "notes": "Category quick sweep smoke evidence only; not full P0 or paper gate.",
+        "notes": str(
+            outputs.get(
+                "notes",
+                "Category sweep smoke evidence only; not full P0 or paper gate.",
+            )
+        ),
     }
     aggregate_manifest.parent.mkdir(parents=True, exist_ok=True)
     aggregate_manifest.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")

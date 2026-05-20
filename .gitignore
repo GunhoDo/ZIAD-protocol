@@ -50,3 +50,7 @@ results/latest/mini_matrix/patchcore_*/**
 # Category quick-sweep generated details; keep combined aggregate CSV/manifest trackable.
 results/latest/category_quick_sweep/configs/**
 results/latest/category_quick_sweep/details/**
+
+# Full-category sweep generated details; keep combined aggregate CSV/manifest trackable.
+results/latest/mvtec_full_category_sweep_winclip/configs/**
+results/latest/mvtec_full_category_sweep_winclip/details/**
