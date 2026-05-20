@@ -1,6 +1,6 @@
 # HANDOFF — ZIAD 논문 구현 현재 상태
 
-최종 갱신: 2026-05-20
+최종 갱신: 2026-05-21
 프로젝트: Streaming Zero-Shot Industrial Anomaly Detection with CLIP / ZIAD Protocol
 
 ## 0. 절대 규칙
@@ -27,6 +27,13 @@
   - upstream full-split dataset loader는 사용하지 않음
   - scoring mode: zero-shot WinCLIP anomaly map max → image-level score
   - CPU smoke 경로는 upstream fp16 기본값을 fp32로 보정
+- AnomalyCLIP 실제 wrapper 구현 완료: `experiments/baselines/anomalyclip.py`
+  - upstream: `external/AnomalyCLIP`
+  - checkpoint: `external/AnomalyCLIP/checkpoints/9_12_4_multiscale/epoch_15.pth`
+  - stream/eval source: project stream JSON only
+  - upstream full-split dataset loader는 사용하지 않음
+  - scoring mode: upstream image-level `text_probs[:, 0, 1]` anomaly probability
+  - CLIP ViT-L/14@336px backbone cache: `external/AnomalyCLIP/.cache/clip`
 - deterministic MVTec stream generator 구현 완료: `experiments/make_streams.py`
   - fields: `stream_index,image_path,label,category,source_split,anomaly_type`
   - no duplicate samples
@@ -152,6 +159,14 @@
   - stream/epsilon: `iid`, `0.0`
   - `toothbrush` emitted the expected feasible-ratio warning due sample-count constraints
   - `paper_allowed=false`
+- AnomalyCLIP iid smoke 실행 완료:
+  - config: `experiments/configs/smoke_anomalyclip.yaml`
+  - stream: `results/latest/stream_smoke_anomalyclip.json`
+  - scores: `results/latest/scores_anomalyclip.csv`
+  - metrics: `results/latest/metrics_anomalyclip.csv`
+  - latest run: `results/latest/latest_run_anomalyclip.json`
+  - manifest: `results/latest/manifest_anomalyclip.json`
+  - result: 20 measured rows, `status=measured_smoke`, `paper_allowed=false`
 
 ## 2. 검증 증거
 
@@ -179,6 +194,12 @@ bash scripts/render_paper_tables.sh
 bash scripts/build_paper.sh
 bash scripts/run_mvtec_full_category_sweep.sh
 bash scripts/run_mvtec_full_category_sweep_patchcore.sh
+bash scripts/run_smoke.sh experiments/configs/smoke_anomalyclip.yaml
+python3 experiments/evaluate.py \
+  --scores-csv results/latest/scores_anomalyclip.csv \
+  --latest-run results/latest/latest_run_anomalyclip.json \
+  --output results/latest/metrics_anomalyclip.csv \
+  --manifest results/latest/manifest_anomalyclip.json
 python3 -m unittest discover -v
 python3 -m compileall experiments tests
 git diff --check
@@ -186,7 +207,7 @@ git diff --check
 
 검증 결과:
 
-- unittest: 31 tests OK
+- unittest: 34 tests OK
 - compileall: OK
 - diff check: OK
 - paper build: OK, local environment has no `pdflatex`, so dependency-free placeholder PDF fallback was written
@@ -197,10 +218,11 @@ git diff --check
 - Category quick sweep: 6 rows, categories `bottle/capsule/hazelnut`, baselines `PatchCore/WinCLIP`, all `measured_smoke`, `paper_allowed=false`
 - MVTec full-category WinCLIP sweep: 15 rows, all MVTec AD categories, all `measured_smoke`, `paper_allowed=false`
 - MVTec full-category PatchCore sweep: 15 rows, all MVTec AD categories, all `measured_smoke`, `paper_allowed=false`
+- AnomalyCLIP smoke: 20 measured rows, evaluated smoke manifest `paper_allowed=false`
 
 ## 3. 지금 논문 관점에서 어디까지 왔나
 
-현재는 **실험 파이프라인의 PatchCore paper-run plumbing과 첫 CLIP baseline(WinCLIP) mini-matrix path가 동작함을 입증한 단계**다.
+현재는 **실험 파이프라인의 PatchCore paper-run plumbing, WinCLIP mini-matrix/all-category smoke path, AnomalyCLIP single-category smoke path가 동작함을 입증한 단계**다.
 
 구체적으로:
 
@@ -211,12 +233,13 @@ git diff --check
 5. PatchCore와 WinCLIP 모두 bottle에서 `iid/bursty × ε 0/0.01/0.05` aggregate metric CSV와 CRD-lite smoke summary까지 생성된다.
 6. PatchCore와 WinCLIP은 bottle/capsule/hazelnut iid ε=0 quick sweep까지 통과했다.
 7. PatchCore와 WinCLIP 모두 all-15-category MVTec AD iid ε=0 smoke sweep까지 통과했다.
+8. AnomalyCLIP은 MVTec AD bottle iid ε=0 smoke에서 실제 20개 image-level score를 생성했다.
 
 하지만 아직 **논문 결과 단계는 아니다**.
 
 부족한 것:
 
-- CLIP baseline은 WinCLIP bottle mini-matrix와 all-category iid ε=0 smoke만 완료: RareCLIP/AnomalyCLIP 미완, WinCLIP bursty/epsilon full sweep 미실행
+- CLIP baseline은 WinCLIP bottle mini-matrix/all-category iid ε=0 smoke와 AnomalyCLIP bottle iid ε=0 smoke까지 완료: RareCLIP 미완, AnomalyCLIP mini-matrix/all-category 미실행, WinCLIP bursty/epsilon full sweep 미실행
 - MVTec 전체 category는 PatchCore/WinCLIP iid ε=0 smoke만 완료; full epsilon/bursty matrix는 미완
 - VisA 미실행
 - full P0 matrix 미실행
@@ -226,15 +249,19 @@ git diff --check
 
 ## 4. 다음 에이전트가 빠르게 해야 할 일
 
-### 1순위 — RareCLIP / AnomalyCLIP wrapper 구현
+### 1순위 — RareCLIP wrapper 구현
 
-WinCLIP 이후 남은 CLIP baseline을 하나씩 같은 stream contract에 맞춘다. fake score 금지, upstream loader가 stream order를 무시하면 wrapper가 직접 stream JSON을 읽어야 한다.
+남은 CLIP baseline을 같은 stream contract에 맞춘다. fake score 금지, upstream loader가 stream order를 무시하면 wrapper가 직접 stream JSON을 읽어야 한다.
 
-### 2순위 — all-category epsilon/bursty 확장
+### 2순위 — AnomalyCLIP mini-matrix/all-category 확장
+
+AnomalyCLIP bottle iid ε=0 smoke는 통과했다. 다음은 `iid/bursty × ε 0/0.01/0.05` bottle mini-matrix를 먼저 만들고, 통과하면 all-category iid ε=0 smoke로 확장한다.
+
+### 3순위 — all-category epsilon/bursty 확장
 
 PatchCore/WinCLIP 모두 all-category iid ε=0 smoke는 통과했다. 다음 확장은 full P0 전에 `bursty`와 ε=`0.01/0.05`를 카테고리 전체로 넓히는 것이다. 실행 시간과 산출물 크기가 커지므로 baseline별로 분리하고 aggregate row count, feasible-ratio warnings, `paper_allowed=false`를 검증한다.
 
-### 3순위 — VisA 연결
+### 4순위 — VisA 연결
 
 VisA는 dataset/helper 성격상 `external/spot-diff`와 `data/visa/` 구조를 확인한 뒤 MVTec stream item schema와 동일하게 맞춘다.
 
@@ -244,6 +271,7 @@ VisA는 dataset/helper 성격상 `external/spot-diff`와 `data/visa/` 구조를 
 - `epsilon=0.01`은 bottle의 sample count 제약 때문에 exact 0.06을 못 맞춰 warning이 기록된다. 이것은 의도된 정책이다.
 - PatchCore latency는 true online latency가 아니라 `offline_batch_amortized`다. 논문에서 온라인 latency처럼 쓰면 안 된다.
 - WinCLIP smoke latency는 wrapper batch inference amortized latency다. full benchmark 전에는 pipeline evidence로만 해석한다.
+- AnomalyCLIP smoke latency는 CPU single-image wrapper latency이며 ViT-L/14@336px라 느리다. 온라인 latency 결론으로 쓰지 않는다.
 - 현재 ECE는 baseline anomaly score min-max 기반 diagnostic이다. calibrated probability로 해석 금지.
 - 현재 CRD-lite는 bottle mini-matrix aggregate에서 파생한 signed smoke diagnostic이다. full P0 결과처럼 해석 금지.
 - Category quick sweep은 iid ε=0 length=20 smoke이다. category 확장성 확인용이며 full-category/full-epsilon benchmark가 아니다.

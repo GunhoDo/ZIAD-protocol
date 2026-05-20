@@ -1,0 +1,22 @@
+baseline: AnomalyCLIP
+baseline_path: external/AnomalyCLIP
+dataset: MVTec AD
+dataset_root: data/mvtec_ad
+category: bottle
+stream_type: iid
+prevalence: 0.05
+contamination_epsilon: 0
+stream:
+  path: results/latest/stream_smoke_anomalyclip.json
+  seed: 0
+  length: 20
+  burst_length: 5
+outputs:
+  scores_csv: results/latest/scores_anomalyclip.csv
+  latest_run: results/latest/latest_run_anomalyclip.json
+  manifest: results/latest/manifest_anomalyclip.json
+provenance:
+  scoring_mode: stream_ordered_zero_shot
+  latency_semantics: wrapper_single_image
+  training_source: learned_text_prompt_checkpoint
+  stream_source: test/*
