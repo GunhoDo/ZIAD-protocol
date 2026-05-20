@@ -147,9 +147,10 @@ def _minmax_probabilities(scores: list[float]) -> list[float] | None:
 def _ece(labels: list[int], scores: list[float], n_bins: int = 10) -> float | None:
     """Compute binary ECE after min-max normalizing anomaly scores.
 
-    PatchCore emits uncalibrated anomaly scores rather than probabilities. For
-    smoke tracking, ECE is therefore computed on min-max normalized scores and
-    should be treated as a diagnostic, not paper-ready calibration evidence.
+    Baseline wrappers emit uncalibrated anomaly scores rather than calibrated
+    probabilities. For smoke tracking, ECE is therefore computed on min-max
+    normalized scores and should be treated as a diagnostic, not paper-ready
+    calibration evidence.
     """
     probabilities = _minmax_probabilities(scores)
     if probabilities is None:
@@ -233,12 +234,16 @@ def write_summary_table(path: Path, row: dict[str, str]) -> None:
             "\\end{table}\n"
         )
     else:
+        label_slug = "".join(
+            character.lower() if character.isalnum() else "-"
+            for character in row["baseline"]
+        ).strip("-") or "baseline"
         body = (
             "% Smoke-only measured table. paper_allowed remains false.\n"
             "\\begin{table}[t]\n"
-            "\\caption{PatchCore smoke metrics on MVTec AD bottle "
+            f"\\caption{{{row['baseline']} smoke metrics on {row['dataset']} "
             "(non-final, paper-ineligible).}\n"
-            "\\label{tab:patchcore-smoke}\n"
+            f"\\label{{tab:{label_slug}-smoke}}\n"
             "\\centering\n"
             "\\begin{tabular}{lccccc}\n"
             "\\hline\n"
@@ -253,16 +258,24 @@ def write_summary_table(path: Path, row: dict[str, str]) -> None:
     path.write_text(body)
 
 
-def update_manifest(path: Path, row: dict[str, str]) -> None:
+def update_manifest(
+    path: Path,
+    row: dict[str, str],
+    *,
+    scores_csv: Path,
+    metrics_csv: Path,
+    table_path: Path,
+    figure_path: Path,
+) -> None:
     manifest = _read_json(path)
     status = "placeholder" if row["status"] == "placeholder_not_measured" else "evaluated_smoke"
     manifest.update(
         {
             "status": status,
-            "scores_csv": "results/latest/scores.csv",
-            "metrics_csv": "results/latest/metrics.csv",
-            "tables": ["results/latest/tables/baseline_summary.tex"],
-            "figures": ["results/latest/figures/contamination_drop_placeholder.txt"],
+            "scores_csv": str(scores_csv),
+            "metrics_csv": str(metrics_csv),
+            "tables": [str(table_path)],
+            "figures": [str(figure_path)],
             "paper_allowed": False,
             "todo": [
                 "Run full P0 experiments before replacing TODO result prose.",
@@ -282,13 +295,22 @@ def evaluate(
     metric_row = compute_metric_row(rows, latest)
     artifact_root = output_csv.parent
     write_metrics_csv(output_csv, metric_row)
-    write_summary_table(artifact_root / "tables" / "baseline_summary.tex", metric_row)
+    table_path = artifact_root / "tables" / "baseline_summary.tex"
+    write_summary_table(table_path, metric_row)
     (artifact_root / "figures").mkdir(parents=True, exist_ok=True)
-    (artifact_root / "figures" / "contamination_drop_placeholder.txt").write_text(
+    figure_path = artifact_root / "figures" / "contamination_drop_placeholder.txt"
+    figure_path.write_text(
         "TODO placeholder for contamination drop figure.\n"
         "CRD-lite requires comparable runs across contamination epsilons.\n"
     )
-    update_manifest(manifest, metric_row)
+    update_manifest(
+        manifest,
+        metric_row,
+        scores_csv=scores_csv,
+        metrics_csv=output_csv,
+        table_path=table_path,
+        figure_path=figure_path,
+    )
     return metric_row
 
 

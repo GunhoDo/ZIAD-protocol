@@ -10,7 +10,7 @@ Canonical experiment reference: [`docs/experiment-prd.md`](docs/experiment-prd.m
 ## Current Status
 
 **Setup smoke gate: PASSED** — docs, configs, scripts, and wrapper stubs exist.
-**First success gate A: PASSED for PatchCore + MVTec AD/bottle iid+bursty smoke** — real stream files, measured score rows, and PatchCore mini-matrix artifacts exist; not full P0.
+**First success gate A: PASSED for PatchCore and WinCLIP on MVTec AD/bottle smoke** — real stream files, measured score rows, PatchCore iid/bursty mini-matrix artifacts, and WinCLIP iid smoke artifacts exist; not full P0.
 **Paper gate: NOT YET** — current outputs remain smoke/mini-matrix evidence with `paper_allowed: false`; full reviewed P0 results are still required.
 
 Baseline repo URLs and commit hashes are pinned in `experiments/configs/baselines.yaml`
@@ -35,7 +35,7 @@ ZIAD-protocol/
       base.py                 # BaselineWrapper ABC + _setup_error() helper
       patchcore.py            # Implemented PatchCore wrapper for stream-ordered MVTec smoke
       rareclip.py             # RareCLIP wrapper stub
-      winclip.py              # WinCLIP wrapper stub
+      winclip.py              # Implemented WinCLIP wrapper for stream-ordered MVTec smoke
       anomalyclip.py          # AnomalyCLIP wrapper stub
     evaluate.py               # Score evaluator for smoke/mini-matrix metrics
     make_streams.py           # Deterministic MVTec stream generator (iid/bursty)

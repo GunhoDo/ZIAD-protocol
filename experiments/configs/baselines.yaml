@@ -31,8 +31,8 @@ baselines:
     repo_url: https://github.com/caoyunkang/WinClip.git
     commit_hash: a2ee822d77d01fb7beaed54314e61fe34d5027a4
     checkpoint_path: TBD_or_not_required
-    setup_command: TBD
-    smoke_command: TBD
+    setup_command: python3 -m pip install open_clip_torch==2.23.0 ftfy
+    smoke_command: bash scripts/run_smoke.sh experiments/configs/smoke_winclip.yaml
     wrapper_module: experiments.baselines.winclip
     expected_output_schema: "stream_index,image_path,label,category,anomaly_score,latency_ms,peak_vram_mb,status"
 

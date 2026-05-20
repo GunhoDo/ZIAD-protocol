@@ -84,7 +84,11 @@ class EvaluateSmokeMetricsTest(unittest.TestCase):
             with metrics.open(newline="") as handle:
                 metric_rows = list(csv.DictReader(handle))
             self.assertEqual(metric_rows[0]["baseline"], "PatchCore")
-            self.assertEqual(json.loads(manifest.read_text())["status"], "evaluated_smoke")
+            manifest_payload = json.loads(manifest.read_text())
+            self.assertEqual(manifest_payload["status"], "evaluated_smoke")
+            self.assertEqual(manifest_payload["scores_csv"], str(scores))
+            self.assertEqual(manifest_payload["metrics_csv"], str(metrics))
+            self.assertFalse(manifest_payload["paper_allowed"])
 
 
 if __name__ == "__main__":

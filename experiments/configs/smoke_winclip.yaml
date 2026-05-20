@@ -1,0 +1,28 @@
+# WinCLIP smoke run: first CLIP baseline on MVTec AD/bottle stream.
+baseline: WinCLIP
+baseline_path: external/WinClip
+
+dataset: MVTec AD
+dataset_root: data/mvtec_ad
+category: bottle
+
+stream_type: iid
+prevalence: 0.05
+contamination_epsilon: 0
+
+stream:
+  path: results/latest/stream_smoke_winclip.json
+  seed: 0
+  length:
+  burst_length: 5
+
+outputs:
+  scores_csv: results/latest/scores_winclip.csv
+  latest_run: results/latest/latest_run_winclip.json
+  manifest: results/latest/manifest_winclip.json
+
+provenance:
+  scoring_mode: stream_ordered_zero_shot
+  latency_semantics: wrapper_batch_amortized
+  training_source: zero_shot_text_prompts
+  stream_source: test/*
