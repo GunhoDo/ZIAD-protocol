@@ -10,7 +10,7 @@ Canonical experiment reference: [`docs/experiment-prd.md`](docs/experiment-prd.m
 ## Current Status
 
 **Setup smoke gate: PASSED** — docs, configs, scripts, and wrapper stubs exist.
-**First success gate A: PASSED for PatchCore and WinCLIP on MVTec AD/bottle smoke** — real stream files, measured score rows, PatchCore iid/bursty mini-matrix artifacts, and WinCLIP iid smoke artifacts exist; not full P0.
+**First success gate A: PASSED for PatchCore and WinCLIP on MVTec AD/bottle smoke/mini-matrix** — real stream files, measured score rows, and iid/bursty × ε artifacts exist for both baselines; not full P0.
 **Paper gate: NOT YET** — current outputs remain smoke/mini-matrix evidence with `paper_allowed: false`; full reviewed P0 results are still required.
 
 Baseline repo URLs and commit hashes are pinned in `experiments/configs/baselines.yaml`
@@ -30,6 +30,7 @@ ZIAD-protocol/
     configs/
       smoke.yaml              # Smoke run: PatchCore + MVTec AD/bottle (one baseline/category)
       baselines.yaml          # Registry: 4 baselines with pinned repo_url/commit_hash
+      winclip_mini_matrix.yaml # WinCLIP bottle iid/bursty × epsilon smoke matrix
       p0.yaml                 # Full P0 matrix (future path, not required for first success)
     baselines/
       base.py                 # BaselineWrapper ABC + _setup_error() helper
@@ -38,12 +39,15 @@ ZIAD-protocol/
       winclip.py              # Implemented WinCLIP wrapper for stream-ordered MVTec smoke
       anomalyclip.py          # AnomalyCLIP wrapper stub
     evaluate.py               # Score evaluator for smoke/mini-matrix metrics
+    mini_matrix.py            # Baseline-parametric mini-matrix config/aggregate helper
     make_streams.py           # Deterministic MVTec stream generator (iid/bursty)
     prepare_data.py           # Placeholder data prep
     run_baselines.py          # Placeholder baseline runner
 
   scripts/
     run_smoke.sh              # Smoke runner → results/latest/scores.csv (exits if baseline/data missing)
+    run_baseline_mini_matrix.sh # Generic baseline mini-matrix runner
+    run_patchcore_mini_matrix.sh # Compatibility wrapper around generic mini-matrix runner
     setup_baselines.sh        # Checks clone slots and prints pinned clone commands if missing
     run_p0.sh                 # Refreshes P0 placeholder outputs (no real inference)
     build_paper.sh            # Builds paper/paper.pdf (or placeholder if no LaTeX)
@@ -102,6 +106,7 @@ Requires:
 ```bash
 bash scripts/setup_baselines.sh   # Show clone-slot status for all 4 baselines
 bash scripts/run_smoke.sh         # Smoke run (fails clearly if baseline/data missing)
+bash scripts/run_baseline_mini_matrix.sh experiments/configs/winclip_mini_matrix.yaml
 make paper                        # Build paper/paper.pdf
 make p0                           # Refresh P0 placeholder outputs (no real inference)
 ```

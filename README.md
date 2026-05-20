@@ -12,7 +12,8 @@ The final paper artifact is `paper/paper.pdf`, which may only reference `results
 1. Place datasets under data/        (gitignored — download MVTec AD / VisA locally)
 2. Clone baselines under external/   (gitignored — current URLs/commits pinned in baselines.yaml)
 3. Run smoke:  bash scripts/run_smoke.sh
-4. Build paper: make paper
+4. Run a mini-matrix: bash scripts/run_baseline_mini_matrix.sh experiments/configs/winclip_mini_matrix.yaml
+5. Build paper: make paper
 ```
 
 - `data/` and `external/` are gitignored. Real datasets and baseline clones must be placed locally.
@@ -45,6 +46,15 @@ make p0
 ```
 
 This refreshes placeholder files under `results/latest/`; it does not run real model inference and does not create measured findings.
+
+## Run a measured mini-matrix smoke
+
+```bash
+bash scripts/run_baseline_mini_matrix.sh experiments/configs/winclip_mini_matrix.yaml
+```
+
+Mini-matrix outputs are measured pipeline evidence but remain paper-ineligible:
+`paper_allowed` must stay `false` until full reviewed P0 results exist.
 
 ## Current result contract
 

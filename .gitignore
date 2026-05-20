@@ -44,4 +44,5 @@ results/latest/streams/**
 
 # Mini-matrix per-run generated details; keep aggregate CSV/manifest trackable.
 results/latest/mini_matrix/configs/**
+results/latest/mini_matrix/*_eps_*/**
 results/latest/mini_matrix/patchcore_*/**

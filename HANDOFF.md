@@ -41,8 +41,11 @@
   - unknown status 거부
 - config-driven smoke runner 구현 완료: `scripts/run_smoke.sh [config]`
   - per-config outputs 지원
-- PatchCore mini-matrix runner 구현 완료: `scripts/run_patchcore_mini_matrix.sh`
-  - `iid/bursty × epsilon 0/0.01/0.05`, MVTec AD bottle, PatchCore only
+- baseline-parametric mini-matrix runner 구현 완료:
+  - helper: `experiments/mini_matrix.py`
+  - runner: `scripts/run_baseline_mini_matrix.sh`
+  - PatchCore compatibility wrapper: `scripts/run_patchcore_mini_matrix.sh`
+  - `iid/bursty × epsilon 0/0.01/0.05`, MVTec AD bottle, baseline config driven
 
 ### 실제 실행 완료
 
@@ -69,6 +72,15 @@
   - latest run: `results/latest/latest_run_winclip.json`
   - manifest: `results/latest/manifest_winclip.json`
   - result: 20 measured rows, `status=measured_smoke`, `paper_allowed=false`
+- WinCLIP mini-matrix 6 runs 실행 완료:
+  - config: `experiments/configs/winclip_mini_matrix.yaml`
+  - command: `bash scripts/run_baseline_mini_matrix.sh experiments/configs/winclip_mini_matrix.yaml`
+  - aggregate metrics: `results/latest/mini_matrix/metrics_winclip_bottle.csv`
+  - aggregate manifest: `results/latest/mini_matrix/manifest_winclip_bottle.json`
+  - rows: 6 measured_smoke rows
+  - stream types: `iid`, `bursty`
+  - epsilon: `0.0`, `0.01`, `0.05`
+  - `paper_allowed=false`
 
 ## 2. 검증 증거
 
@@ -88,6 +100,7 @@ python3 experiments/evaluate.py \
   --latest-run results/latest/latest_run_winclip.json \
   --output results/latest/metrics_winclip.csv \
   --manifest results/latest/manifest_winclip.json
+bash scripts/run_baseline_mini_matrix.sh experiments/configs/winclip_mini_matrix.yaml
 python3 -m unittest discover -v
 python3 -m compileall experiments tests
 git diff --check
@@ -95,29 +108,30 @@ git diff --check
 
 검증 결과:
 
-- unittest: 24 tests OK
+- unittest: 26 tests OK
 - compileall: OK
 - diff check: OK
 - mini-matrix aggregate: 6 rows, all `measured_smoke`, `paper_allowed=false`
 - WinCLIP smoke: 20 measured rows, evaluated smoke manifest `paper_allowed=false`
+- WinCLIP mini-matrix aggregate: 6 rows, all `measured_smoke`, `paper_allowed=false`
 
 ## 3. 지금 논문 관점에서 어디까지 왔나
 
-현재는 **실험 파이프라인의 PatchCore paper-run plumbing과 첫 CLIP baseline(WinCLIP) smoke path가 동작함을 입증한 단계**다.
+현재는 **실험 파이프라인의 PatchCore paper-run plumbing과 첫 CLIP baseline(WinCLIP) mini-matrix path가 동작함을 입증한 단계**다.
 
 구체적으로:
 
 1. stream protocol은 구현되어 재현 가능하다.
 2. iid/bursty 둘 다 실제 PatchCore scoring까지 통과했다.
 3. epsilon sweep의 no-duplicate/closest-ratio/warning 정책이 실제 metadata로 남는다.
-4. aggregate metric CSV까지 생성된다.
-5. WinCLIP은 MVTec AD bottle iid stream에서 실제 anomaly_score를 생성한다.
+4. baseline-parametric mini-matrix runner가 동작한다.
+5. PatchCore와 WinCLIP 모두 bottle에서 `iid/bursty × ε 0/0.01/0.05` aggregate metric CSV까지 생성된다.
 
 하지만 아직 **논문 결과 단계는 아니다**.
 
 부족한 것:
 
-- CLIP baseline은 WinCLIP smoke만 완료: RareCLIP/AnomalyCLIP 미완, WinCLIP mini-matrix/full sweep 미실행
+- CLIP baseline은 WinCLIP bottle mini-matrix만 완료: RareCLIP/AnomalyCLIP 미완, WinCLIP full sweep 미실행
 - MVTec 전체 category 미실행
 - VisA 미실행
 - full P0 matrix 미실행
@@ -127,60 +141,46 @@ git diff --check
 
 ## 4. 다음 에이전트가 빠르게 해야 할 일
 
-### 1순위 — mini-matrix runner를 baseline-parametric으로 일반화
-
-WinCLIP smoke가 붙었으므로 다음 병목은 PatchCore 전용 runner를 여러 baseline에 재사용 가능하게 만드는 것이다.
+### 1순위 — CRD-lite를 aggregate metrics에 구현
 
 시작 파일:
 
-- `scripts/run_patchcore_mini_matrix.sh`
-- `experiments/configs/patchcore_mini_matrix.yaml`
-- `experiments/configs/smoke_winclip.yaml`
-- `experiments/configs/baselines.yaml`
+- `experiments/evaluate.py`
+- `experiments/mini_matrix.py`
+- `results/latest/mini_matrix/metrics_patchcore_bottle.csv`
+- `results/latest/mini_matrix/metrics_winclip_bottle.csv`
 
 목표:
 
-```bash
-bash scripts/run_baseline_mini_matrix.sh experiments/configs/winclip_mini_matrix.yaml
-```
+epsilon 0 대비 epsilon 0.01/0.05의 AUROC/AUPR drop을 baseline/category/stream_type별로 계산해 aggregate manifest/CSV 또는 별도 summary CSV에 남긴다.
 
 성공 기준:
 
 ```bash
-bash scripts/run_baseline_mini_matrix.sh experiments/configs/winclip_mini_matrix.yaml
 python3 -m unittest discover -v
 git diff --check
 ```
 
-### 2순위 — WinCLIP mini-matrix 실행
+### 2순위 — MVTec category quick sweep
 
-baseline-parametric runner가 생기면 bottle에서 WinCLIP도 `iid/bursty × epsilon 0/0.01/0.05`를 돌린다.
+PatchCore/WinCLIP이 bottle만 통과했으므로 2~3개 category quick sweep으로 category-specific path 문제를 먼저 찾는다.
 
-```bash
-bash scripts/run_baseline_mini_matrix.sh experiments/configs/winclip_mini_matrix.yaml
-```
+권장 category: `bottle`, `capsule`, `hazelnut` 또는 실제 데이터가 준비된 category.
 
 ### 3순위 — RareCLIP / AnomalyCLIP wrapper 구현
 
 WinCLIP 이후 남은 CLIP baseline을 하나씩 같은 stream contract에 맞춘다. fake score 금지, upstream loader가 stream order를 무시하면 wrapper가 직접 stream JSON을 읽어야 한다.
 
-### 4순위 — MVTec category sweep
+### 4순위 — MVTec full category sweep
 
-MVTec bottle만 통과했으므로 전체 category sweep으로 확장한다.
+quick sweep 이후 MVTec 전체 category로 확장한다.
 
-권장 순서:
+### 5순위 — paper table pipeline
 
-1. bottle 유지로 WinCLIP smoke 성공
-2. MVTec 2~3개 category quick sweep
-3. MVTec full category sweep
-
-### 5순위 — CRD-lite와 paper table pipeline
-
-epsilon 0/0.01/0.05 결과가 생겼으므로 CRD-lite를 aggregate metrics에서 계산할 수 있게 한다.
+CRD-lite summary와 mini/full matrix outputs를 paper-facing table 형식으로 정리한다.
 
 필요 작업:
 
-- epsilon별 AUROC/AUPR drop 계산
 - `results/latest/tables/*.tex`를 mini/full matrix 기반으로 생성
 - paper text는 아직 TODO 유지
 
