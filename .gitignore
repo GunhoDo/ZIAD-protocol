@@ -58,3 +58,5 @@ results/latest/mvtec_full_category_sweep_patchcore/configs/**
 results/latest/mvtec_full_category_sweep_patchcore/details/**
 results/latest/mvtec_full_category_sweep_anomalyclip/configs/**
 results/latest/mvtec_full_category_sweep_anomalyclip/details/**
+results/latest/mvtec_full_category_sweep_rareclip/configs/**
+results/latest/mvtec_full_category_sweep_rareclip/details/**

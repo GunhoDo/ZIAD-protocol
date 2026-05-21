@@ -165,6 +165,16 @@ This uses the same all-category smoke shape for AnomalyCLIP with iid,
 epsilon-zero, length-20 streams. It is CPU single-image inference and remains
 smoke evidence with `paper_allowed=false`.
 
+## Run the MVTec full-category RareCLIP smoke sweep
+
+```bash
+bash scripts/run_mvtec_full_category_sweep_rareclip.sh
+```
+
+This uses the same all-category smoke shape for RareCLIP with iid,
+epsilon-zero, length-20 streams. It is CPU single-image online inference and
+remains smoke evidence with `paper_allowed=false`.
+
 ## Current result contract
 
 - `results/latest/latest_run.json`: one current run/status summary.

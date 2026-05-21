@@ -1,0 +1,47 @@
+# MVTec AD full-category smoke sweep for RareCLIP.
+# This is still paper-ineligible: iid only, epsilon 0 only, short stream length.
+dataset: MVTec AD
+dataset_root: data/mvtec_ad
+categories:
+  - bottle
+  - cable
+  - capsule
+  - carpet
+  - grid
+  - hazelnut
+  - leather
+  - metal_nut
+  - pill
+  - screw
+  - tile
+  - toothbrush
+  - transistor
+  - wood
+  - zipper
+
+baselines:
+  - name: RareCLIP
+    baseline_path: external/RareCLIP
+    provenance:
+      scoring_mode: stream_ordered_online_zero_shot
+      latency_semantics: wrapper_single_image_online
+      training_source: rareclip_mvtec_text_projection_checkpoint
+      stream_source: test/*
+
+prevalence: 0.05
+stream_types:
+  - iid
+contamination_epsilon:
+  - 0
+stream:
+  seed: 0
+  length: 20
+  burst_length: 5
+
+outputs:
+  root: results/latest/mvtec_full_category_sweep_rareclip
+  aggregate_metrics: results/latest/mvtec_full_category_sweep_rareclip/metrics_mvtec_full_category_sweep_rareclip.csv
+  aggregate_manifest: results/latest/mvtec_full_category_sweep_rareclip/manifest_mvtec_full_category_sweep_rareclip.json
+  crd_lite_summary: results/latest/mvtec_full_category_sweep_rareclip/crd_lite_mvtec_full_category_sweep_rareclip.csv
+  status: mvtec_full_category_sweep_rareclip_complete
+  notes: MVTec full-category RareCLIP smoke evidence only; not full P0 or paper gate.
