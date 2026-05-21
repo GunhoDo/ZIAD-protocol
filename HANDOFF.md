@@ -104,6 +104,13 @@
   - baseline: RareCLIP only
   - stream/epsilon: iid, ε=0, length=20
   - generated details/configs are ignored; combined aggregate files remain trackable
+- MVTec full-category WinCLIP stream/epsilon matrix 구성/실행 완료:
+  - config: `experiments/configs/mvtec_full_category_stream_matrix_winclip.yaml`
+  - runner: `scripts/run_mvtec_full_category_stream_matrix_winclip.sh`
+  - categories: all 15 MVTec AD categories
+  - baseline: WinCLIP only
+  - stream/epsilon: `iid`, `bursty` × ε=`0`, `0.01`, `0.05`, length=20
+  - generated details/configs are ignored; combined aggregate files remain trackable
 
 ### 실제 실행 완료
 
@@ -240,6 +247,17 @@
   - stream/epsilon: `iid`, `0.0`
   - `toothbrush` emitted the expected feasible-ratio warning due sample-count constraints
   - `paper_allowed=false`
+- MVTec full-category WinCLIP stream/epsilon matrix 실행 완료:
+  - command: `bash scripts/run_mvtec_full_category_stream_matrix_winclip.sh`
+  - aggregate metrics: `results/latest/mvtec_full_category_stream_matrix_winclip/metrics_mvtec_full_category_stream_matrix_winclip.csv`
+  - CRD-lite summary: `results/latest/mvtec_full_category_stream_matrix_winclip/crd_lite_mvtec_full_category_stream_matrix_winclip.csv`
+  - manifest: `results/latest/mvtec_full_category_stream_matrix_winclip/manifest_mvtec_full_category_stream_matrix_winclip.json`
+  - rows: 90 measured_smoke rows
+  - categories: all MVTec AD categories (`bottle,cable,capsule,carpet,grid,hazelnut,leather,metal_nut,pill,screw,tile,toothbrush,transistor,wood,zipper`)
+  - baseline: `WinCLIP`
+  - stream/epsilon: `iid`, `bursty` × `0.0`, `0.01`, `0.05`
+  - feasible-ratio warnings are expected where category sample counts cannot satisfy exact requested ratios without duplicates
+  - `paper_allowed=false`
 
 ## 2. 검증 증거
 
@@ -283,6 +301,7 @@ bash scripts/run_baseline_mini_matrix.sh experiments/configs/anomalyclip_mini_ma
 bash scripts/run_baseline_mini_matrix.sh experiments/configs/rareclip_mini_matrix.yaml
 bash scripts/run_mvtec_full_category_sweep_anomalyclip.sh
 bash scripts/run_mvtec_full_category_sweep_rareclip.sh
+bash scripts/run_mvtec_full_category_stream_matrix_winclip.sh
 python3 -m unittest discover -v
 python3 -m compileall experiments tests
 git diff --check
@@ -307,10 +326,11 @@ git diff --check
 - RareCLIP mini-matrix aggregate: 6 rows, all `measured_smoke`, CRD-lite all `derived_smoke`, `paper_allowed=false`
 - MVTec full-category AnomalyCLIP sweep: 15 rows, all MVTec AD categories, all `measured_smoke`, CRD-lite all `derived_smoke`, `paper_allowed=false`
 - MVTec full-category RareCLIP sweep: 15 rows, all MVTec AD categories, all `measured_smoke`, CRD-lite all `derived_smoke`, `paper_allowed=false`
+- MVTec full-category WinCLIP stream/epsilon matrix: 90 rows, all MVTec AD categories × `iid/bursty` × ε `0/0.01/0.05`, all `measured_smoke`, CRD-lite all `derived_smoke`, `paper_allowed=false`
 
 ## 3. 지금 논문 관점에서 어디까지 왔나
 
-현재는 **실험 파이프라인의 PatchCore paper-run plumbing과 WinCLIP/AnomalyCLIP/RareCLIP mini-matrix/all-category smoke path가 동작함을 입증한 단계**다.
+현재는 **실험 파이프라인의 PatchCore paper-run plumbing, WinCLIP all-category stream/epsilon matrix, AnomalyCLIP/RareCLIP mini-matrix/all-category smoke path가 동작함을 입증한 단계**다.
 
 구체적으로:
 
@@ -320,7 +340,7 @@ git diff --check
 4. baseline-parametric mini-matrix runner가 동작한다.
 5. PatchCore와 WinCLIP 모두 bottle에서 `iid/bursty × ε 0/0.01/0.05` aggregate metric CSV와 CRD-lite smoke summary까지 생성된다.
 6. PatchCore와 WinCLIP은 bottle/capsule/hazelnut iid ε=0 quick sweep까지 통과했다.
-7. PatchCore와 WinCLIP 모두 all-15-category MVTec AD iid ε=0 smoke sweep까지 통과했다.
+7. PatchCore는 all-15-category MVTec AD iid ε=0 smoke sweep까지, WinCLIP은 all-15-category `iid/bursty × ε 0/0.01/0.05` stream matrix까지 통과했다.
 8. AnomalyCLIP은 MVTec AD bottle에서 `iid/bursty × ε 0/0.01/0.05` mini-matrix까지, 그리고 all-15-category iid ε=0 smoke까지 실제 image-level score를 생성했다.
 9. RareCLIP은 MVTec AD bottle에서 `iid/bursty × ε 0/0.01/0.05` mini-matrix까지, 그리고 all-15-category iid ε=0 smoke까지 실제 online image-level score를 생성했다.
 
@@ -328,8 +348,8 @@ git diff --check
 
 부족한 것:
 
-- CLIP baseline은 WinCLIP/AnomalyCLIP/RareCLIP 모두 bottle mini-matrix와 all-category iid ε=0 smoke까지 완료: full bursty/epsilon category matrix 미실행
-- MVTec 전체 category는 PatchCore/WinCLIP/AnomalyCLIP/RareCLIP iid ε=0 smoke만 완료; full epsilon/bursty matrix는 미완
+- CLIP baseline은 WinCLIP full all-category stream/epsilon smoke matrix, AnomalyCLIP/RareCLIP bottle mini-matrix와 all-category iid ε=0 smoke까지 완료: AnomalyCLIP/RareCLIP full bursty/epsilon category matrix 미실행
+- MVTec 전체 category는 WinCLIP만 `iid/bursty × ε 0/0.01/0.05` 완료; PatchCore/AnomalyCLIP/RareCLIP full epsilon/bursty matrix는 미완
 - VisA 미실행
 - full P0 matrix 미실행
 - CRD-lite는 bottle mini-matrix smoke summary만 구현됨; full P0/category/VisA 검증 미완
@@ -338,9 +358,9 @@ git diff --check
 
 ## 4. 다음 에이전트가 빠르게 해야 할 일
 
-### 1순위 — all-category epsilon/bursty 확장
+### 1순위 — AnomalyCLIP 또는 RareCLIP all-category epsilon/bursty 확장
 
-PatchCore/WinCLIP/AnomalyCLIP/RareCLIP의 smoke coverage가 정렬되면 full P0 전에 `bursty`와 ε=`0.01/0.05`를 카테고리 전체로 넓힌다. 실행 시간과 산출물 크기가 커지므로 baseline별로 분리하고 aggregate row count, feasible-ratio warnings, `paper_allowed=false`를 검증한다.
+WinCLIP은 all-category stream/epsilon matrix까지 끝났다. 다음은 AnomalyCLIP 또는 RareCLIP 중 하나를 같은 `iid/bursty × ε 0/0.01/0.05` shape로 넓힌다. 실행 시간이 길 수 있으므로 baseline별로 분리하고 aggregate row count, feasible-ratio warnings, `paper_allowed=false`를 검증한다.
 
 ### 2순위 — VisA 연결
 

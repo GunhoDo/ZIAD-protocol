@@ -60,3 +60,5 @@ results/latest/mvtec_full_category_sweep_anomalyclip/configs/**
 results/latest/mvtec_full_category_sweep_anomalyclip/details/**
 results/latest/mvtec_full_category_sweep_rareclip/configs/**
 results/latest/mvtec_full_category_sweep_rareclip/details/**
+results/latest/mvtec_full_category_stream_matrix_winclip/configs/**
+results/latest/mvtec_full_category_stream_matrix_winclip/details/**

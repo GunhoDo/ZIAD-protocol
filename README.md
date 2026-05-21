@@ -175,6 +175,16 @@ This uses the same all-category smoke shape for RareCLIP with iid,
 epsilon-zero, length-20 streams. It is CPU single-image online inference and
 remains smoke evidence with `paper_allowed=false`.
 
+## Run the MVTec full-category WinCLIP stream matrix
+
+```bash
+bash scripts/run_mvtec_full_category_stream_matrix_winclip.sh
+```
+
+This runs WinCLIP across all 15 MVTec AD categories for
+`iid/bursty × ε 0/0.01/0.05`, length-20 streams. It writes aggregate metrics
+and CRD-lite summaries only; generated per-run details remain ignored.
+
 ## Current result contract
 
 - `results/latest/latest_run.json`: one current run/status summary.
