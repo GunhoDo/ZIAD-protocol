@@ -1,0 +1,29 @@
+# WinCLIP VisA bursty smoke run: validates contiguous-block stream ordering.
+# This is paper-ineligible smoke evidence only.
+baseline: WinCLIP
+baseline_path: external/WinClip
+
+dataset: VisA
+dataset_root: data/visa/1cls
+category: candle
+
+stream_type: bursty
+prevalence: 0.05
+contamination_epsilon: 0
+
+stream:
+  path: results/latest/stream_smoke_visa_winclip_bursty.json
+  seed: 0
+  length: 20
+  burst_length: 5
+
+outputs:
+  scores_csv: results/latest/scores_visa_winclip_bursty.csv
+  latest_run: results/latest/latest_run_visa_winclip_bursty.json
+  manifest: results/latest/manifest_visa_winclip_bursty.json
+
+provenance:
+  scoring_mode: stream_ordered_zero_shot
+  latency_semantics: wrapper_batch_amortized
+  training_source: zero_shot_text_prompts
+  stream_source: test/*
