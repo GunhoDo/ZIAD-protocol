@@ -114,6 +114,17 @@ This runs AnomalyCLIP on MVTec AD bottle for `iid/bursty × ε 0/0.01/0.05`,
 then writes aggregate metrics and a CRD-lite smoke summary under
 `results/latest/mini_matrix/`. It is measured smoke evidence only.
 
+## Run the RareCLIP bottle mini-matrix
+
+```bash
+bash scripts/run_baseline_mini_matrix.sh experiments/configs/rareclip_mini_matrix.yaml
+```
+
+This runs RareCLIP on MVTec AD bottle for `iid/bursty × ε 0/0.01/0.05`,
+then writes aggregate metrics and a CRD-lite smoke summary under
+`results/latest/mini_matrix/`. It uses CPU single-image online inference in the
+current local setup and remains paper-ineligible.
+
 ## Run a category quick sweep
 
 ```bash

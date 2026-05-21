@@ -1,0 +1,31 @@
+# Fast RareCLIP matrix to validate the online CLIP baseline before full P0.
+baseline: RareCLIP
+baseline_path: external/RareCLIP
+
+dataset: MVTec AD
+dataset_root: data/mvtec_ad
+category: bottle
+
+prevalence: 0.05
+stream_types:
+  - iid
+  - bursty
+contamination_epsilon:
+  - 0
+  - 0.01
+  - 0.05
+stream:
+  seed: 0
+  length:
+  burst_length: 5
+
+outputs:
+  root: results/latest/mini_matrix
+  aggregate_metrics: results/latest/mini_matrix/metrics_rareclip_bottle.csv
+  aggregate_manifest: results/latest/mini_matrix/manifest_rareclip_bottle.json
+
+provenance:
+  scoring_mode: stream_ordered_online_zero_shot
+  latency_semantics: wrapper_single_image_online
+  training_source: rareclip_mvtec_text_projection_checkpoint
+  stream_source: test/*
