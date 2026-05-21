@@ -35,6 +35,46 @@ class MakeStreamsTest(unittest.TestCase):
             self.assertEqual(labels["scratch"], 1)
             self.assertEqual(labels["crack"], 1)
 
+    def test_enumerates_visa_split_with_schema_labels_and_no_duplicates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name in ["000.JPG", "001.JPG", "002.JPG"]:
+                touch(root / "1cls" / "candle" / "test" / "good" / name)
+            for name in ["010.JPG", "011.JPG"]:
+                touch(root / "1cls" / "candle" / "test" / "bad" / name)
+            touch(root / "1cls" / "candle" / "train" / "good" / "train_only.JPG")
+
+            payload = make_streams.build_stream(
+                dataset_root=root,
+                dataset="VisA",
+                category="candle",
+                stream_type="iid",
+                prevalence="0.4",
+                contamination_epsilon="0",
+                seed="7",
+                length="5",
+                burst_length="2",
+            )
+
+            make_streams.validate_stream_payload(payload)
+            paths = [item["image_path"] for item in payload["items"]]
+            self.assertEqual(len(paths), len(set(paths)))
+            self.assertTrue(all(path.startswith("1cls/candle/test/") for path in paths))
+            self.assertEqual(payload["metadata"]["dataset"], "VisA")
+            required = {
+                "stream_index",
+                "image_path",
+                "label",
+                "category",
+                "source_split",
+                "anomaly_type",
+            }
+            for item in payload["items"]:
+                self.assertTrue(required <= set(item))
+                self.assertEqual(item["category"], "candle")
+                self.assertEqual(item["source_split"], "test")
+                self.assertEqual(item["label"], 0 if item["anomaly_type"] == "good" else 1)
+
     def test_build_iid_stream_schema_and_determinism(self):
         tmp, root = self._fixture()
         with tmp:

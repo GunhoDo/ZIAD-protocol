@@ -54,6 +54,36 @@ class MiniMatrixTest(unittest.TestCase):
                 generated["outputs"]["scores_csv"].endswith("/scores.csv")
             )
 
+    def test_generate_run_configs_preserves_visa_dataset_fields(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            matrix = root / "visa_winclip_matrix.yaml"
+            matrix.write_text(
+                yaml.safe_dump(
+                    {
+                        "baseline": "WinCLIP",
+                        "baseline_path": "external/WinClip",
+                        "dataset": "VisA",
+                        "dataset_root": "data/visa/1cls",
+                        "category": "candle",
+                        "stream_types": ["iid"],
+                        "contamination_epsilon": [0],
+                        "stream": {"seed": 0, "length": 20, "burst_length": 5},
+                        "outputs": {"root": str(root / "visa_mini_matrix")},
+                    },
+                    sort_keys=False,
+                )
+            )
+
+            paths = mini_matrix.generate_run_configs(matrix)
+
+            self.assertEqual(len(paths), 1)
+            generated = yaml.safe_load(paths[0].read_text())
+            self.assertEqual(generated["dataset"], "VisA")
+            self.assertEqual(generated["dataset_root"], "data/visa/1cls")
+            self.assertEqual(generated["category"], "candle")
+            self.assertEqual(generated["stream"]["length"], 20)
+
     def test_aggregate_metrics_filters_to_requested_baseline(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

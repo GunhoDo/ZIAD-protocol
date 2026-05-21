@@ -125,6 +125,31 @@ then writes aggregate metrics and a CRD-lite smoke summary under
 `results/latest/mini_matrix/`. It uses CPU single-image online inference in the
 current local setup and remains paper-ineligible.
 
+## Run the VisA WinCLIP smoke
+
+```bash
+bash scripts/run_smoke.sh experiments/configs/smoke_visa_winclip.yaml
+python3 experiments/evaluate.py \
+  --scores-csv results/latest/scores_visa_winclip.csv \
+  --latest-run results/latest/latest_run_visa_winclip.json \
+  --output results/latest/metrics_visa_winclip.csv \
+  --manifest results/latest/manifest_visa_winclip.json
+```
+
+This validates the VisA adapter on `data/visa/1cls/candle` with a length-20,
+iid, epsilon-zero stream. It is measured smoke evidence only and keeps
+`paper_allowed=false`.
+
+## Run the VisA WinCLIP mini-matrix
+
+```bash
+bash scripts/run_baseline_mini_matrix.sh experiments/configs/visa_winclip_mini_matrix.yaml
+```
+
+This runs WinCLIP on VisA candle for `iid/bursty × ε 0/0.01/0.05`, length-20
+streams. It writes aggregate metrics and CRD-lite smoke summaries under
+`results/latest/visa_mini_matrix/`; these outputs are still paper-ineligible.
+
 ## Run a category quick sweep
 
 ```bash

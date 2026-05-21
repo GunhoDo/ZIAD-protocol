@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Generate deterministic MVTec stream JSON for ZIAD smoke/P0 runs.
+"""Generate deterministic dataset stream JSON for ZIAD smoke/P0 runs.
 
-This module intentionally implements the first PatchCore-focused stream protocol
-slice only.  It constructs evaluation streams from MVTec ``test/*`` samples,
-records requested-vs-applied stream statistics, and never duplicates samples to
-force a requested prevalence/contamination target.
+This module constructs evaluation streams from supported dataset ``test/*``
+samples, records requested-vs-applied stream statistics, and never duplicates
+samples to force a requested prevalence/contamination target.
 """
 from __future__ import annotations
 
@@ -18,7 +17,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any, Iterable
 
-GENERATOR_VERSION = "mvtec-stream-generator-v1"
+GENERATOR_VERSION = "dataset-stream-generator-v2"
 SELECTION_POLICY_VERSION = "closest-ratio-no-duplicates-v1"
 FRACTION_TOLERANCE = Decimal("1e-12")
 IMAGE_SUFFIXES = {".bmp", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp"}
@@ -120,6 +119,59 @@ def enumerate_mvtec_samples(dataset_root: str | Path, category: str) -> list[Str
     if not samples:
         raise RuntimeError(f"No MVTec test images found under {test_root}")
     return samples
+
+
+def _visa_category_root(dataset_root: str | Path, category: str) -> Path:
+    root = Path(dataset_root)
+    direct = root / category
+    if direct.is_dir():
+        return direct
+    one_class = root / "1cls" / category
+    if one_class.is_dir():
+        return one_class
+    raise FileNotFoundError(
+        f"VisA category not found under {root / category} or {root / '1cls' / category}"
+    )
+
+
+def enumerate_visa_samples(dataset_root: str | Path, category: str) -> list[StreamSample]:
+    root = Path(dataset_root)
+    category_root = _visa_category_root(root, category)
+    test_root = category_root / "test"
+    if not test_root.is_dir():
+        raise FileNotFoundError(f"VisA test split not found: {test_root}")
+
+    samples: list[StreamSample] = []
+    for anomaly_dir in sorted(p for p in test_root.iterdir() if p.is_dir()):
+        anomaly_type = anomaly_dir.name
+        label = 0 if anomaly_type == "good" else 1
+        for image in sorted(p for p in anomaly_dir.rglob("*") if p.is_file()):
+            if image.suffix.lower() not in IMAGE_SUFFIXES:
+                continue
+            samples.append(
+                StreamSample(
+                    path=image,
+                    rel_path=image.relative_to(root).as_posix(),
+                    label=label,
+                    category=category,
+                    source_split="test",
+                    anomaly_type=anomaly_type,
+                )
+            )
+    if not samples:
+        raise RuntimeError(f"No VisA test images found under {test_root}")
+    return samples
+
+
+def enumerate_dataset_samples(
+    dataset_root: str | Path, category: str, dataset: str
+) -> list[StreamSample]:
+    normalized = dataset.strip().lower().replace("_", " ")
+    if normalized in {"mvtec ad", "mvtec"}:
+        return enumerate_mvtec_samples(dataset_root, category)
+    if normalized == "visa":
+        return enumerate_visa_samples(dataset_root, category)
+    raise ValueError(f"Unsupported dataset: {dataset!r}")
 
 
 def choose_counts(
@@ -300,7 +352,7 @@ def build_stream(
     length_int = None if length in {None, ""} else _validate_int(length, "stream.length", positive=True)
     burst_length_int = _validate_int(burst_length, "stream.burst_length", positive=True)
 
-    samples = enumerate_mvtec_samples(dataset_root, category)
+    samples = enumerate_dataset_samples(dataset_root, category, dataset)
     normals_all = [sample for sample in samples if sample.label == 0]
     anomalies_all = [sample for sample in samples if sample.label == 1]
     selected_normal_count, selected_anomaly_count, warnings = choose_counts(

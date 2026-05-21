@@ -1,0 +1,33 @@
+# Fast VisA WinCLIP matrix to validate iid/bursty stream coverage before full P0.
+# This is paper-ineligible smoke evidence only.
+baseline: WinCLIP
+baseline_path: external/WinClip
+
+dataset: VisA
+dataset_root: data/visa/1cls
+category: candle
+
+prevalence: 0.05
+stream_types:
+  - iid
+  - bursty
+contamination_epsilon:
+  - 0
+  - 0.01
+  - 0.05
+stream:
+  seed: 0
+  length: 20
+  burst_length: 5
+
+outputs:
+  root: results/latest/visa_mini_matrix
+  aggregate_metrics: results/latest/visa_mini_matrix/metrics_winclip_candle.csv
+  aggregate_manifest: results/latest/visa_mini_matrix/manifest_winclip_candle.json
+  crd_lite_summary: results/latest/visa_mini_matrix/crd_lite_winclip_candle.csv
+
+provenance:
+  scoring_mode: stream_ordered_zero_shot
+  latency_semantics: wrapper_batch_amortized
+  training_source: zero_shot_text_prompts
+  stream_source: test/*

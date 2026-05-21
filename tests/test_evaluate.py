@@ -90,6 +90,27 @@ class EvaluateSmokeMetricsTest(unittest.TestCase):
             self.assertEqual(manifest_payload["metrics_csv"], str(metrics))
             self.assertFalse(manifest_payload["paper_allowed"])
 
+    def test_visa_evaluate_manifest_keeps_paper_allowed_false(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            scores = root / "scores_visa.csv"
+            latest = root / "latest_run_visa.json"
+            metrics = root / "metrics_visa.csv"
+            manifest = root / "manifest_visa.json"
+            self._write_scores(
+                scores,
+                [score_row(0, 0, 0.1, latency=10), score_row(1, 1, 0.9, latency=20)],
+            )
+            latest.write_text(json.dumps({"baseline": "WinCLIP", "dataset": "VisA"}))
+            manifest.write_text(json.dumps({"paper_allowed": True}))
+
+            row = evaluate.evaluate(scores, latest, metrics, manifest)
+
+            self.assertEqual(row["dataset"], "VisA")
+            manifest_payload = json.loads(manifest.read_text())
+            self.assertEqual(manifest_payload["status"], "evaluated_smoke")
+            self.assertFalse(manifest_payload["paper_allowed"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -19,7 +19,7 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 # Parse config fields with python (avoids yq dependency)
-read -r SMOKE_BASELINE SMOKE_BASELINE_PATH SMOKE_DATASET_ROOT SMOKE_CATEGORY SMOKE_STREAM_TYPE SMOKE_STREAM_PATH SMOKE_PREVALENCE SMOKE_EPSILON SMOKE_STREAM_SEED SMOKE_STREAM_LENGTH SMOKE_BURST_LENGTH SCORES_CSV LATEST_RUN MANIFEST SMOKE_SCORING_MODE SMOKE_LATENCY_SEMANTICS SMOKE_TRAINING_SOURCE SMOKE_STREAM_SOURCE < <(python3 - "$CONFIG_FILE" <<'PY'
+IFS=$'\t' read -r SMOKE_BASELINE SMOKE_BASELINE_PATH SMOKE_DATASET SMOKE_DATASET_ROOT SMOKE_CATEGORY SMOKE_STREAM_TYPE SMOKE_STREAM_PATH SMOKE_PREVALENCE SMOKE_EPSILON SMOKE_STREAM_SEED SMOKE_STREAM_LENGTH SMOKE_BURST_LENGTH SCORES_CSV LATEST_RUN MANIFEST SMOKE_SCORING_MODE SMOKE_LATENCY_SEMANTICS SMOKE_TRAINING_SOURCE SMOKE_STREAM_SOURCE < <(python3 - "$CONFIG_FILE" <<'PY'
 import sys, pathlib
 
 cfg_text = pathlib.Path(sys.argv[1]).read_text()
@@ -52,6 +52,7 @@ except ImportError:
 
 baseline = cfg.get('baseline', 'PatchCore')
 baseline_path = cfg.get('baseline_path', 'external/patchcore-inspection')
+dataset = cfg.get('dataset', 'MVTec AD')
 dataset_root = cfg.get('dataset_root', 'data/mvtec_ad')
 category = cfg.get('category', 'bottle')
 stream_type = cfg.get('stream_type', 'iid')
@@ -72,11 +73,11 @@ latency_semantics = provenance.get('latency_semantics', 'offline_batch_amortized
 training_source = provenance.get('training_source', 'train/good')
 stream_source = provenance.get('stream_source', 'test/*')
 length = '__NONE__' if length in {None, '', 'null', 'None'} else length
-print(
-    baseline, baseline_path, dataset_root, category, stream_type, stream_path,
+print("\t".join(str(value) for value in [
+    baseline, baseline_path, dataset, dataset_root, category, stream_type, stream_path,
     prevalence, epsilon, seed, length, burst_length, scores_csv, latest_run,
     manifest, scoring_mode, latency_semantics, training_source, stream_source,
-)
+]))
 PY
 )
 
@@ -106,7 +107,7 @@ if [ ! -d "${SMOKE_BASELINE_PATH}" ]; then
 fi
 
 # --- Gate 2: Check dataset ---
-if [ ! -d "${SMOKE_DATASET_ROOT}/${SMOKE_CATEGORY}" ]; then
+if [ ! -d "${SMOKE_DATASET_ROOT}/${SMOKE_CATEGORY}" ] && [ ! -d "${SMOKE_DATASET_ROOT}/1cls/${SMOKE_CATEGORY}" ]; then
   echo "MISSING DATA: ${SMOKE_DATASET_ROOT}/${SMOKE_CATEGORY} not found." >&2
   echo "  Place the dataset under data/ (gitignored). See data/README.md." >&2
   SETUP_COMPLETE=false
@@ -117,13 +118,13 @@ if [ "$SETUP_COMPLETE" = "false" ]; then
   echo ""
   echo "Status: setup_incomplete — writing non-final provenance (paper_allowed=false)."
   python3 - \
-    "$SMOKE_BASELINE" "$SMOKE_BASELINE_PATH" "$BASELINE_REPO_URL" "$BASELINE_COMMIT_HASH" "$SMOKE_DATASET_ROOT" \
+    "$SMOKE_BASELINE" "$SMOKE_BASELINE_PATH" "$BASELINE_REPO_URL" "$BASELINE_COMMIT_HASH" "$SMOKE_DATASET" "$SMOKE_DATASET_ROOT" \
     "$SMOKE_CATEGORY" "$SMOKE_STREAM_TYPE" "$SMOKE_STREAM_PATH" \
     "$SMOKE_PREVALENCE" "$SMOKE_EPSILON" "$SMOKE_STREAM_SEED" "$SMOKE_STREAM_LENGTH" "$SMOKE_BURST_LENGTH" \
     "$LATEST_RUN" "$MANIFEST" "$NOW" "$SMOKE_SCORING_MODE" "$SMOKE_LATENCY_SEMANTICS" "$SMOKE_TRAINING_SOURCE" "$SMOKE_STREAM_SOURCE" <<'PY'
 import json, pathlib, sys
 args = sys.argv[1:]
-baseline, bpath, repo_url, commit_hash, droot, cat, stype, spath, prevalence, epsilon, seed, length, burst_length, run_path, mpath, ts, scoring_mode, latency_semantics, training_source, stream_source = args
+baseline, bpath, repo_url, commit_hash, dataset, droot, cat, stype, spath, prevalence, epsilon, seed, length, burst_length, run_path, mpath, ts, scoring_mode, latency_semantics, training_source, stream_source = args
 stream_metadata = {}
 run = {
     "status": "setup_incomplete",
@@ -131,7 +132,7 @@ run = {
     "baseline_path": bpath,
     "baseline_repo_url": repo_url,
     "baseline_commit_hash": commit_hash,
-    "dataset": "MVTec AD",
+    "dataset": dataset,
     "dataset_root": droot,
     "category": cat,
     "stream_type": stype,
@@ -179,7 +180,7 @@ fi
 echo "Baseline and dataset found. Generating stream..."
 STREAM_ARGS=(
   --dataset-root "$SMOKE_DATASET_ROOT"
-  --dataset "MVTec AD"
+  --dataset "$SMOKE_DATASET"
   --category "$SMOKE_CATEGORY"
   --stream-type "$SMOKE_STREAM_TYPE"
   --prevalence "$SMOKE_PREVALENCE"
@@ -209,17 +210,17 @@ PY
 
 # --- Gate 4: Run wrapper ---
 echo "Running wrapper..."
-python3 - "$SMOKE_BASELINE" "$SMOKE_STREAM_PATH" "$SMOKE_DATASET_ROOT" "$SCORES_CSV" "$SMOKE_CATEGORY" "$SMOKE_STREAM_TYPE" "$SMOKE_SCORING_MODE" "$SMOKE_LATENCY_SEMANTICS" <<'PY'
+python3 - "$SMOKE_BASELINE" "$SMOKE_STREAM_PATH" "$SMOKE_DATASET_ROOT" "$SCORES_CSV" "$SMOKE_DATASET" "$SMOKE_CATEGORY" "$SMOKE_STREAM_TYPE" "$SMOKE_SCORING_MODE" "$SMOKE_LATENCY_SEMANTICS" <<'PY'
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path.cwd()))
-baseline, stream_path, dataset_root, output_csv, category, stream_type, scoring_mode, latency_semantics = sys.argv[1:]
+baseline, stream_path, dataset_root, output_csv, dataset, category, stream_type, scoring_mode, latency_semantics = sys.argv[1:]
 module_name = baseline.lower()
 try:
     import importlib
     mod = importlib.import_module(f"experiments.baselines.{module_name}")
 except ImportError as e:
     raise SystemExit(f"Cannot import wrapper experiments.baselines.{module_name}: {e}")
-config = {"baseline": baseline, "category": category, "stream_type": stream_type, "scoring_mode": scoring_mode, "latency_semantics": latency_semantics}
+config = {"baseline": baseline, "dataset": dataset, "category": category, "stream_type": stream_type, "scoring_mode": scoring_mode, "latency_semantics": latency_semantics}
 mod.run(stream_path, dataset_root, output_csv, config)
 PY
 
@@ -255,12 +256,12 @@ PY
 
 # --- Write success provenance ---
 python3 - \
-  "$SMOKE_BASELINE" "$SMOKE_BASELINE_PATH" "$BASELINE_REPO_URL" "$BASELINE_COMMIT_HASH" "$SMOKE_DATASET_ROOT" \
+  "$SMOKE_BASELINE" "$SMOKE_BASELINE_PATH" "$BASELINE_REPO_URL" "$BASELINE_COMMIT_HASH" "$SMOKE_DATASET" "$SMOKE_DATASET_ROOT" \
   "$SMOKE_CATEGORY" "$SMOKE_STREAM_TYPE" "$SMOKE_STREAM_PATH" \
   "$SMOKE_PREVALENCE" "$SMOKE_EPSILON" "$SMOKE_STREAM_SEED" "$SMOKE_STREAM_LENGTH" "$SMOKE_BURST_LENGTH" \
   "$LATEST_RUN" "$MANIFEST" "$NOW" "$SMOKE_SCORING_MODE" "$SMOKE_LATENCY_SEMANTICS" "$SMOKE_TRAINING_SOURCE" "$SMOKE_STREAM_SOURCE" <<'PY'
 import json, pathlib, sys
-baseline, bpath, repo_url, commit_hash, droot, cat, stype, spath, prevalence, epsilon, seed, length, burst_length, run_path, mpath, ts, scoring_mode, latency_semantics, training_source, stream_source = sys.argv[1:]
+baseline, bpath, repo_url, commit_hash, dataset, droot, cat, stype, spath, prevalence, epsilon, seed, length, burst_length, run_path, mpath, ts, scoring_mode, latency_semantics, training_source, stream_source = sys.argv[1:]
 stream_payload = json.loads(pathlib.Path(spath).read_text())
 if not isinstance(stream_payload, dict) or not isinstance(stream_payload.get("metadata"), dict):
     raise SystemExit(f"Stream metadata missing or invalid in {spath}")
@@ -271,7 +272,7 @@ run = {
     "baseline_path": bpath,
     "baseline_repo_url": repo_url,
     "baseline_commit_hash": commit_hash,
-    "dataset": "MVTec AD",
+    "dataset": dataset,
     "dataset_root": droot,
     "category": cat,
     "stream_type": stype,

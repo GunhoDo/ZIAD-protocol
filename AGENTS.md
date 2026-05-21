@@ -10,7 +10,7 @@ Canonical experiment reference: [`docs/experiment-prd.md`](docs/experiment-prd.m
 ## Current Status
 
 **Setup smoke gate: PASSED** — docs, configs, scripts, and wrapper stubs exist.
-**First success gate A: PASSED for PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP smoke paths** — real stream files, measured score rows, iid/bursty × ε artifacts, CRD-lite smoke summaries, bottle/capsule/hazelnut PatchCore/WinCLIP quick-sweep artifacts, all-baseline all-15-category iid ε=0 smoke artifacts, CLIP bottle mini-matrix artifacts, and PatchCore/WinCLIP/AnomalyCLIP/RareCLIP all-category stream/epsilon matrix artifacts exist; not full P0.
+**First success gate A: PASSED for PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP smoke paths** — real stream files, measured score rows, iid/bursty × ε artifacts, CRD-lite smoke summaries, bottle/capsule/hazelnut PatchCore/WinCLIP quick-sweep artifacts, all-baseline all-15-category iid ε=0 smoke artifacts, CLIP bottle mini-matrix artifacts, PatchCore/WinCLIP/AnomalyCLIP/RareCLIP all-category stream/epsilon matrix artifacts, and VisA candle WinCLIP smoke/mini-matrix artifacts exist; not full P0.
 **Paper gate: NOT YET** — current outputs remain smoke/mini-matrix evidence with `paper_allowed: false`; generated paper-facing tables are non-final smoke evidence only; full reviewed P0 results are still required.
 
 Baseline repo URLs and commit hashes are pinned in `experiments/configs/baselines.yaml`
@@ -43,6 +43,8 @@ ZIAD-protocol/
       rareclip_mini_matrix.yaml # RareCLIP bottle iid/bursty × epsilon smoke matrix
       smoke_anomalyclip.yaml # AnomalyCLIP bottle iid epsilon-zero smoke
       smoke_rareclip.yaml    # RareCLIP bottle iid epsilon-zero smoke
+      smoke_visa_winclip.yaml # WinCLIP VisA candle iid epsilon-zero smoke
+      visa_winclip_mini_matrix.yaml # WinCLIP VisA candle iid/bursty × epsilon smoke matrix
       winclip_mini_matrix.yaml # WinCLIP bottle iid/bursty × epsilon smoke matrix
       p0.yaml                 # Full P0 matrix (future path, not required for first success)
     baselines/
@@ -54,7 +56,7 @@ ZIAD-protocol/
     evaluate.py               # Score evaluator for smoke/mini-matrix metrics
     category_sweep.py         # Multi-category quick-sweep config/aggregate helper
     mini_matrix.py            # Baseline-parametric mini-matrix config/aggregate helper
-    make_streams.py           # Deterministic MVTec stream generator (iid/bursty)
+    make_streams.py           # Deterministic MVTec/VisA stream generator (iid/bursty)
     render_paper_tables.py    # Renders paper-ineligible smoke evidence tables
     prepare_data.py           # Placeholder data prep
     run_baselines.py          # Placeholder baseline runner
@@ -133,9 +135,11 @@ bash scripts/setup_baselines.sh   # Show clone-slot status for all 4 baselines
 bash scripts/run_smoke.sh         # Smoke run (fails clearly if baseline/data missing)
 bash scripts/run_smoke.sh experiments/configs/smoke_rareclip.yaml
 bash scripts/run_smoke.sh experiments/configs/smoke_anomalyclip.yaml
+bash scripts/run_smoke.sh experiments/configs/smoke_visa_winclip.yaml
 bash scripts/run_baseline_mini_matrix.sh experiments/configs/winclip_mini_matrix.yaml
 bash scripts/run_baseline_mini_matrix.sh experiments/configs/anomalyclip_mini_matrix.yaml
 bash scripts/run_baseline_mini_matrix.sh experiments/configs/rareclip_mini_matrix.yaml
+bash scripts/run_baseline_mini_matrix.sh experiments/configs/visa_winclip_mini_matrix.yaml
 bash scripts/run_category_quick_sweep.sh experiments/configs/category_quick_sweep.yaml
 bash scripts/run_mvtec_full_category_sweep.sh
 bash scripts/run_mvtec_full_category_sweep_patchcore.sh
