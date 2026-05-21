@@ -10,7 +10,7 @@ Canonical experiment reference: [`docs/experiment-prd.md`](docs/experiment-prd.m
 ## Current Status
 
 **Setup smoke gate: PASSED** — docs, configs, scripts, and wrapper stubs exist.
-**First success gate A: PASSED for PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP smoke paths** — real stream files, measured score rows, iid/bursty × ε artifacts, CRD-lite smoke summaries, bottle/capsule/hazelnut PatchCore/WinCLIP quick-sweep artifacts, all-baseline all-15-category iid ε=0 smoke artifacts, CLIP bottle mini-matrix artifacts, and WinCLIP/AnomalyCLIP all-category stream/epsilon matrix artifacts exist; not full P0.
+**First success gate A: PASSED for PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP smoke paths** — real stream files, measured score rows, iid/bursty × ε artifacts, CRD-lite smoke summaries, bottle/capsule/hazelnut PatchCore/WinCLIP quick-sweep artifacts, all-baseline all-15-category iid ε=0 smoke artifacts, CLIP bottle mini-matrix artifacts, and WinCLIP/AnomalyCLIP/RareCLIP all-category stream/epsilon matrix artifacts exist; not full P0.
 **Paper gate: NOT YET** — current outputs remain smoke/mini-matrix evidence with `paper_allowed: false`; generated paper-facing tables are non-final smoke evidence only; full reviewed P0 results are still required.
 
 Baseline repo URLs and commit hashes are pinned in `experiments/configs/baselines.yaml`
@@ -36,6 +36,7 @@ ZIAD-protocol/
       mvtec_full_category_sweep_rareclip.yaml # RareCLIP all-category iid epsilon-zero smoke sweep
       mvtec_full_category_sweep_winclip.yaml # WinCLIP all-category iid epsilon-zero smoke sweep
       mvtec_full_category_stream_matrix_anomalyclip.yaml # AnomalyCLIP all-category iid/bursty × epsilon smoke matrix
+      mvtec_full_category_stream_matrix_rareclip.yaml # RareCLIP all-category iid/bursty × epsilon smoke matrix
       mvtec_full_category_stream_matrix_winclip.yaml # WinCLIP all-category iid/bursty × epsilon smoke matrix
       anomalyclip_mini_matrix.yaml # AnomalyCLIP bottle iid/bursty × epsilon smoke matrix
       rareclip_mini_matrix.yaml # RareCLIP bottle iid/bursty × epsilon smoke matrix
@@ -66,6 +67,7 @@ ZIAD-protocol/
     run_mvtec_full_category_sweep_patchcore.sh # PatchCore all-category MVTec smoke sweep runner
     run_mvtec_full_category_sweep_rareclip.sh # RareCLIP all-category MVTec smoke sweep runner
     run_mvtec_full_category_stream_matrix_anomalyclip.sh # AnomalyCLIP all-category stream/epsilon smoke matrix runner
+    run_mvtec_full_category_stream_matrix_rareclip.sh # RareCLIP all-category stream/epsilon smoke matrix runner
     run_mvtec_full_category_stream_matrix_winclip.sh # WinCLIP all-category stream/epsilon smoke matrix runner
     run_patchcore_mini_matrix.sh # Compatibility wrapper around generic mini-matrix runner
     render_paper_tables.sh    # Refreshes generated LaTeX tables from result CSVs
@@ -138,6 +140,7 @@ bash scripts/run_mvtec_full_category_sweep_patchcore.sh
 bash scripts/run_mvtec_full_category_sweep_anomalyclip.sh
 bash scripts/run_mvtec_full_category_sweep_rareclip.sh
 bash scripts/run_mvtec_full_category_stream_matrix_anomalyclip.sh
+bash scripts/run_mvtec_full_category_stream_matrix_rareclip.sh
 bash scripts/run_mvtec_full_category_stream_matrix_winclip.sh
 bash scripts/render_paper_tables.sh # Refresh paper-facing non-final smoke evidence tables
 make paper                        # Build paper/paper.pdf

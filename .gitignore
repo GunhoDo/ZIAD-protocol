@@ -64,3 +64,5 @@ results/latest/mvtec_full_category_stream_matrix_winclip/configs/**
 results/latest/mvtec_full_category_stream_matrix_winclip/details/**
 results/latest/mvtec_full_category_stream_matrix_anomalyclip/configs/**
 results/latest/mvtec_full_category_stream_matrix_anomalyclip/details/**
+results/latest/mvtec_full_category_stream_matrix_rareclip/configs/**
+results/latest/mvtec_full_category_stream_matrix_rareclip/details/**

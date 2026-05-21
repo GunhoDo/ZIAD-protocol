@@ -195,6 +195,16 @@ This runs AnomalyCLIP across all 15 MVTec AD categories for
 `iid/bursty × ε 0/0.01/0.05`, length-20 streams. It is CPU single-image
 inference and remains smoke evidence with `paper_allowed=false`.
 
+## Run the MVTec full-category RareCLIP stream matrix
+
+```bash
+bash scripts/run_mvtec_full_category_stream_matrix_rareclip.sh
+```
+
+This runs RareCLIP across all 15 MVTec AD categories for
+`iid/bursty × ε 0/0.01/0.05`, length-20 streams. It exercises the online
+memory update path and remains smoke evidence with `paper_allowed=false`.
+
 ## Current result contract
 
 - `results/latest/latest_run.json`: one current run/status summary.
