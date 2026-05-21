@@ -171,6 +171,14 @@
   - baseline: AnomalyCLIP only
   - stream/epsilon: `iid`, ε=`0`, length=20
   - generated per-run configs/details are ignored; combined aggregate files remain trackable
+- VisA full-category RareCLIP smoke sweep 구성 완료:
+  - config: `experiments/configs/visa_full_category_sweep_rareclip.yaml`
+  - runner: `scripts/run_visa_full_category_sweep_rareclip.sh`
+  - dataset root: `data/visa/1cls`
+  - categories: all 12 local VisA categories (`candle,capsules,cashew,chewinggum,fryum,macaroni1,macaroni2,pcb1,pcb2,pcb3,pcb4,pipe_fryum`)
+  - baseline: RareCLIP only
+  - stream/epsilon: `iid`, ε=`0`, length=20
+  - generated per-run configs/details are ignored; combined aggregate files remain trackable
 
 ### 실제 실행 완료
 
@@ -428,6 +436,19 @@
   - stream/epsilon: `iid`, `0.0`
   - all generated streams have unique paths `20/20`, labels `[0, 1]`, warnings `0`
   - `paper_allowed=false`
+- VisA full-category RareCLIP smoke sweep 실행 완료:
+  - config: `experiments/configs/visa_full_category_sweep_rareclip.yaml`
+  - command: `bash scripts/run_visa_full_category_sweep_rareclip.sh`
+  - aggregate metrics: `results/latest/visa_full_category_sweep_rareclip/metrics_visa_full_category_sweep_rareclip.csv`
+  - CRD-lite summary: `results/latest/visa_full_category_sweep_rareclip/crd_lite_visa_full_category_sweep_rareclip.csv`
+  - aggregate manifest: `results/latest/visa_full_category_sweep_rareclip/manifest_visa_full_category_sweep_rareclip.json`
+  - rows: 12 measured_smoke rows
+  - categories: all 12 local VisA categories (`candle,capsules,cashew,chewinggum,fryum,macaroni1,macaroni2,pcb1,pcb2,pcb3,pcb4,pipe_fryum`)
+  - baseline: `RareCLIP`
+  - stream/epsilon: `iid`, `0.0`
+  - all generated streams have unique paths `20/20`, labels `[0, 1]`, warnings `0`
+  - CPU fallback warnings are expected in this environment and do not indicate fake results
+  - `paper_allowed=false`
 
 ## 2. 검증 증거
 
@@ -503,6 +524,7 @@ python3 experiments/evaluate.py \
   --manifest results/latest/manifest_visa_rareclip.json
 bash scripts/run_visa_full_category_sweep_winclip.sh
 bash scripts/run_visa_full_category_sweep_anomalyclip.sh
+bash scripts/run_visa_full_category_sweep_rareclip.sh
 python3 -m unittest discover -v
 python3 -m compileall experiments tests
 git diff --check
@@ -538,10 +560,11 @@ git diff --check
 - VisA RareCLIP iid standalone smoke: 20 rows, dataset `VisA`, category `candle`, labels `[0, 1]`, unique paths `20/20`, all `measured`, evaluated manifest `paper_allowed=false`
 - VisA full-category WinCLIP sweep: 12 rows, all 12 local VisA categories, all `measured_smoke`, all generated streams unique paths `20/20`, labels `[0, 1]`, aggregate manifest `paper_allowed=false`
 - VisA full-category AnomalyCLIP sweep: 12 rows, all 12 local VisA categories, all `measured_smoke`, all generated streams unique paths `20/20`, labels `[0, 1]`, aggregate manifest `paper_allowed=false`
+- VisA full-category RareCLIP sweep: 12 rows, all 12 local VisA categories, all `measured_smoke`, all generated streams unique paths `20/20`, labels `[0, 1]`, aggregate manifest `paper_allowed=false`
 
 ## 3. 지금 논문 관점에서 어디까지 왔나
 
-현재는 **MVTec AD 기준 4개 baseline(PatchCore/WinCLIP/AnomalyCLIP/RareCLIP)의 all-category stream/epsilon smoke matrix가 동작하고, VisA는 all-12-category WinCLIP/AnomalyCLIP iid ε=0 smoke와 candle 기준 RareCLIP smoke가 동작함을 입증한 단계**다.
+현재는 **MVTec AD 기준 4개 baseline(PatchCore/WinCLIP/AnomalyCLIP/RareCLIP)의 all-category stream/epsilon smoke matrix가 동작하고, VisA는 all-12-category WinCLIP/AnomalyCLIP/RareCLIP iid ε=0 smoke가 동작함을 입증한 단계**다.
 
 구체적으로:
 
@@ -556,7 +579,7 @@ git diff --check
 9. RareCLIP은 MVTec AD bottle mini-matrix와 all-15-category `iid/bursty × ε 0/0.01/0.05` stream matrix까지 실제 online image-level score를 생성했다.
 10. VisA adapter는 `candle` 기준 `iid/bursty × ε 0/0.01/0.05` length=20 streams를 만들고 WinCLIP으로 실제 image-level score를 생성했다.
 11. VisA candle iid ε=0 length=20은 AnomalyCLIP과 RareCLIP에서도 실제 image-level score를 생성했다.
-12. VisA all-12-category iid ε=0 length=20은 WinCLIP과 AnomalyCLIP으로 실제 image-level score를 생성했다.
+12. VisA all-12-category iid ε=0 length=20은 WinCLIP, AnomalyCLIP, RareCLIP으로 실제 image-level score를 생성했다.
 
 하지만 아직 **논문 결과 단계는 아니다**.
 
@@ -564,7 +587,7 @@ git diff --check
 
 - CLIP baseline은 WinCLIP/AnomalyCLIP/RareCLIP full all-category stream/epsilon smoke matrix까지 완료
 - MVTec 전체 category는 PatchCore/WinCLIP/AnomalyCLIP/RareCLIP 모두 `iid/bursty × ε 0/0.01/0.05` smoke matrix 완료
-- VisA는 WinCLIP/AnomalyCLIP all-category iid ε=0 smoke와 candle 기준 RareCLIP smoke만 실행됨; PatchCore VisA, RareCLIP all-category, VisA full stream/epsilon matrix는 미실행
+- VisA는 WinCLIP/AnomalyCLIP/RareCLIP all-category iid ε=0 smoke까지 실행됨; PatchCore VisA와 VisA full stream/epsilon matrix는 미실행
 - full P0 matrix 미실행
 - CRD-lite는 smoke aggregate summary로 구현됨; full P0/VisA 검증과 paper 해석은 미완
 - paper table pipeline은 smoke evidence table만 생성함; full matrix 기반 table/figure는 아직 아님
@@ -574,7 +597,7 @@ git diff --check
 
 ### 1순위 — VisA coverage 확장
 
-VisA stream adapter와 WinCLIP/AnomalyCLIP all-category iid ε=0 smoke는 연결됐다. 다음은 RareCLIP all-category iid ε=0 smoke를 runtime cost를 감안해 실행하거나, 먼저 WinCLIP VisA full stream/epsilon matrix로 확장한다.
+VisA stream adapter와 CLIP baselines(WinCLIP/AnomalyCLIP/RareCLIP) all-category iid ε=0 smoke는 연결됐다. 다음은 WinCLIP VisA full stream/epsilon matrix를 먼저 확장하거나, PatchCore VisA adapter feasibility를 점검한다.
 
 ### 2순위 — full P0 orchestration 설계
 

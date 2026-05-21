@@ -172,6 +172,16 @@ This uses the same all-12-category VisA smoke shape for AnomalyCLIP with iid,
 epsilon-zero, length-20 streams. It is CPU single-image inference and remains
 smoke evidence with `paper_allowed=false`.
 
+## Run the VisA full-category RareCLIP smoke sweep
+
+```bash
+bash scripts/run_visa_full_category_sweep_rareclip.sh
+```
+
+This uses the same all-12-category VisA smoke shape for RareCLIP with iid,
+epsilon-zero, length-20 streams. It exercises the online memory update path and
+remains smoke evidence with `paper_allowed=false`.
+
 ## Run a category quick sweep
 
 ```bash
