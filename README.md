@@ -89,6 +89,21 @@ This uses the local AnomalyCLIP checkpoint and the upstream image-level
 `text_probs[:, 0, 1]` anomaly score on the project stream order. It remains
 smoke evidence with `paper_allowed=false`.
 
+## Run the RareCLIP bottle smoke
+
+```bash
+bash scripts/run_smoke.sh experiments/configs/smoke_rareclip.yaml
+python3 experiments/evaluate.py \
+  --scores-csv results/latest/scores_rareclip.csv \
+  --latest-run results/latest/latest_run_rareclip.json \
+  --output results/latest/metrics_rareclip.csv \
+  --manifest results/latest/manifest_rareclip.json
+```
+
+This uses the local RareCLIP MVTec checkpoint and upstream
+`process_image_and_update(..., update=True)` image-level anomaly score on the
+project stream order. It remains smoke evidence with `paper_allowed=false`.
+
 ## Run the AnomalyCLIP bottle mini-matrix
 
 ```bash

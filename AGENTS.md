@@ -10,7 +10,7 @@ Canonical experiment reference: [`docs/experiment-prd.md`](docs/experiment-prd.m
 ## Current Status
 
 **Setup smoke gate: PASSED** — docs, configs, scripts, and wrapper stubs exist.
-**First success gate A: PASSED for PatchCore, WinCLIP, and AnomalyCLIP smoke paths** — real stream files, measured score rows, iid/bursty × ε artifacts, CRD-lite smoke summaries, bottle/capsule/hazelnut PatchCore/WinCLIP quick-sweep artifacts, and PatchCore/WinCLIP/AnomalyCLIP all-15-category iid ε=0 smoke artifacts exist; not full P0.
+**First success gate A: PASSED for PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP smoke paths** — real stream files, measured score rows, iid/bursty × ε artifacts, CRD-lite smoke summaries, bottle/capsule/hazelnut PatchCore/WinCLIP quick-sweep artifacts, PatchCore/WinCLIP/AnomalyCLIP all-15-category iid ε=0 smoke artifacts, and RareCLIP bottle iid ε=0 smoke artifacts exist; not full P0.
 **Paper gate: NOT YET** — current outputs remain smoke/mini-matrix evidence with `paper_allowed: false`; generated paper-facing tables are non-final smoke evidence only; full reviewed P0 results are still required.
 
 Baseline repo URLs and commit hashes are pinned in `experiments/configs/baselines.yaml`
@@ -36,12 +36,13 @@ ZIAD-protocol/
       mvtec_full_category_sweep_winclip.yaml # WinCLIP all-category iid epsilon-zero smoke sweep
       anomalyclip_mini_matrix.yaml # AnomalyCLIP bottle iid/bursty × epsilon smoke matrix
       smoke_anomalyclip.yaml # AnomalyCLIP bottle iid epsilon-zero smoke
+      smoke_rareclip.yaml    # RareCLIP bottle iid epsilon-zero smoke
       winclip_mini_matrix.yaml # WinCLIP bottle iid/bursty × epsilon smoke matrix
       p0.yaml                 # Full P0 matrix (future path, not required for first success)
     baselines/
       base.py                 # BaselineWrapper ABC + _setup_error() helper
       patchcore.py            # Implemented PatchCore wrapper for stream-ordered MVTec smoke
-      rareclip.py             # RareCLIP wrapper stub
+      rareclip.py             # Implemented RareCLIP wrapper for stream-ordered MVTec smoke
       winclip.py              # Implemented WinCLIP wrapper for stream-ordered MVTec smoke
       anomalyclip.py          # Implemented AnomalyCLIP wrapper for stream-ordered MVTec smoke
     evaluate.py               # Score evaluator for smoke/mini-matrix metrics
@@ -119,6 +120,7 @@ Requires:
 ```bash
 bash scripts/setup_baselines.sh   # Show clone-slot status for all 4 baselines
 bash scripts/run_smoke.sh         # Smoke run (fails clearly if baseline/data missing)
+bash scripts/run_smoke.sh experiments/configs/smoke_rareclip.yaml
 bash scripts/run_smoke.sh experiments/configs/smoke_anomalyclip.yaml
 bash scripts/run_baseline_mini_matrix.sh experiments/configs/winclip_mini_matrix.yaml
 bash scripts/run_baseline_mini_matrix.sh experiments/configs/anomalyclip_mini_matrix.yaml

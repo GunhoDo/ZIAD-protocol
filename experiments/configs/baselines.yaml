@@ -8,9 +8,9 @@ baselines:
     local_path: external/RareCLIP
     repo_url: https://github.com/hjf02/RareCLIP.git
     commit_hash: a8e6d46ee2612a0edbf48c3b88e9998497e2b422
-    checkpoint_path: TBD
-    setup_command: TBD
-    smoke_command: TBD
+    checkpoint_path: external/RareCLIP/weights/mvtec_pretrained.pth
+    setup_command: python3 -m pip install -r external/RareCLIP/requirements.txt
+    smoke_command: bash scripts/run_smoke.sh experiments/configs/smoke_rareclip.yaml
     wrapper_module: experiments.baselines.rareclip
     expected_output_schema: "stream_index,image_path,label,category,anomaly_score,latency_ms,peak_vram_mb,status"
 

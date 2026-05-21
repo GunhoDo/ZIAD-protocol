@@ -34,6 +34,13 @@
   - upstream full-split dataset loader는 사용하지 않음
   - scoring mode: upstream image-level `text_probs[:, 0, 1]` anomaly probability
   - CLIP ViT-L/14@336px backbone cache: `external/AnomalyCLIP/.cache/clip`
+- RareCLIP 실제 wrapper 구현 완료: `experiments/baselines/rareclip.py`
+  - upstream: `external/RareCLIP`
+  - checkpoint: `external/RareCLIP/weights/mvtec_pretrained.pth`
+  - stream/eval source: project stream JSON only
+  - upstream full-split dataset loader는 사용하지 않음
+  - scoring mode: upstream `process_image_and_update(..., update=True)` image-level anomaly score
+  - CLIP ViT-L/14@336px backbone cache는 기존 AnomalyCLIP cache를 `external/cache/ViT-L-14-336px.pt`로 재사용
 - deterministic MVTec stream generator 구현 완료: `experiments/make_streams.py`
   - fields: `stream_index,image_path,label,category,source_split,anomaly_type`
   - no duplicate samples
@@ -174,6 +181,14 @@
   - latest run: `results/latest/latest_run_anomalyclip.json`
   - manifest: `results/latest/manifest_anomalyclip.json`
   - result: 20 measured rows, `status=measured_smoke`, `paper_allowed=false`
+- RareCLIP iid smoke 실행 완료:
+  - config: `experiments/configs/smoke_rareclip.yaml`
+  - stream: `results/latest/stream_smoke_rareclip.json`
+  - scores: `results/latest/scores_rareclip.csv`
+  - metrics: `results/latest/metrics_rareclip.csv`
+  - latest run: `results/latest/latest_run_rareclip.json`
+  - manifest: `results/latest/manifest_rareclip.json`
+  - result: 20 measured rows, `status=measured_smoke`, `paper_allowed=false`
 - AnomalyCLIP mini-matrix 6 runs 실행 완료:
   - config: `experiments/configs/anomalyclip_mini_matrix.yaml`
   - command: `bash scripts/run_baseline_mini_matrix.sh experiments/configs/anomalyclip_mini_matrix.yaml`
@@ -229,6 +244,12 @@ python3 experiments/evaluate.py \
   --latest-run results/latest/latest_run_anomalyclip.json \
   --output results/latest/metrics_anomalyclip.csv \
   --manifest results/latest/manifest_anomalyclip.json
+bash scripts/run_smoke.sh experiments/configs/smoke_rareclip.yaml
+python3 experiments/evaluate.py \
+  --scores-csv results/latest/scores_rareclip.csv \
+  --latest-run results/latest/latest_run_rareclip.json \
+  --output results/latest/metrics_rareclip.csv \
+  --manifest results/latest/manifest_rareclip.json
 bash scripts/run_baseline_mini_matrix.sh experiments/configs/anomalyclip_mini_matrix.yaml
 bash scripts/run_mvtec_full_category_sweep_anomalyclip.sh
 python3 -m unittest discover -v
@@ -250,12 +271,13 @@ git diff --check
 - MVTec full-category WinCLIP sweep: 15 rows, all MVTec AD categories, all `measured_smoke`, `paper_allowed=false`
 - MVTec full-category PatchCore sweep: 15 rows, all MVTec AD categories, all `measured_smoke`, `paper_allowed=false`
 - AnomalyCLIP smoke: 20 measured rows, evaluated smoke manifest `paper_allowed=false`
+- RareCLIP smoke: 20 measured rows, evaluated smoke manifest `paper_allowed=false`
 - AnomalyCLIP mini-matrix aggregate: 6 rows, all `measured_smoke`, CRD-lite all `derived_smoke`, `paper_allowed=false`
 - MVTec full-category AnomalyCLIP sweep: 15 rows, all MVTec AD categories, all `measured_smoke`, CRD-lite all `derived_smoke`, `paper_allowed=false`
 
 ## 3. 지금 논문 관점에서 어디까지 왔나
 
-현재는 **실험 파이프라인의 PatchCore paper-run plumbing, WinCLIP mini-matrix/all-category smoke path, AnomalyCLIP mini-matrix/all-category smoke path가 동작함을 입증한 단계**다.
+현재는 **실험 파이프라인의 PatchCore paper-run plumbing, WinCLIP mini-matrix/all-category smoke path, AnomalyCLIP mini-matrix/all-category smoke path, RareCLIP bottle smoke path가 동작함을 입증한 단계**다.
 
 구체적으로:
 
@@ -267,12 +289,13 @@ git diff --check
 6. PatchCore와 WinCLIP은 bottle/capsule/hazelnut iid ε=0 quick sweep까지 통과했다.
 7. PatchCore와 WinCLIP 모두 all-15-category MVTec AD iid ε=0 smoke sweep까지 통과했다.
 8. AnomalyCLIP은 MVTec AD bottle에서 `iid/bursty × ε 0/0.01/0.05` mini-matrix까지, 그리고 all-15-category iid ε=0 smoke까지 실제 image-level score를 생성했다.
+9. RareCLIP은 MVTec AD bottle iid ε=0 smoke에서 stream 순서대로 실제 image-level score를 생성했다.
 
 하지만 아직 **논문 결과 단계는 아니다**.
 
 부족한 것:
 
-- CLIP baseline은 WinCLIP bottle mini-matrix/all-category iid ε=0 smoke와 AnomalyCLIP bottle mini-matrix/all-category iid ε=0 smoke까지 완료: RareCLIP 미완, WinCLIP/AnomalyCLIP full bursty/epsilon category matrix 미실행
+- CLIP baseline은 WinCLIP bottle mini-matrix/all-category iid ε=0 smoke, AnomalyCLIP bottle mini-matrix/all-category iid ε=0 smoke, RareCLIP bottle iid ε=0 smoke까지 완료: RareCLIP mini-matrix/all-category와 WinCLIP/AnomalyCLIP full bursty/epsilon category matrix 미실행
 - MVTec 전체 category는 PatchCore/WinCLIP iid ε=0 smoke만 완료; full epsilon/bursty matrix는 미완
 - VisA 미실행
 - full P0 matrix 미실행
@@ -282,15 +305,19 @@ git diff --check
 
 ## 4. 다음 에이전트가 빠르게 해야 할 일
 
-### 1순위 — RareCLIP wrapper 구현
+### 1순위 — RareCLIP mini-matrix 구성/실행
 
-남은 CLIP baseline을 같은 stream contract에 맞춘다. fake score 금지, upstream loader가 stream order를 무시하면 wrapper가 직접 stream JSON을 읽어야 한다.
+RareCLIP wrapper는 smoke까지 통과했다. 다음은 `iid/bursty × ε 0/0.01/0.05` bottle mini-matrix를 구성하고 aggregate metrics/CRD-lite/manifest를 생성하는 것이다. CPU RareCLIP은 느리므로 baseline별 산출물과 `paper_allowed=false`를 명확히 분리한다.
 
-### 2순위 — all-category epsilon/bursty 확장
+### 2순위 — RareCLIP all-category iid ε=0 smoke sweep
 
-PatchCore/WinCLIP/AnomalyCLIP 모두 all-category iid ε=0 smoke는 통과했다. 다음 확장은 full P0 전에 `bursty`와 ε=`0.01/0.05`를 카테고리 전체로 넓히는 것이다. 실행 시간과 산출물 크기가 커지므로 baseline별로 분리하고 aggregate row count, feasible-ratio warnings, `paper_allowed=false`를 검증한다.
+RareCLIP을 다른 CLIP baseline과 같은 all-15-category iid ε=0 smoke shape로 맞춘다. 실행 시간이 길 수 있으므로 runner/config를 먼저 만들고 aggregate row count, feasible-ratio warnings, `paper_allowed=false`를 검증한다.
 
-### 3순위 — VisA 연결
+### 3순위 — all-category epsilon/bursty 확장
+
+PatchCore/WinCLIP/AnomalyCLIP/RareCLIP의 smoke coverage가 정렬되면 full P0 전에 `bursty`와 ε=`0.01/0.05`를 카테고리 전체로 넓힌다. 실행 시간과 산출물 크기가 커지므로 baseline별로 분리하고 aggregate row count, feasible-ratio warnings, `paper_allowed=false`를 검증한다.
+
+### 4순위 — VisA 연결
 
 VisA는 dataset/helper 성격상 `external/spot-diff`와 `data/visa/` 구조를 확인한 뒤 MVTec stream item schema와 동일하게 맞춘다.
 
@@ -301,6 +328,7 @@ VisA는 dataset/helper 성격상 `external/spot-diff`와 `data/visa/` 구조를 
 - PatchCore latency는 true online latency가 아니라 `offline_batch_amortized`다. 논문에서 온라인 latency처럼 쓰면 안 된다.
 - WinCLIP smoke latency는 wrapper batch inference amortized latency다. full benchmark 전에는 pipeline evidence로만 해석한다.
 - AnomalyCLIP smoke latency는 CPU single-image wrapper latency이며 ViT-L/14@336px라 느리다. 온라인 latency 결론으로 쓰지 않는다.
+- RareCLIP smoke latency는 CPU single-image online-memory wrapper latency이며 ViT-L/14@336px라 느리다. online update 경로 검증용이지 최종 latency 결론으로 쓰지 않는다.
 - 현재 ECE는 baseline anomaly score min-max 기반 diagnostic이다. calibrated probability로 해석 금지.
 - 현재 CRD-lite는 bottle mini-matrix aggregate에서 파생한 signed smoke diagnostic이다. full P0 결과처럼 해석 금지.
 - Category quick sweep은 iid ε=0 length=20 smoke이다. category 확장성 확인용이며 full-category/full-epsilon benchmark가 아니다.
