@@ -1,0 +1,50 @@
+# MVTec AD all-category stream/epsilon smoke matrix for PatchCore.
+# This is still paper-ineligible: short length-20 streams, no review, no VisA.
+dataset: MVTec AD
+dataset_root: data/mvtec_ad
+categories:
+  - bottle
+  - cable
+  - capsule
+  - carpet
+  - grid
+  - hazelnut
+  - leather
+  - metal_nut
+  - pill
+  - screw
+  - tile
+  - toothbrush
+  - transistor
+  - wood
+  - zipper
+
+baselines:
+  - name: PatchCore
+    baseline_path: external/patchcore-inspection
+    provenance:
+      scoring_mode: stream_ordered_offline
+      latency_semantics: offline_batch_amortized
+      training_source: train/good
+      stream_source: test/*
+
+prevalence: 0.05
+stream_types:
+  - iid
+  - bursty
+contamination_epsilon:
+  - 0
+  - 0.01
+  - 0.05
+stream:
+  seed: 0
+  length: 20
+  burst_length: 5
+
+outputs:
+  root: results/latest/mvtec_full_category_stream_matrix_patchcore
+  aggregate_metrics: results/latest/mvtec_full_category_stream_matrix_patchcore/metrics_mvtec_full_category_stream_matrix_patchcore.csv
+  aggregate_manifest: results/latest/mvtec_full_category_stream_matrix_patchcore/manifest_mvtec_full_category_stream_matrix_patchcore.json
+  crd_lite_summary: results/latest/mvtec_full_category_stream_matrix_patchcore/crd_lite_mvtec_full_category_stream_matrix_patchcore.csv
+  status: mvtec_full_category_stream_matrix_patchcore_complete
+  notes: MVTec all-category PatchCore stream/epsilon smoke matrix only; not full P0 or paper gate.

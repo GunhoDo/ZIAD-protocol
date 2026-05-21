@@ -6,6 +6,7 @@ against one MVTec AD category and writes the project-wide score CSV schema.
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import os
 import sys
@@ -80,6 +81,18 @@ def _relative_path(path: str) -> str:
 
 def _score_to_float(score: Any) -> float:
     return float(np.asarray(score).reshape(-1)[0])
+
+
+def _cache_key(parts: dict[str, Any]) -> str:
+    payload = json.dumps(parts, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
+def _valid_patchcore_cache(path: Path) -> bool:
+    return (
+        (path / "patchcore_params.pkl").is_file()
+        and (path / "nnscorer_search_index.faiss").is_file()
+    )
 
 
 REQUIRED_STREAM_ITEM_FIELDS = {
@@ -207,6 +220,46 @@ def _apply_stream_order(
     return ordered_rows
 
 
+def _filter_test_dataset_to_stream(
+    test_dataset: Any,
+    stream_items: list[dict[str, Any]],
+    dataset_root: str | Path,
+) -> None:
+    """Restrict the upstream MVTec test dataset to stream-referenced images."""
+    by_path = {
+        str(Path(entry[2]).resolve()): entry for entry in test_dataset.data_to_iterate
+    }
+    selected: list[Any] = []
+    missing: list[str] = []
+    for item in stream_items:
+        image_path = str(item["image_path"])
+        resolved = _resolve_stream_image_path(image_path, dataset_root)
+        entry = by_path.get(str(resolved))
+        if entry is None:
+            missing.append(image_path)
+            continue
+        anomaly_name = str(entry[1])
+        expected_label = 0 if anomaly_name == "good" else 1
+        if expected_label != int(item["label"]):
+            raise RuntimeError(
+                "Stream label mismatch for "
+                f"{image_path}: stream={item['label']} dataset={expected_label}"
+            )
+        selected.append(entry)
+
+    if missing:
+        raise RuntimeError(
+            "Stream references image(s) outside the PatchCore test split: "
+            + ", ".join(missing[:5])
+            + (" ..." if len(missing) > 5 else "")
+        )
+    if len(selected) != len(stream_items):
+        raise RuntimeError(
+            "PatchCore stream filtering did not produce exactly one dataset item per stream item."
+        )
+    test_dataset.data_to_iterate = selected
+
+
 class PatchCoreWrapper(BaselineWrapper):
     def run(self, stream_path: str, dataset_root: str, output_csv: str, config: dict) -> None:
         if not os.path.isdir(LOCAL_PATH):
@@ -240,6 +293,10 @@ class PatchCoreWrapper(BaselineWrapper):
         patchsize = _cfg(config, "patchsize", 3, int)
         faiss_on_gpu = _cfg(config, "faiss_on_gpu", False, bool)
         faiss_num_workers = _cfg(config, "faiss_num_workers", 8, int)
+        model_cache_enabled = _cfg(config, "model_cache", True, bool)
+        model_cache_root = Path(
+            _cfg(config, "model_cache_root", "results/latest/patchcore_model_cache")
+        )
         max_test_images_raw = _cfg(config, "max_test_images", None)
         max_test_images = (
             int(max_test_images_raw) if max_test_images_raw not in {None, ""} else None
@@ -272,6 +329,8 @@ class PatchCoreWrapper(BaselineWrapper):
             raise RuntimeError(
                 f"PatchCore requires non-empty train/test splits for {dataset_root}/{category}."
             )
+        stream_items = _load_stream_items(stream_path, required=True)
+        _filter_test_dataset_to_stream(test_dataset, stream_items, dataset_root)
 
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
@@ -308,9 +367,52 @@ class PatchCoreWrapper(BaselineWrapper):
             nn_method=nn_method,
         )
 
-        if device.type == "cuda":
-            torch.cuda.empty_cache()
-        model.fit(train_loader)
+        cache_dir = model_cache_root / _cache_key(
+            {
+                "category": category,
+                "seed": seed,
+                "resize": resize,
+                "imagesize": imagesize,
+                "backbone": backbone_name,
+                "layers": layers,
+                "sampler": sampler_name,
+                "sampler_percentage": sampler_percentage,
+                "pretrain_embed_dimension": pretrain_embed_dimension,
+                "target_embed_dimension": target_embed_dimension,
+                "anomaly_scorer_num_nn": anomaly_scorer_num_nn,
+                "patchsize": patchsize,
+                "dataset_root": str(Path(dataset_root).resolve()),
+            }
+        )
+        loaded_from_cache = False
+        if model_cache_enabled and _valid_patchcore_cache(cache_dir):
+            try:
+                model = patchcore.patchcore.PatchCore(device)
+                model.load_from_path(str(cache_dir), device=device, nn_method=nn_method)
+                loaded_from_cache = True
+            except Exception as error:  # pragma: no cover - cache corruption recovery
+                print(f"WARNING[patchcore_cache_ignored]: {error}", file=sys.stderr)
+                model = patchcore.patchcore.PatchCore(device)
+                model.load(
+                    backbone=backbone,
+                    layers_to_extract_from=layers,
+                    device=device,
+                    input_shape=train_dataset.imagesize,
+                    pretrain_embed_dimension=pretrain_embed_dimension,
+                    target_embed_dimension=target_embed_dimension,
+                    patchsize=patchsize,
+                    featuresampler=sampler,
+                    anomaly_scorer_num_nn=anomaly_scorer_num_nn,
+                    nn_method=nn_method,
+                )
+
+        if not loaded_from_cache:
+            if device.type == "cuda":
+                torch.cuda.empty_cache()
+            model.fit(train_loader)
+            if model_cache_enabled:
+                cache_dir.mkdir(parents=True, exist_ok=True)
+                model.save_to_path(str(cache_dir))
 
         rows = self._predict_rows(
             model=model,

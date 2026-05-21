@@ -23,6 +23,35 @@ def stream_item(index, image_path, label=0, anomaly_type="good"):
 
 
 class PatchCoreWrapperHelpersTest(unittest.TestCase):
+    def test_filter_test_dataset_to_stream_restricts_and_orders_items(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "mvtec_ad"
+            img0 = root / "bottle" / "test" / "good" / "000.png"
+            img1 = root / "bottle" / "test" / "scratch" / "001.png"
+            extra = root / "bottle" / "test" / "good" / "extra.png"
+            for path in [img0, img1, extra]:
+                touch(path)
+
+            class Dataset:
+                data_to_iterate = [
+                    ["bottle", "good", str(extra), None],
+                    ["bottle", "scratch", str(img1), None],
+                    ["bottle", "good", str(img0), None],
+                ]
+
+            dataset = Dataset()
+            items = [
+                stream_item(0, "bottle/test/good/000.png"),
+                stream_item(1, "bottle/test/scratch/001.png", label=1, anomaly_type="scratch"),
+            ]
+
+            patchcore._filter_test_dataset_to_stream(dataset, items, root)
+
+        self.assertEqual(
+            [Path(entry[2]).name for entry in dataset.data_to_iterate],
+            ["000.png", "001.png"],
+        )
+
     def test_apply_stream_order_reorders_and_filters_measured_rows(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "mvtec_ad"
