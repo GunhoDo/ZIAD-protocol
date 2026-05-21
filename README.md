@@ -150,6 +150,18 @@ This runs WinCLIP on VisA candle for `iid/bursty × ε 0/0.01/0.05`, length-20
 streams. It writes aggregate metrics and CRD-lite smoke summaries under
 `results/latest/visa_mini_matrix/`; these outputs are still paper-ineligible.
 
+## Run the VisA full-category WinCLIP smoke sweep
+
+```bash
+bash scripts/run_visa_full_category_sweep_winclip.sh
+```
+
+This expands VisA coverage to all 12 local `data/visa/1cls` categories for
+WinCLIP with iid, epsilon-zero, length-20 streams. It writes aggregate metrics
+and CRD-lite smoke summaries under
+`results/latest/visa_full_category_sweep_winclip/`; these outputs are still
+smoke evidence with `paper_allowed=false`.
+
 ## Run a category quick sweep
 
 ```bash
