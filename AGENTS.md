@@ -10,7 +10,7 @@ Canonical experiment reference: [`docs/experiment-prd.md`](docs/experiment-prd.m
 ## Current Status
 
 **Setup smoke gate: PASSED** — docs, configs, scripts, and wrapper stubs exist.
-**First success gate A: PASSED for PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP smoke paths** — real stream files, measured score rows, iid/bursty × ε artifacts, CRD-lite smoke summaries, bottle/capsule/hazelnut PatchCore/WinCLIP quick-sweep artifacts, all-baseline all-15-category iid ε=0 smoke artifacts, CLIP bottle mini-matrix artifacts, PatchCore/WinCLIP/AnomalyCLIP/RareCLIP all-category MVTec stream/epsilon matrix artifacts, VisA candle CLIP smoke artifacts, VisA all-12-category WinCLIP/AnomalyCLIP/RareCLIP iid ε=0 smoke artifacts, and VisA all-12-category WinCLIP/AnomalyCLIP stream/epsilon matrix artifacts exist; not full P0.
+**First success gate A: PASSED for PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP smoke paths** — real stream files, measured score rows, iid/bursty × ε artifacts, CRD-lite smoke summaries, bottle/capsule/hazelnut PatchCore/WinCLIP quick-sweep artifacts, all-baseline all-15-category iid ε=0 smoke artifacts, CLIP bottle mini-matrix artifacts, PatchCore/WinCLIP/AnomalyCLIP/RareCLIP all-category MVTec stream/epsilon matrix artifacts, VisA candle CLIP smoke artifacts, VisA all-12-category WinCLIP/AnomalyCLIP/RareCLIP iid ε=0 smoke artifacts, and VisA all-12-category WinCLIP/AnomalyCLIP/RareCLIP stream/epsilon matrix artifacts exist; not full P0.
 **Paper gate: NOT YET** — current outputs remain smoke/mini-matrix evidence with `paper_allowed: false`; generated paper-facing tables are non-final smoke evidence only; full reviewed P0 results are still required.
 
 Baseline repo URLs and commit hashes are pinned in `experiments/configs/baselines.yaml`
