@@ -182,6 +182,19 @@ This uses the same all-12-category VisA smoke shape for RareCLIP with iid,
 epsilon-zero, length-20 streams. It exercises the online memory update path and
 remains smoke evidence with `paper_allowed=false`.
 
+## Run the VisA full-category stream/epsilon matrices
+
+```bash
+bash scripts/run_visa_full_category_stream_matrix_winclip.sh
+bash scripts/run_visa_full_category_stream_matrix_anomalyclip.sh
+bash scripts/run_visa_full_category_stream_matrix_rareclip.sh
+```
+
+Each command runs one baseline over all 12 local VisA categories for
+`iid/bursty × ε 0/0.01/0.05`, length-20 streams. The aggregate outputs live
+under `results/latest/visa_full_category_stream_matrix_<baseline>/` and remain
+smoke evidence with `paper_allowed=false`.
+
 ## Run a category quick sweep
 
 ```bash

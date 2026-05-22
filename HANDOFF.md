@@ -179,6 +179,15 @@
   - baseline: RareCLIP only
   - stream/epsilon: `iid`, ε=`0`, length=20
   - generated per-run configs/details are ignored; combined aggregate files remain trackable
+- VisA full-category stream/epsilon matrix 구성 완료:
+  - WinCLIP config: `experiments/configs/visa_full_category_stream_matrix_winclip.yaml`
+  - AnomalyCLIP config: `experiments/configs/visa_full_category_stream_matrix_anomalyclip.yaml`
+  - RareCLIP config: `experiments/configs/visa_full_category_stream_matrix_rareclip.yaml`
+  - runners: `scripts/run_visa_full_category_stream_matrix_{winclip,anomalyclip,rareclip}.sh`
+  - dataset root: `data/visa/1cls`
+  - categories: all 12 local VisA categories (`candle,capsules,cashew,chewinggum,fryum,macaroni1,macaroni2,pcb1,pcb2,pcb3,pcb4,pipe_fryum`)
+  - stream/epsilon: `iid`, `bursty` × ε=`0`, `0.01`, `0.05`, length=20
+  - generated per-run configs/details are ignored; combined aggregate files remain trackable
 
 ### 실제 실행 완료
 
@@ -448,6 +457,34 @@
   - stream/epsilon: `iid`, `0.0`
   - all generated streams have unique paths `20/20`, labels `[0, 1]`, warnings `0`
   - CPU fallback warnings are expected in this environment and do not indicate fake results
+  - `paper_allowed=false`
+- VisA full-category WinCLIP stream/epsilon matrix 실행 완료:
+  - config: `experiments/configs/visa_full_category_stream_matrix_winclip.yaml`
+  - command: `bash scripts/run_visa_full_category_stream_matrix_winclip.sh`
+  - aggregate metrics: `results/latest/visa_full_category_stream_matrix_winclip/metrics_visa_full_category_stream_matrix_winclip.csv`
+  - CRD-lite summary: `results/latest/visa_full_category_stream_matrix_winclip/crd_lite_visa_full_category_stream_matrix_winclip.csv`
+  - aggregate manifest: `results/latest/visa_full_category_stream_matrix_winclip/manifest_visa_full_category_stream_matrix_winclip.json`
+  - rows: 72 measured_smoke rows
+  - categories: all 12 local VisA categories
+  - baseline: `WinCLIP`
+  - stream/epsilon: `iid`, `bursty` × ε=`0.0`, `0.01`, `0.05`
+  - generated streams: 72/72 length 20, unique paths `20/20`, labels `[0, 1]`
+  - warnings: 24 expected `target_fraction_adjusted` warnings for ε=`0.01` because length 20 cannot exactly realize target fraction without duplicates
+  - bursty metadata: 36 bursty streams, `applied_burst_lengths` present, observed lengths `[1, 2]`
+  - `paper_allowed=false`
+- VisA full-category AnomalyCLIP stream/epsilon matrix 실행 완료:
+  - config: `experiments/configs/visa_full_category_stream_matrix_anomalyclip.yaml`
+  - command: `bash scripts/run_visa_full_category_stream_matrix_anomalyclip.sh`
+  - aggregate metrics: `results/latest/visa_full_category_stream_matrix_anomalyclip/metrics_visa_full_category_stream_matrix_anomalyclip.csv`
+  - CRD-lite summary: `results/latest/visa_full_category_stream_matrix_anomalyclip/crd_lite_visa_full_category_stream_matrix_anomalyclip.csv`
+  - aggregate manifest: `results/latest/visa_full_category_stream_matrix_anomalyclip/manifest_visa_full_category_stream_matrix_anomalyclip.json`
+  - rows: 72 measured_smoke rows
+  - categories: all 12 local VisA categories
+  - baseline: `AnomalyCLIP`
+  - stream/epsilon: `iid`, `bursty` × ε=`0.0`, `0.01`, `0.05`
+  - generated streams: 72/72 length 20, unique paths `20/20`, labels `[0, 1]`
+  - warnings: 24 expected `target_fraction_adjusted` warnings for ε=`0.01`
+  - bursty metadata: 36 bursty streams, `applied_burst_lengths` present, observed lengths `[1, 2]`
   - `paper_allowed=false`
 
 ## 2. 검증 증거

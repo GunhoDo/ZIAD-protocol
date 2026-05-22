@@ -1,0 +1,47 @@
+# VisA all-category stream/epsilon smoke matrix for WinCLIP.
+# This is still paper-ineligible: short length-20 streams, no review, no MVTec.
+dataset: VisA
+dataset_root: data/visa/1cls
+categories:
+  - candle
+  - capsules
+  - cashew
+  - chewinggum
+  - fryum
+  - macaroni1
+  - macaroni2
+  - pcb1
+  - pcb2
+  - pcb3
+  - pcb4
+  - pipe_fryum
+
+baselines:
+  - name: WinCLIP
+    baseline_path: external/WinClip
+    provenance:
+      scoring_mode: stream_ordered_zero_shot
+      latency_semantics: wrapper_batch_amortized
+      training_source: zero_shot_text_prompts
+      stream_source: test/*
+
+prevalence: 0.05
+stream_types:
+  - iid
+  - bursty
+contamination_epsilon:
+  - 0
+  - 0.01
+  - 0.05
+stream:
+  seed: 0
+  length: 20
+  burst_length: 5
+
+outputs:
+  root: results/latest/visa_full_category_stream_matrix_winclip
+  aggregate_metrics: results/latest/visa_full_category_stream_matrix_winclip/metrics_visa_full_category_stream_matrix_winclip.csv
+  aggregate_manifest: results/latest/visa_full_category_stream_matrix_winclip/manifest_visa_full_category_stream_matrix_winclip.json
+  crd_lite_summary: results/latest/visa_full_category_stream_matrix_winclip/crd_lite_visa_full_category_stream_matrix_winclip.csv
+  status: visa_full_category_stream_matrix_winclip_complete
+  notes: VisA all-category WinCLIP stream/epsilon smoke matrix only; not full P0 or paper gate.

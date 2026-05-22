@@ -1,0 +1,47 @@
+# VisA all-category stream/epsilon smoke matrix for RareCLIP.
+# This is still paper-ineligible: short length-20 streams, no review, no MVTec.
+dataset: VisA
+dataset_root: data/visa/1cls
+categories:
+  - candle
+  - capsules
+  - cashew
+  - chewinggum
+  - fryum
+  - macaroni1
+  - macaroni2
+  - pcb1
+  - pcb2
+  - pcb3
+  - pcb4
+  - pipe_fryum
+
+baselines:
+  - name: RareCLIP
+    baseline_path: external/RareCLIP
+    provenance:
+      scoring_mode: stream_ordered_online_zero_shot
+      latency_semantics: wrapper_single_image_online
+      training_source: rareclip_mvtec_text_projection_checkpoint
+      stream_source: test/*
+
+prevalence: 0.05
+stream_types:
+  - iid
+  - bursty
+contamination_epsilon:
+  - 0
+  - 0.01
+  - 0.05
+stream:
+  seed: 0
+  length: 20
+  burst_length: 5
+
+outputs:
+  root: results/latest/visa_full_category_stream_matrix_rareclip
+  aggregate_metrics: results/latest/visa_full_category_stream_matrix_rareclip/metrics_visa_full_category_stream_matrix_rareclip.csv
+  aggregate_manifest: results/latest/visa_full_category_stream_matrix_rareclip/manifest_visa_full_category_stream_matrix_rareclip.json
+  crd_lite_summary: results/latest/visa_full_category_stream_matrix_rareclip/crd_lite_visa_full_category_stream_matrix_rareclip.csv
+  status: visa_full_category_stream_matrix_rareclip_complete
+  notes: VisA all-category RareCLIP stream/epsilon smoke matrix only; not full P0 or paper gate.

@@ -77,3 +77,9 @@ results/latest/visa_full_category_sweep_anomalyclip/configs/**
 results/latest/visa_full_category_sweep_anomalyclip/details/**
 results/latest/visa_full_category_sweep_rareclip/configs/**
 results/latest/visa_full_category_sweep_rareclip/details/**
+results/latest/visa_full_category_stream_matrix_winclip/configs/**
+results/latest/visa_full_category_stream_matrix_winclip/details/**
+results/latest/visa_full_category_stream_matrix_anomalyclip/configs/**
+results/latest/visa_full_category_stream_matrix_anomalyclip/details/**
+results/latest/visa_full_category_stream_matrix_rareclip/configs/**
+results/latest/visa_full_category_stream_matrix_rareclip/details/**

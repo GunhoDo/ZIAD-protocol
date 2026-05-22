@@ -1,0 +1,47 @@
+# VisA all-category stream/epsilon smoke matrix for AnomalyCLIP.
+# This is still paper-ineligible: short length-20 streams, no review, no MVTec.
+dataset: VisA
+dataset_root: data/visa/1cls
+categories:
+  - candle
+  - capsules
+  - cashew
+  - chewinggum
+  - fryum
+  - macaroni1
+  - macaroni2
+  - pcb1
+  - pcb2
+  - pcb3
+  - pcb4
+  - pipe_fryum
+
+baselines:
+  - name: AnomalyCLIP
+    baseline_path: external/AnomalyCLIP
+    provenance:
+      scoring_mode: stream_ordered_zero_shot
+      latency_semantics: wrapper_single_image
+      training_source: learned_text_prompt_checkpoint
+      stream_source: test/*
+
+prevalence: 0.05
+stream_types:
+  - iid
+  - bursty
+contamination_epsilon:
+  - 0
+  - 0.01
+  - 0.05
+stream:
+  seed: 0
+  length: 20
+  burst_length: 5
+
+outputs:
+  root: results/latest/visa_full_category_stream_matrix_anomalyclip
+  aggregate_metrics: results/latest/visa_full_category_stream_matrix_anomalyclip/metrics_visa_full_category_stream_matrix_anomalyclip.csv
+  aggregate_manifest: results/latest/visa_full_category_stream_matrix_anomalyclip/manifest_visa_full_category_stream_matrix_anomalyclip.json
+  crd_lite_summary: results/latest/visa_full_category_stream_matrix_anomalyclip/crd_lite_visa_full_category_stream_matrix_anomalyclip.csv
+  status: visa_full_category_stream_matrix_anomalyclip_complete
+  notes: VisA all-category AnomalyCLIP stream/epsilon smoke matrix only; not full P0 or paper gate.
