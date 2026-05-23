@@ -11,6 +11,40 @@
 - 논문 게이트는 아직 닫힘: 모든 현재 산출물은 `paper_allowed=false` 유지.
 - `.omx/`는 planning history이며 소스 오브 트루스가 아니다.
 
+## 0.0 최근 완료: VisA WinCLIP full-category temperature matrix
+
+- 목표: VisA WinCLIP 전체 12개 category에서 `iid/bursty × ε 0/0.01/0.05 × calibration none/temperature_scaling` smoke matrix를 실행해 calibration axis가 single-category mini-matrix 밖에서도 동작함을 확인.
+- 주요 수정:
+  - `experiments/configs/visa_full_category_stream_matrix_winclip_temperature.yaml` 추가.
+  - `scripts/run_visa_full_category_stream_matrix_winclip_temperature.sh` 추가.
+  - `README.md`에 VisA WinCLIP temperature full-category runner와 별도 output root를 기록.
+  - `.gitignore`에 generated per-category configs/details ignore rule 추가. Aggregate metrics/manifest/CRD-lite summary만 추적 대상으로 둔다.
+- 실행 명령:
+  - `python3 experiments/category_sweep.py prepare experiments/configs/visa_full_category_stream_matrix_winclip_temperature.yaml | wc -l`
+  - `bash scripts/run_visa_full_category_stream_matrix_winclip_temperature.sh`
+  - aggregate sanity check: row counts, categories, calibration values, sidecar count, `paper_allowed=false`
+  - `python3 -m unittest tests.test_category_sweep tests.test_mini_matrix tests.test_calibration -v`
+  - `python3 -m unittest discover -v`
+  - `python3 -m compileall experiments tests`
+  - `git diff --check`
+- 생성 outputs:
+  - `results/latest/visa_full_category_stream_matrix_winclip_temperature/metrics_visa_full_category_stream_matrix_winclip_temperature.csv`
+  - `results/latest/visa_full_category_stream_matrix_winclip_temperature/manifest_visa_full_category_stream_matrix_winclip_temperature.json`
+  - `results/latest/visa_full_category_stream_matrix_winclip_temperature/crd_lite_visa_full_category_stream_matrix_winclip_temperature.csv`
+  - ignored details/configs under `results/latest/visa_full_category_stream_matrix_winclip_temperature/details/` and `.../configs/`
+- 검증 결과:
+  - Aggregate metrics rows `144`, CRD-lite rows `144`.
+  - Categories `12`: candle, capsules, cashew, chewinggum, fryum, macaroni1, macaroni2, pcb1, pcb2, pcb3, pcb4, pipe_fryum.
+  - 축: `iid/bursty × ε 0/0.01/0.05 × calibration none/temperature_scaling`.
+  - all aggregate rows `status=measured_smoke`.
+  - calibration values are `none` and `temperature_scaling`; temperature rows `72`.
+  - calibration sidecars `72`, per-run metrics `144`, per-category manifests `12`.
+  - aggregate manifest records `run_count=144`, `crd_lite_row_count=144`, `calibration=['none','temperature_scaling']`, `paper_allowed=false`.
+- 제한:
+  - 이 단계는 VisA WinCLIP full-category smoke shard evidence다. full P0 또는 paper result가 아니다.
+  - `temperature_scaling`은 score min-max/logit temperature postprocessor이며 calibration-set fitting이 아니다.
+  - AnomalyCLIP/RareCLIP/PatchCore 및 MVTec AD full-category temperature matrices는 아직 실행하지 않았다.
+
 ## 0.1 최근 완료: calibration-axis mini-matrix execution path
 
 - 목표: 단일 `temperature_scaling` smoke를 넘어서 mini/full-category matrix runner가 calibration 축을 충돌 없이 생성/집계하도록 확장.

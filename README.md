@@ -240,6 +240,7 @@ remains smoke evidence with `paper_allowed=false`.
 
 ```bash
 bash scripts/run_visa_full_category_stream_matrix_winclip.sh
+bash scripts/run_visa_full_category_stream_matrix_winclip_temperature.sh
 bash scripts/run_visa_full_category_stream_matrix_anomalyclip.sh
 bash scripts/run_visa_full_category_stream_matrix_patchcore.sh
 bash scripts/run_visa_full_category_stream_matrix_rareclip.sh
@@ -248,7 +249,9 @@ bash scripts/run_visa_full_category_stream_matrix_rareclip.sh
 Each command runs one baseline over all 12 local VisA categories for
 `iid/bursty × ε 0/0.01/0.05`, length-20 streams. The aggregate outputs live
 under `results/latest/visa_full_category_stream_matrix_<baseline>/` and remain
-smoke evidence with `paper_allowed=false`.
+smoke evidence with `paper_allowed=false`. The WinCLIP temperature runner adds
+the `calibration none/temperature_scaling` axis and writes to a separate
+`results/latest/visa_full_category_stream_matrix_winclip_temperature/` root.
 
 ## Run a category quick sweep
 
