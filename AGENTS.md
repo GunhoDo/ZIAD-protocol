@@ -68,6 +68,7 @@ ZIAD-protocol/
     evaluate.py               # Score evaluator for smoke/mini-matrix metrics
     category_sweep.py         # Multi-category quick-sweep config/aggregate helper
     mini_matrix.py            # Baseline-parametric mini-matrix config/aggregate helper
+    materialize_calibration_matrix.py # Reuses measured matrix scores to materialize calibration-axis smoke matrices
     p0_shards.py              # Paper-ineligible P0 shard planner over current smoke runners
     make_streams.py           # Deterministic MVTec/VisA stream generator (iid/bursty)
     render_paper_tables.py    # Renders paper-ineligible smoke evidence tables

@@ -253,7 +253,9 @@ under `results/latest/visa_full_category_stream_matrix_<baseline>/` and remain
 smoke evidence with `paper_allowed=false`. The temperature runners add the
 `calibration none/temperature_scaling` axis and write to separate
 `results/latest/visa_full_category_stream_matrix_<baseline>_temperature/`
-roots.
+roots. They materialize from the corresponding measured non-temperature stream
+matrix and apply deterministic calibration postprocessing, so they do not rerun
+baseline inference for calibration variants.
 
 ## Run a category quick sweep
 

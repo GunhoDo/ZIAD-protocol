@@ -11,7 +11,35 @@
 - 논문 게이트는 아직 닫힘: 모든 현재 산출물은 `paper_allowed=false` 유지.
 - `.omx/`는 planning history이며 소스 오브 트루스가 아니다.
 
-## 0.0 최근 완료: VisA AnomalyCLIP full-category temperature matrix
+## 0.0 최근 완료: reusable calibration matrix materialization helper
+
+- 목표: full-category temperature matrix가 baseline inference를 다시 돌리지 않도록, 기존 measured score matrix에서 calibration 축을 생성하는 재사용 helper를 코드화.
+- 주요 수정:
+  - `experiments/materialize_calibration_matrix.py` 추가.
+  - source category sweep의 measured `scores.csv`/`stream.json`/`latest_run.json`을 target calibration sweep run layout으로 materialize한다.
+  - `calibration=none`은 measured score copy, `temperature_scaling`은 measured score copy 후 deterministic calibration postprocess를 적용한다.
+  - 기존 `evaluate.py`, `mini_matrix.aggregate_metrics`, `category_sweep.aggregate_sweep`를 그대로 사용해 aggregate metrics/manifest/CRD-lite를 생성한다.
+  - `scripts/run_visa_full_category_stream_matrix_winclip_temperature.sh`와 `scripts/run_visa_full_category_stream_matrix_anomalyclip_temperature.sh`가 helper를 사용하도록 변경.
+  - `tests/test_materialize_calibration_matrix.py` 추가.
+- 실행 명령:
+  - `python3 -m unittest tests.test_materialize_calibration_matrix tests.test_category_sweep tests.test_mini_matrix tests.test_calibration -v`
+  - `bash scripts/run_visa_full_category_stream_matrix_anomalyclip_temperature.sh`
+  - `bash scripts/run_visa_full_category_stream_matrix_winclip_temperature.sh`
+  - aggregate sanity check for WinCLIP/AnomalyCLIP temperature outputs
+  - `python3 -m unittest discover -v`
+  - `python3 -m compileall experiments tests`
+  - `git diff --check`
+- 검증 결과:
+  - 두 temperature runner 모두 `matrix_configs=12`, `materialized_runs=144`, `calibrated_runs=72`.
+  - WinCLIP/AnomalyCLIP aggregate 모두 metrics rows `144`, CRD-lite rows `144`, categories `12`, temperature rows `72`, sidecars `72`.
+  - all aggregate rows `status=measured_smoke`; manifests keep `paper_allowed=false`.
+  - WinCLIP tracked aggregate는 source measured score matrix 기준으로 갱신되어 temperature rows의 latency가 재추론 latency가 아니라 source score latency와 일치한다.
+- 제한:
+  - helper는 measured source score가 이미 존재해야 한다. source matrix가 없으면 baseline inference runner를 먼저 실행해야 한다.
+  - 이 helper는 calibration variant materialization 전용이다. 새 baseline score를 만들거나 fake metric을 만들지 않는다.
+  - RareCLIP/PatchCore temperature full-category configs는 아직 추가하지 않았다.
+
+## 0.1 최근 완료: VisA AnomalyCLIP full-category temperature matrix
 
 - 목표: VisA AnomalyCLIP 전체 12개 category에서 `iid/bursty × ε 0/0.01/0.05 × calibration none/temperature_scaling` smoke matrix를 추가.
 - 주요 수정:
@@ -48,9 +76,9 @@
   - 이 단계는 기존 measured AnomalyCLIP smoke scores를 재사용한 paper-ineligible smoke shard evidence다.
   - `temperature_scaling`은 score min-max/logit temperature postprocessor이며 calibration-set fitting이 아니다.
   - RareCLIP/PatchCore 및 MVTec AD full-category temperature matrices는 아직 실행하지 않았다.
-  - 다음 temperature full-category 확장 전에는 중복 inference를 피하는 reusable materialization helper를 코드화하는 것이 좋다.
+  - 다음 temperature full-category 확장은 reusable materialization helper로 실행한다.
 
-## 0.1 최근 완료: VisA WinCLIP full-category temperature matrix
+## 0.2 최근 완료: VisA WinCLIP full-category temperature matrix
 
 - 목표: VisA WinCLIP 전체 12개 category에서 `iid/bursty × ε 0/0.01/0.05 × calibration none/temperature_scaling` smoke matrix를 실행해 calibration axis가 single-category mini-matrix 밖에서도 동작함을 확인.
 - 주요 수정:
@@ -84,7 +112,7 @@
   - `temperature_scaling`은 score min-max/logit temperature postprocessor이며 calibration-set fitting이 아니다.
   - AnomalyCLIP/RareCLIP/PatchCore 및 MVTec AD full-category temperature matrices는 아직 실행하지 않았다.
 
-## 0.2 최근 완료: calibration-axis mini-matrix execution path
+## 0.3 최근 완료: calibration-axis mini-matrix execution path
 
 - 목표: 단일 `temperature_scaling` smoke를 넘어서 mini/full-category matrix runner가 calibration 축을 충돌 없이 생성/집계하도록 확장.
 - 주요 수정:
@@ -121,7 +149,7 @@
   - `temperature_scaling`은 여전히 smoke score postprocessor이며 calibration-set fitting이 아니다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.3 최근 완료: temperature_scaling smoke calibration path
+## 0.4 최근 완료: temperature_scaling smoke calibration path
 
 - 목표: P0 calibration 값 `temperature_scaling`을 fake 없이 실제 smoke score 후처리 경로로 구현하고, 모든 산출물의 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -162,7 +190,7 @@
   - 현재 ECE는 여전히 diagnostic이며 calibrated probability 결론으로 쓰지 않는다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.4 최근 완료: RareCLIP Prototype-EMA memory policy smoke path
+## 0.5 최근 완료: RareCLIP Prototype-EMA memory policy smoke path
 
 - 목표: P0 memory policy 중 RareCLIP `Prototype-EMA`를 실제 online memory policy로 구현하고, fake metric 없이 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -200,7 +228,7 @@
   - full P0 temperature-scaling matrix는 아직 미실행이다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.5 최근 완료: PatchCore Prototype-EMA feature-bank smoke path
+## 0.6 최근 완료: PatchCore Prototype-EMA feature-bank smoke path
 
 - 목표: P0 memory policy 중 PatchCore `Prototype-EMA`를 실제 feature-bank compression sampler로 구현하고, fake metric 없이 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -235,7 +263,7 @@
   - 이 단계 당시 RareCLIP Prototype-EMA와 temperature scaling은 아직 미지원이었다. 이후 RareCLIP Prototype-EMA와 temperature_scaling smoke path는 별도 커밋에서 구현됐다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.6 최근 완료: PatchCore Reservoir feature-bank smoke path
+## 0.7 최근 완료: PatchCore Reservoir feature-bank smoke path
 
 - 목표: P0 memory policy 중 PatchCore `Reservoir`를 실제 feature-bank sampler로 구현하고, fake metric 없이 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -272,7 +300,7 @@
   - 이 단계 당시 PatchCore Prototype-EMA와 temperature scaling은 아직 미지원이었다. 이후 PatchCore Prototype-EMA와 temperature_scaling smoke path는 별도 커밋에서 구현됐다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.7 최근 완료: RareCLIP Reservoir memory policy smoke path
+## 0.8 최근 완료: RareCLIP Reservoir memory policy smoke path
 
 - 목표: P0 memory policy 중 RareCLIP `Reservoir`를 실제 online memory policy로 구현하고, fake metric 없이 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -308,7 +336,7 @@
   - 이 단계 당시 Prototype-EMA와 temperature scaling은 아직 미지원이었다. 이후 RareCLIP/PatchCore Prototype-EMA와 temperature_scaling smoke path는 별도 커밋에서 구현됐다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.8 최근 완료: PatchCore FIFO feature-bank smoke path
+## 0.9 최근 완료: PatchCore FIFO feature-bank smoke path
 
 - 목표: P0 memory policy 중 PatchCore `FIFO`를 실제 feature-bank sampler로 구현하고, fake metric 없이 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -344,7 +372,7 @@
   - 이 단계 당시 PatchCore Reservoir/Prototype-EMA와 temperature scaling은 아직 미지원이었다. 이후 PatchCore Reservoir/Prototype-EMA와 temperature_scaling smoke path는 별도 커밋에서 구현됐다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.9 최근 완료: RareCLIP FIFO memory policy smoke path
+## 0.10 최근 완료: RareCLIP FIFO memory policy smoke path
 
 - 목표: P0 memory policy 중 하나를 실제 wrapper 동작으로 승격하되, fake metric 없이 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -379,7 +407,7 @@
   - 이 단계 당시 Reservoir, Prototype-EMA, temperature scaling은 계속 미지원이었다. 이후 FIFO/Reservoir/Prototype-EMA와 temperature_scaling smoke path는 별도 커밋에서 구현됐다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.10 최근 완료: memory_policy/calibration execution contract
+## 0.11 최근 완료: memory_policy/calibration execution contract
 
 - 목표: P0 shard에서 미구현 `memory_policy`/`calibration` 값이 조용히 default로 대체되지 않도록 실행 전 contract를 고정.
 - 주요 수정:
