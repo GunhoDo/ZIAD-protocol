@@ -42,6 +42,7 @@ ZIAD-protocol/
       visa_full_category_stream_matrix_anomalyclip.yaml # AnomalyCLIP VisA all-category iid/bursty × epsilon smoke matrix
       visa_full_category_stream_matrix_anomalyclip_temperature.yaml # AnomalyCLIP VisA all-category iid/bursty × epsilon × calibration smoke matrix
       visa_full_category_stream_matrix_patchcore.yaml # PatchCore VisA all-category iid/bursty × epsilon smoke matrix
+      visa_full_category_stream_matrix_patchcore_temperature.yaml # PatchCore VisA all-category iid/bursty × epsilon × calibration smoke matrix
       visa_full_category_stream_matrix_rareclip.yaml # RareCLIP VisA all-category iid/bursty × epsilon smoke matrix
       visa_full_category_stream_matrix_rareclip_temperature.yaml # RareCLIP VisA all-category iid/bursty × epsilon × calibration smoke matrix
       visa_full_category_stream_matrix_winclip.yaml # WinCLIP VisA all-category iid/bursty × epsilon smoke matrix
@@ -91,6 +92,7 @@ ZIAD-protocol/
     run_visa_full_category_stream_matrix_anomalyclip.sh # AnomalyCLIP all-category VisA stream/epsilon smoke matrix runner
     run_visa_full_category_stream_matrix_anomalyclip_temperature.sh # AnomalyCLIP all-category VisA stream/epsilon/calibration smoke matrix runner
     run_visa_full_category_stream_matrix_patchcore.sh # PatchCore all-category VisA stream/epsilon smoke matrix runner
+    run_visa_full_category_stream_matrix_patchcore_temperature.sh # PatchCore all-category VisA stream/epsilon/calibration smoke matrix runner
     run_visa_full_category_stream_matrix_rareclip.sh # RareCLIP all-category VisA stream/epsilon smoke matrix runner
     run_visa_full_category_stream_matrix_rareclip_temperature.sh # RareCLIP all-category VisA stream/epsilon/calibration smoke matrix runner
     run_visa_full_category_stream_matrix_winclip.sh # WinCLIP all-category VisA stream/epsilon smoke matrix runner
@@ -180,6 +182,7 @@ bash scripts/run_visa_full_category_sweep_winclip.sh
 bash scripts/run_visa_full_category_stream_matrix_anomalyclip.sh
 bash scripts/run_visa_full_category_stream_matrix_anomalyclip_temperature.sh
 bash scripts/run_visa_full_category_stream_matrix_patchcore.sh
+bash scripts/run_visa_full_category_stream_matrix_patchcore_temperature.sh
 bash scripts/run_visa_full_category_stream_matrix_rareclip.sh
 bash scripts/run_visa_full_category_stream_matrix_rareclip_temperature.sh
 bash scripts/run_visa_full_category_stream_matrix_winclip.sh
