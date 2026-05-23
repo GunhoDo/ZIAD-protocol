@@ -11,27 +11,32 @@
 - 논문 게이트는 아직 닫힘: 모든 현재 산출물은 `paper_allowed=false` 유지.
 - `.omx/`는 planning history이며 소스 오브 트루스가 아니다.
 
-## 0.1 최근 완료: VisA PatchCore all-category iid smoke
+## 0.1 최근 완료: VisA PatchCore all-category stream/epsilon smoke matrix
 
-- 목표: VisA 12개 로컬 category에 PatchCore iid ε=0 length=20 smoke를 실제 anomaly score로 완료.
+- 목표: VisA 12개 로컬 category에 PatchCore `iid/bursty × ε 0/0.01/0.05`, length=20 smoke matrix를 실제 anomaly score로 완료.
 - 주요 수정:
-  - `experiments/category_sweep.py`가 top-level `baseline_options`를 generated mini-matrix config로 전달한다.
-  - `scripts/run_smoke.sh`가 smoke YAML 전체를 wrapper config로 전달한 뒤 normalized core fields를 덮어쓴다. 이 수정 전에는 `sampler: identity`가 무시되어 PatchCore upstream coreset subsampling이 실행됐고, 해당 초기 실행은 중단했다.
-  - `experiments/configs/visa_full_category_sweep_patchcore.yaml`와 `scripts/run_visa_full_category_sweep_patchcore.sh` 추가.
+  - `experiments/configs/visa_full_category_stream_matrix_patchcore.yaml`와 `scripts/run_visa_full_category_stream_matrix_patchcore.sh` 추가.
+  - `experiments/baselines/patchcore.py`에 image-level score cache를 추가해 이미 측정한 stream image score를 smoke rerun에서 재사용한다. 캐시는 measured score 재사용용이며 paper result 승격이 아니다.
+  - `.gitignore`, `README.md`, `AGENTS.md`에 VisA PatchCore stream matrix 경로와 명령을 반영했다.
 - 실행 명령:
-  - `bash scripts/run_smoke.sh results/latest/visa_full_category_sweep_patchcore/details/patchcore_candle/configs/patchcore_candle_iid_eps_0.yaml` — option passthrough 수정 후 단일 candle 재확인.
-  - `bash scripts/run_visa_full_category_sweep_patchcore.sh`
+  - `bash scripts/run_visa_full_category_stream_matrix_patchcore.sh`
+  - `python3 -m unittest discover -v`
+  - `python3 -m compileall experiments tests`
+  - `git diff --check`
 - 생성된 trackable outputs:
-  - `results/latest/visa_full_category_sweep_patchcore/metrics_visa_full_category_sweep_patchcore.csv` — 12 rows.
-  - `results/latest/visa_full_category_sweep_patchcore/crd_lite_visa_full_category_sweep_patchcore.csv` — 12 rows.
-  - `results/latest/visa_full_category_sweep_patchcore/manifest_visa_full_category_sweep_patchcore.json` — `paper_allowed=false`, `status=visa_full_category_sweep_patchcore_complete`, `run_count=12`, `crd_lite_row_count=12`.
+  - `results/latest/visa_full_category_stream_matrix_patchcore/metrics_visa_full_category_stream_matrix_patchcore.csv` — 72 rows.
+  - `results/latest/visa_full_category_stream_matrix_patchcore/crd_lite_visa_full_category_stream_matrix_patchcore.csv` — 72 rows.
+  - `results/latest/visa_full_category_stream_matrix_patchcore/manifest_visa_full_category_stream_matrix_patchcore.json` — `paper_allowed=false`, `status=visa_full_category_stream_matrix_patchcore_complete`, `run_count=72`, `crd_lite_row_count=72`.
 - 세부 검증:
-  - 12개 stream file 확인.
+  - 72개 stream file 및 72개 score CSV 확인.
   - 각 stream은 20 items, duplicate image paths 0, labels `[0, 1]`, required fields 존재.
-  - 각 category smoke output은 20 non-placeholder measured score rows.
+  - 모든 bursty stream은 하나 이상의 contiguous anomaly block을 가진다.
+  - 각 smoke output은 20 non-placeholder measured score rows.
+  - aggregate 분포: 12 categories × 2 stream types × 3 epsilon = 72 rows.
+  - unittest 41 tests OK, compileall OK, diff check OK.
 - 제한:
-  - smoke evidence only. iid ε=0 length=20이며 논문 결과로 해석 금지.
-  - VisA PatchCore full stream/epsilon matrix는 아직 실행하지 않음.
+  - smoke evidence only. 논문 결과로 해석 금지.
+  - PatchCore latency는 `offline_batch_amortized`이며 online latency 결론으로 쓰지 않는다.
   - generated details/configs 및 `results/latest/patchcore_model_cache_visa_smoke/**`는 커밋 대상이 아니다.
 
 ## 1. 현재 논문 구현 진척
@@ -649,6 +654,7 @@ bash scripts/run_visa_full_category_sweep_anomalyclip.sh
 bash scripts/run_visa_full_category_sweep_rareclip.sh
 bash scripts/run_visa_full_category_stream_matrix_winclip.sh
 bash scripts/run_visa_full_category_stream_matrix_anomalyclip.sh
+bash scripts/run_visa_full_category_stream_matrix_patchcore.sh
 bash scripts/run_visa_full_category_stream_matrix_rareclip.sh
 python3 -m unittest discover -v
 python3 -m compileall experiments tests
@@ -690,11 +696,12 @@ git diff --check
 - VisA full-category RareCLIP sweep: 12 rows, all 12 local VisA categories, all `measured_smoke`, all generated streams unique paths `20/20`, labels `[0, 1]`, aggregate manifest `paper_allowed=false`
 - VisA full-category WinCLIP stream/epsilon matrix: 72 rows, all 12 local VisA categories × `iid/bursty` × ε `0/0.01/0.05`, all `measured_smoke`, CRD-lite all `derived_smoke`, generated streams unique paths `20/20`, labels `[0, 1]`, warning count 24, aggregate manifest `paper_allowed=false`
 - VisA full-category AnomalyCLIP stream/epsilon matrix: 72 rows, all 12 local VisA categories × `iid/bursty` × ε `0/0.01/0.05`, all `measured_smoke`, CRD-lite all `derived_smoke`, generated streams unique paths `20/20`, labels `[0, 1]`, warning count 24, aggregate manifest `paper_allowed=false`
+- VisA full-category PatchCore stream/epsilon matrix: 72 rows, all 12 local VisA categories × `iid/bursty` × ε `0/0.01/0.05`, all `measured_smoke`, CRD-lite all `derived_smoke`, generated streams unique paths `20/20`, labels `[0, 1]`, bursty contiguous anomaly block check passed, aggregate manifest `paper_allowed=false`
 - VisA full-category RareCLIP stream/epsilon matrix: 72 rows, all 12 local VisA categories × `iid/bursty` × ε `0/0.01/0.05`, all `measured_smoke`, CRD-lite all `derived_smoke`, generated streams unique paths `20/20`, labels `[0, 1]`, warning count 24, aggregate manifest `paper_allowed=false`
 
 ## 3. 지금 논문 관점에서 어디까지 왔나
 
-현재는 **MVTec AD 기준 4개 baseline(PatchCore/WinCLIP/AnomalyCLIP/RareCLIP)의 all-category stream/epsilon smoke matrix가 동작하고, VisA는 CLIP 3개 baseline(WinCLIP/AnomalyCLIP/RareCLIP)의 all-12-category stream/epsilon smoke matrix가 동작함을 입증한 단계**다.
+현재는 **MVTec AD와 VisA 모두에서 4개 baseline(PatchCore/WinCLIP/AnomalyCLIP/RareCLIP)의 all-category stream/epsilon smoke matrix가 동작함을 입증한 단계**다.
 
 구체적으로:
 
@@ -710,7 +717,7 @@ git diff --check
 10. VisA adapter는 `candle` 기준 `iid/bursty × ε 0/0.01/0.05` length=20 streams를 만들고 WinCLIP으로 실제 image-level score를 생성했다.
 11. VisA candle iid ε=0 length=20은 AnomalyCLIP과 RareCLIP에서도 실제 image-level score를 생성했다.
 12. VisA all-12-category iid ε=0 length=20은 WinCLIP, AnomalyCLIP, RareCLIP으로 실제 image-level score를 생성했다.
-13. VisA all-12-category `iid/bursty × ε 0/0.01/0.05` length=20은 WinCLIP, AnomalyCLIP, RareCLIP으로 실제 image-level score를 생성했다.
+13. VisA all-12-category `iid/bursty × ε 0/0.01/0.05` length=20은 WinCLIP, AnomalyCLIP, RareCLIP, PatchCore로 실제 image-level score를 생성했다.
 14. VisA candle iid ε=0 length=20은 PatchCore에서도 실제 image-level score를 생성했다.
 15. VisA candle `iid/bursty × ε 0/0.01/0.05` length=20은 PatchCore에서도 실제 image-level score를 생성했다.
 
@@ -718,9 +725,6 @@ git diff --check
 
 부족한 것:
 
-- CLIP baseline은 MVTec/VisA 모두 WinCLIP/AnomalyCLIP/RareCLIP full all-category stream/epsilon smoke matrix까지 완료
-- MVTec 전체 category는 PatchCore/WinCLIP/AnomalyCLIP/RareCLIP 모두 `iid/bursty × ε 0/0.01/0.05` smoke matrix 완료
-- VisA는 WinCLIP/AnomalyCLIP/RareCLIP all-category stream/epsilon matrix까지 실행됨; PatchCore VisA는 candle stream/epsilon mini-matrix까지 완료
 - full P0 matrix 미실행
 - CRD-lite는 smoke aggregate summary로 구현됨; full P0/VisA 검증과 paper 해석은 미완
 - paper table pipeline은 smoke evidence table만 생성함; full matrix 기반 table/figure는 아직 아님
@@ -728,13 +732,13 @@ git diff --check
 
 ## 4. 다음 에이전트가 빠르게 해야 할 일
 
-### 1순위 — VisA coverage 확장
+### 1순위 — full P0 orchestration 설계
 
-VisA stream adapter와 CLIP baselines(WinCLIP/AnomalyCLIP/RareCLIP) all-category stream/epsilon smoke matrix는 연결됐고, PatchCore도 candle stream/epsilon mini-matrix가 통과했다. 다음은 PatchCore VisA all-category iid ε=0 sweep로 확장한다.
+MVTec/VisA × 4 baselines의 all-category stream/epsilon smoke matrix가 닫혔다. 다음은 `experiments/configs/p0.yaml`을 실제 실행 가능한 shard 단위로 쪼개고, memory policy/calibration 차원을 paper gate 전용 검증 루프로 올리는 것이다.
 
-### 2순위 — full P0 orchestration 설계
+### 2순위 — paper table/figure pipeline 확장
 
-VisA 연결 후에는 P0 config를 실제 실행 단위로 쪼개고 memory policy/calibration 차원을 paper gate 전용 검증 루프로 올린다.
+현재 table renderer는 smoke evidence만 다룬다. P0 shard aggregate가 생기면 full matrix 기반 table/figure 입력 contract를 먼저 고정하고, `paper_allowed=true` 승격은 리뷰 후 별도 커밋으로만 한다.
 
 ## 5. 주의할 점
 
@@ -748,5 +752,5 @@ VisA 연결 후에는 P0 config를 실제 실행 단위로 쪼개고 memory poli
 - 현재 CRD-lite는 bottle mini-matrix aggregate에서 파생한 signed smoke diagnostic이다. full P0 결과처럼 해석 금지.
 - Category quick sweep은 iid ε=0 length=20 smoke이다. category 확장성 확인용이며 full-category/full-epsilon benchmark가 아니다.
 - MVTec full-category PatchCore/WinCLIP/AnomalyCLIP/RareCLIP stream matrices는 iid/bursty × ε smoke coverage이다. full P0, VisA, or paper-reviewed benchmark가 아니다.
-- VisA CLIP all-category stream/epsilon matrices와 candle smoke들은 adapter/scoring path 검증용이다. VisA 전체 P0 결과나 논문 결론으로 해석 금지.
+- VisA all-category stream/epsilon matrices와 candle smoke들은 adapter/scoring path 검증용이다. VisA 전체 P0 결과나 논문 결론으로 해석 금지.
 - `render_paper_tables.py`는 결과를 “논문 결론”으로 승격하지 않는다. 현재 생성 표는 smoke evidence table이며 `paper_allowed=false`를 명시한다.

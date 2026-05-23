@@ -95,6 +95,28 @@ def _valid_patchcore_cache(path: Path) -> bool:
     )
 
 
+def _score_cache_path(model_cache_dir: Path) -> Path:
+    return model_cache_dir / "image_scores.json"
+
+
+def _load_score_cache(path: Path) -> dict[str, dict[str, Any]]:
+    if not path.is_file():
+        return {}
+    payload = json.loads(path.read_text())
+    if not isinstance(payload, dict):
+        return {}
+    rows = payload.get("rows", {})
+    return rows if isinstance(rows, dict) else {}
+
+
+def _write_score_cache(path: Path, rows: dict[str, dict[str, Any]]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps({"rows": rows}, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
 REQUIRED_STREAM_ITEM_FIELDS = {
     "stream_index",
     "image_path",
@@ -220,6 +242,49 @@ def _apply_stream_order(
     return ordered_rows
 
 
+def _rows_from_score_cache(
+    score_cache: dict[str, dict[str, Any]],
+    stream_items: list[dict[str, Any]],
+    dataset_root: str | Path,
+) -> list[dict[str, Any]] | None:
+    rows: list[dict[str, Any]] = []
+    for item in stream_items:
+        resolved = _resolve_stream_image_path(str(item["image_path"]), dataset_root)
+        cached = score_cache.get(str(resolved))
+        if cached is None:
+            return None
+        if int(cached.get("label", item["label"])) != int(item["label"]):
+            raise RuntimeError(
+                "Cached PatchCore label mismatch for "
+                f"{item['image_path']}: stream={item['label']} cache={cached.get('label')}"
+            )
+        row = dict(cached)
+        row["stream_index"] = int(item["stream_index"])
+        row["image_path"] = str(item["image_path"])
+        row["label"] = int(item["label"])
+        row["category"] = str(item["category"])
+        row["status"] = "measured"
+        rows.append(row)
+    return rows
+
+
+def _merge_rows_into_score_cache(
+    score_cache: dict[str, dict[str, Any]],
+    rows: list[dict[str, Any]],
+    dataset_root: str | Path,
+) -> dict[str, dict[str, Any]]:
+    merged = dict(score_cache)
+    for row in rows:
+        resolved = _resolve_stream_image_path(str(row["image_path"]), dataset_root)
+        cached = dict(row)
+        cached.pop("stream_index", None)
+        cached["image_path"] = str(resolved)
+        cached["label"] = int(cached["label"])
+        cached["status"] = "measured"
+        merged[str(resolved)] = cached
+    return merged
+
+
 def _filter_test_dataset_to_stream(
     test_dataset: Any,
     stream_items: list[dict[str, Any]],
@@ -265,6 +330,56 @@ class PatchCoreWrapper(BaselineWrapper):
         if not os.path.isdir(LOCAL_PATH):
             raise _setup_error(BASELINE_NAME, LOCAL_PATH)
 
+        category = str(config.get("category") or _cfg(config, "category", "bottle"))
+        seed = _cfg(config, "seed", 0, int)
+        resize = _cfg(config, "resize", 256, int)
+        imagesize = _cfg(config, "imagesize", 224, int)
+        backbone_name = str(_cfg(config, "backbone", "wideresnet50"))
+        layers = _csv_list(_cfg(config, "layers", None), ["layer2", "layer3"])
+        sampler_name = str(_cfg(config, "sampler", "approx_greedy_coreset"))
+        sampler_percentage = _cfg(config, "sampler_percentage", 0.1, float)
+        pretrain_embed_dimension = _cfg(config, "pretrain_embed_dimension", 1024, int)
+        target_embed_dimension = _cfg(config, "target_embed_dimension", 1024, int)
+        anomaly_scorer_num_nn = _cfg(config, "anomaly_scorer_num_nn", 1, int)
+        patchsize = _cfg(config, "patchsize", 3, int)
+        model_cache_enabled = _cfg(config, "model_cache", True, bool)
+        model_cache_root = Path(
+            _cfg(config, "model_cache_root", "results/latest/patchcore_model_cache")
+        )
+
+        if not (Path(dataset_root) / category).is_dir():
+            raise RuntimeError(f"MVTec category not found: {Path(dataset_root) / category}")
+
+        stream_items = _load_stream_items(stream_path, required=True)
+        cache_dir = model_cache_root / _cache_key(
+            {
+                "category": category,
+                "seed": seed,
+                "resize": resize,
+                "imagesize": imagesize,
+                "backbone": backbone_name,
+                "layers": layers,
+                "sampler": sampler_name,
+                "sampler_percentage": sampler_percentage,
+                "pretrain_embed_dimension": pretrain_embed_dimension,
+                "target_embed_dimension": target_embed_dimension,
+                "anomaly_scorer_num_nn": anomaly_scorer_num_nn,
+                "patchsize": patchsize,
+                "dataset_root": str(Path(dataset_root).resolve()),
+            }
+        )
+        score_cache_file = _score_cache_path(cache_dir)
+        score_cache = _load_score_cache(score_cache_file) if model_cache_enabled else {}
+        cached_rows = _rows_from_score_cache(score_cache, stream_items, dataset_root)
+        if cached_rows is not None:
+            output_path = Path(output_csv)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            with output_path.open("w", newline="") as handle:
+                writer = csv.DictWriter(handle, fieldnames=SCORE_FIELDS, lineterminator="\n")
+                writer.writeheader()
+                writer.writerows(cached_rows)
+            return
+
         _ensure_patchcore_importable()
         try:
             import torch
@@ -277,33 +392,14 @@ class PatchCoreWrapper(BaselineWrapper):
         except ImportError as error:  # pragma: no cover - environment-dependent
             raise _dependency_error(error) from error
 
-        category = str(config.get("category") or _cfg(config, "category", "bottle"))
-        seed = _cfg(config, "seed", 0, int)
-        resize = _cfg(config, "resize", 256, int)
-        imagesize = _cfg(config, "imagesize", 224, int)
         batch_size = _cfg(config, "batch_size", 2, int)
         num_workers = _cfg(config, "num_workers", 0, int)
-        backbone_name = str(_cfg(config, "backbone", "wideresnet50"))
-        layers = _csv_list(_cfg(config, "layers", None), ["layer2", "layer3"])
-        sampler_name = str(_cfg(config, "sampler", "approx_greedy_coreset"))
-        sampler_percentage = _cfg(config, "sampler_percentage", 0.1, float)
-        pretrain_embed_dimension = _cfg(config, "pretrain_embed_dimension", 1024, int)
-        target_embed_dimension = _cfg(config, "target_embed_dimension", 1024, int)
-        anomaly_scorer_num_nn = _cfg(config, "anomaly_scorer_num_nn", 1, int)
-        patchsize = _cfg(config, "patchsize", 3, int)
         faiss_on_gpu = _cfg(config, "faiss_on_gpu", False, bool)
         faiss_num_workers = _cfg(config, "faiss_num_workers", 8, int)
-        model_cache_enabled = _cfg(config, "model_cache", True, bool)
-        model_cache_root = Path(
-            _cfg(config, "model_cache_root", "results/latest/patchcore_model_cache")
-        )
         max_test_images_raw = _cfg(config, "max_test_images", None)
         max_test_images = (
             int(max_test_images_raw) if max_test_images_raw not in {None, ""} else None
         )
-
-        if not (Path(dataset_root) / category).is_dir():
-            raise RuntimeError(f"MVTec category not found: {Path(dataset_root) / category}")
 
         gpu = str(_cfg(config, "gpu", "0" if torch.cuda.is_available() else ""))
         device = torch.device(f"cuda:{gpu}" if gpu != "" and torch.cuda.is_available() else "cpu")
@@ -329,7 +425,6 @@ class PatchCoreWrapper(BaselineWrapper):
             raise RuntimeError(
                 f"PatchCore requires non-empty train/test splits for {dataset_root}/{category}."
             )
-        stream_items = _load_stream_items(stream_path, required=True)
         _filter_test_dataset_to_stream(test_dataset, stream_items, dataset_root)
 
         train_loader = torch.utils.data.DataLoader(
@@ -367,23 +462,6 @@ class PatchCoreWrapper(BaselineWrapper):
             nn_method=nn_method,
         )
 
-        cache_dir = model_cache_root / _cache_key(
-            {
-                "category": category,
-                "seed": seed,
-                "resize": resize,
-                "imagesize": imagesize,
-                "backbone": backbone_name,
-                "layers": layers,
-                "sampler": sampler_name,
-                "sampler_percentage": sampler_percentage,
-                "pretrain_embed_dimension": pretrain_embed_dimension,
-                "target_embed_dimension": target_embed_dimension,
-                "anomaly_scorer_num_nn": anomaly_scorer_num_nn,
-                "patchsize": patchsize,
-                "dataset_root": str(Path(dataset_root).resolve()),
-            }
-        )
         loaded_from_cache = False
         if model_cache_enabled and _valid_patchcore_cache(cache_dir):
             try:
@@ -425,6 +503,9 @@ class PatchCoreWrapper(BaselineWrapper):
         rows = _apply_stream_order(rows, stream_path, dataset_root, require_stream=True)
         for idx, row in enumerate(rows):
             row["stream_index"] = idx
+        if model_cache_enabled:
+            score_cache = _merge_rows_into_score_cache(score_cache, rows, dataset_root)
+            _write_score_cache(score_cache_file, score_cache)
 
         output_path = Path(output_csv)
         output_path.parent.mkdir(parents=True, exist_ok=True)

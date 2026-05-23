@@ -227,6 +227,7 @@ remains smoke evidence with `paper_allowed=false`.
 ```bash
 bash scripts/run_visa_full_category_stream_matrix_winclip.sh
 bash scripts/run_visa_full_category_stream_matrix_anomalyclip.sh
+bash scripts/run_visa_full_category_stream_matrix_patchcore.sh
 bash scripts/run_visa_full_category_stream_matrix_rareclip.sh
 ```
 
