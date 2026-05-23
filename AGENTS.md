@@ -78,6 +78,7 @@ ZIAD-protocol/
     p0_shards.py              # Paper-ineligible P0 shard planner over current smoke runners
     make_streams.py           # Deterministic MVTec/VisA stream generator (iid/bursty)
     render_paper_tables.py    # Renders paper-ineligible smoke evidence tables
+    summarize_p0_smoke.py     # Builds compact paper-ineligible P0 smoke summary CSV/LaTeX
     prepare_data.py           # Placeholder data prep
     run_baselines.py          # Placeholder baseline runner
 

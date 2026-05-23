@@ -48,10 +48,16 @@ make paper-tables
 ```
 
 This renders checked result CSVs into LaTeX tables. With no arguments it
-refreshes the MVTec quick-sweep smoke table plus the MVTec/VisA
-stream/epsilon/calibration smoke tables for PatchCore, WinCLIP, AnomalyCLIP,
-and RareCLIP. All generated tables are explicitly marked non-final and
-paper-ineligible because `paper_allowed` remains `false`.
+refreshes the compact P0 smoke summary, the MVTec quick-sweep smoke table, and
+the MVTec/VisA stream/epsilon/calibration smoke tables for PatchCore, WinCLIP,
+AnomalyCLIP, and RareCLIP. All generated tables are explicitly marked non-final
+and paper-ineligible because `paper_allowed` remains `false`.
+
+The compact summary artifacts are:
+
+- `results/latest/tables/p0_smoke_summary.csv`
+- `results/latest/tables/p0_smoke_summary_manifest.json`
+- `results/latest/tables/p0_smoke_summary.tex`
 
 ## Refresh placeholder P0 outputs
 

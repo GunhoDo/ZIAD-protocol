@@ -9,6 +9,7 @@ if [[ "$#" -gt 0 ]]; then
   exit 0
 fi
 
+python3 experiments/summarize_p0_smoke.py
 python3 experiments/render_paper_tables.py
 
 for dataset in mvtec visa; do
