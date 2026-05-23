@@ -26,11 +26,11 @@ class P0ShardsTest(unittest.TestCase):
         self.assertEqual(90, shards[("MVTec AD", "PatchCore")]["current_smoke_run_count"])
         self.assertEqual(72, shards[("VisA", "PatchCore")]["current_smoke_run_count"])
         self.assertEqual(
-            ["default/SCS", "FIFO"],
+            ["default/SCS", "FIFO", "Reservoir"],
             shards[("MVTec AD", "RareCLIP")]["current_supported_memory_policies"],
         )
         self.assertEqual(
-            ["Reservoir", "Prototype-EMA"],
+            ["Prototype-EMA"],
             shards[("MVTec AD", "RareCLIP")]["unsupported_memory_policies"],
         )
         self.assertEqual(

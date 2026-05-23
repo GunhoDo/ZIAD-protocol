@@ -227,6 +227,115 @@ def _install_fifo_sampler(model: Any) -> None:
     model.sample = fifo_sample
 
 
+def _take_indices(value: Any, indices: list[int]) -> Any:
+    if value is None or not hasattr(value, "shape") or len(value.shape) == 0:
+        return value
+    if hasattr(value, "detach"):
+        return _contiguous(value[indices])
+    return np.asarray(value)[indices]
+
+
+def _take_similarity_indices(
+    similarity: Any,
+    indices: list[int],
+    *,
+    source_length: int | None = None,
+) -> Any:
+    if similarity is None or not hasattr(similarity, "shape"):
+        return similarity
+    selected = similarity
+    if (
+        len(selected.shape) >= 1
+        and source_length is not None
+        and int(selected.shape[0]) == int(source_length)
+    ):
+        selected = selected[indices]
+    if len(selected.shape) >= 2:
+        selected = selected[:, indices]
+    return _contiguous(selected)
+
+
+def _replace_with_last_and_trim(value: Any, replacement_index: int, limit: int) -> Any:
+    if value is None or not hasattr(value, "shape") or len(value.shape) == 0:
+        return value
+    if int(value.shape[0]) <= limit:
+        return value
+    if hasattr(value, "clone"):
+        updated = value.clone()
+        updated[replacement_index] = updated[-1]
+        return _contiguous(updated[:limit])
+    updated = np.array(value, copy=True)
+    updated[replacement_index] = updated[-1]
+    return updated[:limit]
+
+
+def _reservoir_reduce_tensor(
+    value: Any,
+    *,
+    limit: int,
+    seen: int,
+    seed: int,
+    preserve_prefix: int = 0,
+) -> Any:
+    if value is None or not hasattr(value, "shape") or len(value.shape) == 0:
+        return value
+    if limit < 1:
+        raise RuntimeError("RareCLIP reservoir memory limit must be positive.")
+
+    length = int(value.shape[0])
+    prefix = max(0, min(int(preserve_prefix), length))
+    mutable = value[prefix:] if prefix else value
+    mutable_length = int(mutable.shape[0])
+    if mutable_length <= limit:
+        return value
+
+    rng = np.random.default_rng(int(seed) + int(seen))
+    if mutable_length == limit + 1:
+        replacement_index = int(rng.integers(0, max(seen, limit + 1)))
+        if replacement_index < limit:
+            reduced = _replace_with_last_and_trim(mutable, replacement_index, limit)
+        else:
+            reduced = mutable[:limit]
+    else:
+        indices = sorted(int(index) for index in rng.choice(mutable_length, size=limit, replace=False))
+        reduced = _take_indices(mutable, indices)
+
+    if prefix == 0:
+        return _contiguous(reduced)
+    if hasattr(value, "clone"):
+        import torch
+
+        return _contiguous(torch.cat((value[:prefix], reduced), dim=0))
+    return np.concatenate((np.asarray(value[:prefix]), np.asarray(reduced)), axis=0)
+
+
+def _install_reservoir_sampler(model: Any, seed: int) -> None:
+    """Replace RareCLIP's patch sampler with deterministic reservoir sampling."""
+    rng = np.random.default_rng(seed)
+
+    def reservoir_sample(
+        F_ref: Any = None,
+        S_ref: Any = None,
+        normal_fnum: int = 0,
+        **_: Any,
+    ) -> tuple[Any, Any, int]:
+        limit = int(getattr(model, "sample_num", 0) or 0)
+        if limit < 1 or F_ref is None or not hasattr(F_ref, "shape"):
+            return F_ref, S_ref, normal_fnum
+
+        length = int(F_ref.shape[0])
+        if length <= limit:
+            return F_ref, S_ref, normal_fnum
+
+        keep = sorted(int(index) for index in rng.choice(length, size=limit, replace=False))
+        F_ref = _take_indices(F_ref, keep)
+        S_ref = _take_similarity_indices(S_ref, keep, source_length=length)
+        normal_fnum = sum(1 for index in keep if index < int(normal_fnum))
+        return F_ref, S_ref, normal_fnum
+
+    model.sample = reservoir_sample
+
+
 def _trim_patch_grid_fifo(grid: Any, limit: int) -> None:
     if not isinstance(grid, list):
         return
@@ -290,6 +399,46 @@ def _apply_fifo_memory_policy(model: Any, memory_limit: int) -> None:
     _trim_patch_similarity_grid_fifo(getattr(model, "PSM", None), limit)
 
 
+def _apply_reservoir_memory_policy(model: Any, memory_limit: int, seed: int) -> None:
+    """Keep image-level RareCLIP memories bounded with reservoir replacement."""
+    limit = int(memory_limit)
+    if limit < 1:
+        raise RuntimeError("RareCLIP reservoir memory limit must be positive.")
+
+    seen = int(getattr(model, "_ziad_reservoir_seen", 0)) + 1
+    model._ziad_reservoir_seen = seen
+
+    for attr in ("score_memory", "IF_memory"):
+        value = getattr(model, attr, None)
+        if value is not None:
+            setattr(
+                model,
+                attr,
+                _reservoir_reduce_tensor(value, limit=limit, seen=seen, seed=seed),
+            )
+
+    k_shot = int(getattr(model, "k_shot", 0) or 0)
+    aaif_memory = getattr(model, "AAIF_memory", None)
+    if isinstance(aaif_memory, dict):
+        for layer, value in list(aaif_memory.items()):
+            aaif_memory[layer] = _reservoir_reduce_tensor(
+                value,
+                limit=limit,
+                seen=seen,
+                seed=seed + int(layer),
+                preserve_prefix=k_shot,
+            )
+    elif isinstance(aaif_memory, list):
+        for layer, value in enumerate(list(aaif_memory)):
+            aaif_memory[layer] = _reservoir_reduce_tensor(
+                value,
+                limit=limit,
+                seen=seen,
+                seed=seed + int(layer),
+                preserve_prefix=k_shot,
+            )
+
+
 def _prepare_openai_clip_cache(cache_dir: Path) -> None:
     """Reuse an already downloaded OpenAI CLIP weight when available.
 
@@ -347,7 +496,7 @@ class RareCLIPWrapper(BaselineWrapper):
         memory_policy, _ = validate_execution_contract(
             config,
             baseline_name=BASELINE_NAME,
-            supported_memory_policies={"default/SCS", "FIFO"},
+            supported_memory_policies={"default/SCS", "FIFO", "Reservoir"},
         )
 
         _ensure_rareclip_importable()
@@ -372,6 +521,8 @@ class RareCLIPWrapper(BaselineWrapper):
         direct = _cfg(config, "direct", False, bool)
         args = _rareclip_args(config, checkpoint_path)
         fifo_memory_size = _cfg(config, "fifo_memory_size", args.keep_inum, int)
+        reservoir_memory_size = _cfg(config, "reservoir_memory_size", args.keep_inum, int)
+        reservoir_seed = _cfg(config, "reservoir_seed", _cfg(config, "seed", 0, int), int)
 
         cache_dir = _resolve_repo_path(str(_cfg(config, "clip_cache_dir", DEFAULT_CLIP_CACHE)))
         _prepare_openai_clip_cache(cache_dir)
@@ -380,6 +531,8 @@ class RareCLIPWrapper(BaselineWrapper):
             model = RareCLIP_d(args) if direct else RareCLIP(args)
             if memory_policy == "FIFO":
                 _install_fifo_sampler(model)
+            elif memory_policy == "Reservoir":
+                _install_reservoir_sampler(model, reservoir_seed)
             if hasattr(model.clip_model, "eval"):
                 model.clip_model.eval()
             model.renew_memory()
@@ -392,7 +545,10 @@ class RareCLIPWrapper(BaselineWrapper):
                 device=model.device,
                 torch=torch,
                 memory_policy=memory_policy,
-                memory_limit=fifo_memory_size,
+                memory_limit=(
+                    reservoir_memory_size if memory_policy == "Reservoir" else fifo_memory_size
+                ),
+                memory_seed=reservoir_seed,
             )
 
         output_path = Path(output_csv)
@@ -414,6 +570,7 @@ class RareCLIPWrapper(BaselineWrapper):
         torch: Any,
         memory_policy: str = "default/SCS",
         memory_limit: int | None = None,
+        memory_seed: int = 0,
     ) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
         device_obj = torch.device(device)
@@ -430,6 +587,12 @@ class RareCLIPWrapper(BaselineWrapper):
                 result = model.process_image_and_update(tensor, update=update_memory)
                 if update_memory and memory_policy == "FIFO":
                     _apply_fifo_memory_policy(model, int(memory_limit or 1))
+                elif update_memory and memory_policy == "Reservoir":
+                    _apply_reservoir_memory_policy(
+                        model,
+                        int(memory_limit or 1),
+                        int(memory_seed),
+                    )
             if result is None:
                 raise RuntimeError("RareCLIP returned no score; k_shot warmup is unsupported for score rows.")
             _, anomaly_score = result

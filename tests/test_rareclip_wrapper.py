@@ -183,6 +183,75 @@ class RareCLIPWrapperHelpersTest(unittest.TestCase):
         self.assertEqual([[3.0], [4.0]], model.score_memory.tolist())
         self.assertEqual([[3.0, 3.0], [4.0, 4.0]], model.PFM[0][6].tolist())
 
+    def test_reservoir_sampler_is_seeded_and_bounded(self):
+        model_a = type("Model", (), {"sample_num": 2})()
+        model_b = type("Model", (), {"sample_num": 2})()
+        rareclip._install_reservoir_sampler(model_a, seed=7)
+        rareclip._install_reservoir_sampler(model_b, seed=7)
+        features = torch.tensor([[1.0], [2.0], [3.0], [4.0]])
+        similarity = torch.arange(16, dtype=torch.float32).reshape(4, 4)
+
+        sampled_a, similarity_a, normal_a = model_a.sample(
+            F_ref=features,
+            S_ref=similarity,
+            normal_fnum=4,
+        )
+        sampled_b, similarity_b, normal_b = model_b.sample(
+            F_ref=features,
+            S_ref=similarity,
+            normal_fnum=4,
+        )
+
+        self.assertEqual(sampled_a.tolist(), sampled_b.tolist())
+        self.assertEqual(similarity_a.tolist(), similarity_b.tolist())
+        self.assertEqual(2, len(sampled_a))
+        self.assertEqual(2, normal_a)
+        self.assertEqual(normal_a, normal_b)
+
+    def test_reservoir_memory_policy_is_seeded_and_bounded(self):
+        model_a = FakeRareCLIPModel()
+        model_b = FakeRareCLIPModel()
+        for _ in range(5):
+            model_a.process_image_and_update(torch.zeros((1, 3, 8, 8)), update=True)
+            model_b.process_image_and_update(torch.zeros((1, 3, 8, 8)), update=True)
+
+        rareclip._apply_reservoir_memory_policy(model_a, 3, seed=11)
+        rareclip._apply_reservoir_memory_policy(model_b, 3, seed=11)
+
+        self.assertEqual(model_a.score_memory.tolist(), model_b.score_memory.tolist())
+        self.assertEqual(model_a.IF_memory.tolist(), model_b.IF_memory.tolist())
+        self.assertEqual(model_a.AAIF_memory[6].tolist(), model_b.AAIF_memory[6].tolist())
+        self.assertEqual(3, len(model_a.score_memory))
+        self.assertEqual(3, len(model_a.AAIF_memory[6]))
+
+    def test_predict_rows_applies_reservoir_policy_after_updates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "mvtec_ad"
+            for index in range(5):
+                image(root / "bottle" / "test" / "good" / f"{index:03d}.png")
+            items = [
+                stream_item(index, f"bottle/test/good/{index:03d}.png")
+                for index in range(5)
+            ]
+            model = FakeRareCLIPModel()
+            rows = rareclip.RareCLIPWrapper._predict_rows(
+                model=model,
+                stream_items=items,
+                dataset_root=root,
+                category="bottle",
+                update_memory=True,
+                device=torch.device("cpu"),
+                torch=torch,
+                memory_policy="Reservoir",
+                memory_limit=3,
+                memory_seed=13,
+            )
+
+        self.assertEqual(5, len(rows))
+        self.assertEqual(3, len(model.score_memory))
+        self.assertEqual(3, len(model.IF_memory))
+        self.assertEqual(3, len(model.AAIF_memory[6]))
+
 
 if __name__ == "__main__":
     unittest.main()
