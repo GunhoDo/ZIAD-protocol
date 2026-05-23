@@ -66,6 +66,7 @@ ZIAD-protocol/
     evaluate.py               # Score evaluator for smoke/mini-matrix metrics
     category_sweep.py         # Multi-category quick-sweep config/aggregate helper
     mini_matrix.py            # Baseline-parametric mini-matrix config/aggregate helper
+    p0_shards.py              # Paper-ineligible P0 shard planner over current smoke runners
     make_streams.py           # Deterministic MVTec/VisA stream generator (iid/bursty)
     render_paper_tables.py    # Renders paper-ineligible smoke evidence tables
     prepare_data.py           # Placeholder data prep
@@ -178,6 +179,8 @@ bash scripts/run_mvtec_full_category_stream_matrix_patchcore.sh
 bash scripts/run_mvtec_full_category_stream_matrix_rareclip.sh
 bash scripts/run_mvtec_full_category_stream_matrix_winclip.sh
 bash scripts/render_paper_tables.sh # Refresh paper-facing non-final smoke evidence tables
+python3 experiments/p0_shards.py plan experiments/configs/p0.yaml --output results/latest/p0_shards/manifest.json
+python3 experiments/p0_shards.py verify results/latest/p0_shards/manifest.json --require-outputs
 make paper                        # Build paper/paper.pdf
 make p0                           # Refresh P0 placeholder outputs (no real inference)
 ```

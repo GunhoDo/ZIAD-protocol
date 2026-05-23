@@ -61,6 +61,20 @@ make p0
 
 This refreshes placeholder files under `results/latest/`; it does not run real model inference and does not create measured findings.
 
+## Plan current P0 shards
+
+```bash
+python3 experiments/p0_shards.py plan experiments/configs/p0.yaml \
+  --output results/latest/p0_shards/manifest.json
+python3 experiments/p0_shards.py verify results/latest/p0_shards/manifest.json \
+  --require-outputs
+```
+
+This writes an orchestration manifest that maps the intended P0 matrix onto the
+currently implemented all-category smoke matrix runners. It creates no metrics,
+keeps `paper_allowed=false`, and records unsupported memory-policy/calibration
+dimensions explicitly.
+
 ## Run a measured mini-matrix smoke
 
 ```bash

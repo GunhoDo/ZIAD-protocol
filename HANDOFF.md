@@ -11,33 +11,34 @@
 - 논문 게이트는 아직 닫힘: 모든 현재 산출물은 `paper_allowed=false` 유지.
 - `.omx/`는 planning history이며 소스 오브 트루스가 아니다.
 
-## 0.1 최근 완료: VisA PatchCore all-category stream/epsilon smoke matrix
+## 0.1 최근 완료: P0 shard orchestration manifest
 
-- 목표: VisA 12개 로컬 category에 PatchCore `iid/bursty × ε 0/0.01/0.05`, length=20 smoke matrix를 실제 anomaly score로 완료.
+- 목표: full P0를 바로 실행하지 않고, 현재 구현된 MVTec/VisA all-category stream/epsilon smoke runners를 8개 P0 shard로 매핑하는 orchestration manifest를 생성.
 - 주요 수정:
-  - `experiments/configs/visa_full_category_stream_matrix_patchcore.yaml`와 `scripts/run_visa_full_category_stream_matrix_patchcore.sh` 추가.
-  - `experiments/baselines/patchcore.py`에 image-level score cache를 추가해 이미 측정한 stream image score를 smoke rerun에서 재사용한다. 캐시는 measured score 재사용용이며 paper result 승격이 아니다.
-  - `.gitignore`, `README.md`, `AGENTS.md`에 VisA PatchCore stream matrix 경로와 명령을 반영했다.
+  - `experiments/p0_shards.py` 추가.
+  - `tests/test_p0_shards.py` 추가.
+  - `README.md`, `AGENTS.md`, `HANDOFF.md`에 P0 shard planning 명령과 한계를 반영.
+  - `results/latest/p0_shards/manifest.json` 생성.
 - 실행 명령:
-  - `bash scripts/run_visa_full_category_stream_matrix_patchcore.sh`
+  - `python3 experiments/p0_shards.py plan experiments/configs/p0.yaml --output results/latest/p0_shards/manifest.json`
+  - `python3 experiments/p0_shards.py verify results/latest/p0_shards/manifest.json --require-outputs`
+  - `python3 -m unittest tests.test_p0_shards -v`
   - `python3 -m unittest discover -v`
   - `python3 -m compileall experiments tests`
   - `git diff --check`
-- 생성된 trackable outputs:
-  - `results/latest/visa_full_category_stream_matrix_patchcore/metrics_visa_full_category_stream_matrix_patchcore.csv` — 72 rows.
-  - `results/latest/visa_full_category_stream_matrix_patchcore/crd_lite_visa_full_category_stream_matrix_patchcore.csv` — 72 rows.
-  - `results/latest/visa_full_category_stream_matrix_patchcore/manifest_visa_full_category_stream_matrix_patchcore.json` — `paper_allowed=false`, `status=visa_full_category_stream_matrix_patchcore_complete`, `run_count=72`, `crd_lite_row_count=72`.
+- 생성된 trackable output:
+  - `results/latest/p0_shards/manifest.json` — `paper_allowed=false`, `status=p0_shard_plan_ready`, `shard_count=8`, `ready_shard_count=8`.
 - 세부 검증:
-  - 72개 stream file 및 72개 score CSV 확인.
-  - 각 stream은 20 items, duplicate image paths 0, labels `[0, 1]`, required fields 존재.
-  - 모든 bursty stream은 하나 이상의 contiguous anomaly block을 가진다.
-  - 각 smoke output은 20 non-placeholder measured score rows.
-  - aggregate 분포: 12 categories × 2 stream types × 3 epsilon = 72 rows.
-  - unittest 41 tests OK, compileall OK, diff check OK.
+  - shards: MVTec AD/VisA × RareCLIP/PatchCore/WinCLIP/AnomalyCLIP = 8.
+  - current smoke run counts: MVTec shard 90 each, VisA shard 72 each.
+  - all 8 shard configs/runners exist.
+  - existing aggregate outputs required by each shard exist.
+  - unsupported dimensions are explicit: memory policies `FIFO`, `Reservoir`, `Prototype-EMA`; calibration `temperature_scaling`.
+  - unittest 45 tests OK, compileall OK, diff check OK.
 - 제한:
-  - smoke evidence only. 논문 결과로 해석 금지.
-  - PatchCore latency는 `offline_batch_amortized`이며 online latency 결론으로 쓰지 않는다.
-  - generated details/configs 및 `results/latest/patchcore_model_cache_visa_smoke/**`는 커밋 대상이 아니다.
+  - orchestration manifest only. 새 metric을 만들지 않는다.
+  - full P0 실행, memory policy 구현, calibration 구현은 아직 미완.
+  - manifest는 현재 smoke runners를 P0 shard 후보로 매핑한 것이며 paper evidence가 아니다.
 
 ## 1. 현재 논문 구현 진척
 
@@ -726,15 +727,16 @@ git diff --check
 부족한 것:
 
 - full P0 matrix 미실행
+- P0 shard manifest는 생성됐지만, memory policy/calibration 차원 실행은 아직 구현되지 않음
 - CRD-lite는 smoke aggregate summary로 구현됨; full P0/VisA 검증과 paper 해석은 미완
 - paper table pipeline은 smoke evidence table만 생성함; full matrix 기반 table/figure는 아직 아님
 - review 전이므로 `paper_allowed=true` 금지
 
 ## 4. 다음 에이전트가 빠르게 해야 할 일
 
-### 1순위 — full P0 orchestration 설계
+### 1순위 — memory policy 실행 표면 구현
 
-MVTec/VisA × 4 baselines의 all-category stream/epsilon smoke matrix가 닫혔다. 다음은 `experiments/configs/p0.yaml`을 실제 실행 가능한 shard 단위로 쪼개고, memory policy/calibration 차원을 paper gate 전용 검증 루프로 올리는 것이다.
+P0 shard manifest가 현재 smoke runners를 8개 shard로 매핑한다. 다음은 PatchCore/RareCLIP에 대해 `default/SCS` 외 `FIFO`, `Reservoir`, `Prototype-EMA`가 config에서 거부/지원 여부를 명확히 가지도록 runner contract를 확장한다. 아직 구현하지 않은 policy는 조용히 default로 대체하면 안 된다.
 
 ### 2순위 — paper table/figure pipeline 확장
 
