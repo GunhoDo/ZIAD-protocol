@@ -1169,8 +1169,9 @@ git diff --check
 - VisA full-category AnomalyCLIP stream/epsilon matrix: 72 rows, all 12 local VisA categories × `iid/bursty` × ε `0/0.01/0.05`, all `measured_smoke`, CRD-lite all `derived_smoke`, generated streams unique paths `20/20`, labels `[0, 1]`, warning count 24, aggregate manifest `paper_allowed=false`
 - VisA full-category PatchCore stream/epsilon matrix: 72 rows, all 12 local VisA categories × `iid/bursty` × ε `0/0.01/0.05`, all `measured_smoke`, CRD-lite all `derived_smoke`, generated streams unique paths `20/20`, labels `[0, 1]`, bursty contiguous anomaly block check passed, aggregate manifest `paper_allowed=false`
 - VisA full-category RareCLIP stream/epsilon matrix: 72 rows, all 12 local VisA categories × `iid/bursty` × ε `0/0.01/0.05`, all `measured_smoke`, CRD-lite all `derived_smoke`, generated streams unique paths `20/20`, labels `[0, 1]`, warning count 24, aggregate manifest `paper_allowed=false`
-- P0 shard manifest cleanup: `results/latest/p0_shards/manifest.json` now reports base stream/epsilon shards `8/8` ready, VisA temperature calibration shards `4` ready, MVTec temperature calibration shards `4` missing, and `paper_allowed=false`
-- Paper table cleanup: `bash scripts/render_paper_tables.sh` now refreshes the MVTec quick-sweep smoke table plus VisA PatchCore/WinCLIP/AnomalyCLIP/RareCLIP stream/epsilon/calibration smoke tables under `results/latest/tables/`; all captions/comments remain non-final and paper-ineligible
+- MVTec full-category WinCLIP/AnomalyCLIP/RareCLIP/PatchCore temperature matrices: each materialized 180 rows from existing measured source scores, 90 calibrated rows, 15 categories × `iid/bursty` × ε `0/0.01/0.05` × calibration `none/temperature_scaling`, aggregate manifests `paper_allowed=false`
+- P0 shard manifest cleanup: `results/latest/p0_shards/manifest.json` now reports base stream/epsilon shards `8/8` ready, temperature calibration shards `8/8` ready across MVTec/VisA, no missing calibration shards, and `paper_allowed=false`
+- Paper table cleanup: `bash scripts/render_paper_tables.sh` now refreshes the MVTec quick-sweep smoke table plus MVTec/VisA PatchCore/WinCLIP/AnomalyCLIP/RareCLIP stream/epsilon/calibration smoke tables under `results/latest/tables/`; all captions/comments remain non-final and paper-ineligible
 
 ## 3. 지금 논문 관점에서 어디까지 왔나
 
@@ -1201,7 +1202,7 @@ git diff --check
 부족한 것:
 
 - full P0 matrix 미실행
-- P0 shard manifest는 생성됐고 `temperature_scaling` smoke postprocessor 및 VisA full-category calibration-axis smoke matrices는 구현됐지만, MVTec temperature shard와 full reviewed P0 matrix는 아직 미실행
+- P0 shard manifest는 생성됐고 `temperature_scaling` smoke postprocessor 및 MVTec/VisA full-category calibration-axis smoke matrices는 구현됐지만, full reviewed P0 matrix는 아직 미실행
 - CRD-lite는 smoke aggregate summary로 구현됨; full P0/VisA 검증과 paper 해석은 미완
 - paper table pipeline은 smoke evidence table만 생성함; full matrix 기반 table/figure는 아직 아님
 - review 전이므로 `paper_allowed=true` 금지

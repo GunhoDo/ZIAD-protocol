@@ -1,0 +1,55 @@
+# MVTec AD all-category stream/epsilon smoke matrix for AnomalyCLIP with calibration axis.
+# This is still paper-ineligible: short length-20 streams, no review, no VisA.
+dataset: MVTec AD
+dataset_root: data/mvtec_ad
+categories:
+  - bottle
+  - cable
+  - capsule
+  - carpet
+  - grid
+  - hazelnut
+  - leather
+  - metal_nut
+  - pill
+  - screw
+  - tile
+  - toothbrush
+  - transistor
+  - wood
+  - zipper
+
+baselines:
+  - name: AnomalyCLIP
+    baseline_path: external/AnomalyCLIP
+    provenance:
+      scoring_mode: stream_ordered_zero_shot_temperature_matrix
+      latency_semantics: wrapper_single_image
+      training_source: learned_text_prompt_checkpoint
+      stream_source: test/*
+
+prevalence: 0.05
+stream_types:
+  - iid
+  - bursty
+contamination_epsilon:
+  - 0
+  - 0.01
+  - 0.05
+memory_policy: default/SCS
+calibration:
+  - none
+  - temperature_scaling
+calibration_temperature: 2.0
+stream:
+  seed: 0
+  length: 20
+  burst_length: 5
+
+outputs:
+  root: results/latest/mvtec_full_category_stream_matrix_anomalyclip_temperature
+  aggregate_metrics: results/latest/mvtec_full_category_stream_matrix_anomalyclip_temperature/metrics_mvtec_full_category_stream_matrix_anomalyclip_temperature.csv
+  aggregate_manifest: results/latest/mvtec_full_category_stream_matrix_anomalyclip_temperature/manifest_mvtec_full_category_stream_matrix_anomalyclip_temperature.json
+  crd_lite_summary: results/latest/mvtec_full_category_stream_matrix_anomalyclip_temperature/crd_lite_mvtec_full_category_stream_matrix_anomalyclip_temperature.csv
+  status: mvtec_full_category_stream_matrix_anomalyclip_temperature_complete
+  notes: MVTec all-category AnomalyCLIP stream/epsilon/calibration smoke matrix only; not full P0 or paper gate.

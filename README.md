@@ -48,7 +48,7 @@ make paper-tables
 ```
 
 This renders checked result CSVs into LaTeX tables. With no arguments it
-refreshes the MVTec quick-sweep smoke table plus the VisA
+refreshes the MVTec quick-sweep smoke table plus the MVTec/VisA
 stream/epsilon/calibration smoke tables for PatchCore, WinCLIP, AnomalyCLIP,
 and RareCLIP. All generated tables are explicitly marked non-final and
 paper-ineligible because `paper_allowed` remains `false`.
@@ -316,43 +316,54 @@ remains smoke evidence with `paper_allowed=false`.
 
 ```bash
 bash scripts/run_mvtec_full_category_stream_matrix_winclip.sh
+bash scripts/run_mvtec_full_category_stream_matrix_winclip_temperature.sh
 ```
 
 This runs WinCLIP across all 15 MVTec AD categories for
 `iid/bursty × ε 0/0.01/0.05`, length-20 streams. It writes aggregate metrics
-and CRD-lite summaries only; generated per-run details remain ignored.
+and CRD-lite summaries only; generated per-run details remain ignored. The
+temperature runner adds the `calibration none/temperature_scaling` axis by
+materializing from measured non-temperature scores.
 
 ## Run the MVTec full-category AnomalyCLIP stream matrix
 
 ```bash
 bash scripts/run_mvtec_full_category_stream_matrix_anomalyclip.sh
+bash scripts/run_mvtec_full_category_stream_matrix_anomalyclip_temperature.sh
 ```
 
 This runs AnomalyCLIP across all 15 MVTec AD categories for
-`iid/bursty × ε 0/0.01/0.05`, length-20 streams. It is CPU single-image
-inference and remains smoke evidence with `paper_allowed=false`.
+`iid/bursty × ε 0/0.01/0.05`, length-20 streams. The temperature runner adds
+the `calibration none/temperature_scaling` axis without rerunning inference. It
+is CPU single-image inference and remains smoke evidence with
+`paper_allowed=false`.
 
 ## Run the MVTec full-category RareCLIP stream matrix
 
 ```bash
 bash scripts/run_mvtec_full_category_stream_matrix_rareclip.sh
+bash scripts/run_mvtec_full_category_stream_matrix_rareclip_temperature.sh
 ```
 
 This runs RareCLIP across all 15 MVTec AD categories for
-`iid/bursty × ε 0/0.01/0.05`, length-20 streams. It exercises the online
-memory update path and remains smoke evidence with `paper_allowed=false`.
+`iid/bursty × ε 0/0.01/0.05`, length-20 streams. The temperature runner adds
+the `calibration none/temperature_scaling` axis without rerunning inference. It
+exercises the online memory update path and remains smoke evidence with
+`paper_allowed=false`.
 
 ## Run the MVTec full-category PatchCore stream matrix
 
 ```bash
 bash scripts/run_mvtec_full_category_stream_matrix_patchcore.sh
+bash scripts/run_mvtec_full_category_stream_matrix_patchcore_temperature.sh
 ```
 
 This runs PatchCore across all 15 MVTec AD categories for
 `iid/bursty × ε 0/0.01/0.05`, length-20 streams. It uses the train/good
 offline batch-amortized smoke path and an ignored local fitted-model cache to
 avoid rebuilding the same per-category support index for every stream condition.
-It remains smoke evidence with `paper_allowed=false`.
+The temperature runner adds the `calibration none/temperature_scaling` axis
+without rerunning inference. It remains smoke evidence with `paper_allowed=false`.
 
 ## Current result contract
 

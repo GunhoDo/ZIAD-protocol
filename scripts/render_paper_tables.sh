@@ -11,7 +11,12 @@ fi
 
 python3 experiments/render_paper_tables.py
 
-for baseline in winclip anomalyclip rareclip patchcore; do
+for dataset in mvtec visa; do
+  dataset_title="MVTec AD"
+  if [[ "$dataset" == "visa" ]]; then
+    dataset_title="VisA"
+  fi
+  for baseline in winclip anomalyclip rareclip patchcore; do
   pretty="$baseline"
   case "$baseline" in
     winclip) pretty="WinCLIP" ;;
@@ -20,9 +25,10 @@ for baseline in winclip anomalyclip rareclip patchcore; do
     patchcore) pretty="PatchCore" ;;
   esac
   python3 experiments/render_paper_tables.py \
-    --metrics-csv "results/latest/visa_full_category_stream_matrix_${baseline}_temperature/metrics_visa_full_category_stream_matrix_${baseline}_temperature.csv" \
-    --manifest "results/latest/visa_full_category_stream_matrix_${baseline}_temperature/manifest_visa_full_category_stream_matrix_${baseline}_temperature.json" \
-    --output "results/latest/tables/visa_${baseline}_temperature_smoke.tex" \
-    --caption "VisA ${pretty} stream/epsilon/calibration metrics" \
-    --label "tab:visa-${baseline}-temperature-smoke"
+    --metrics-csv "results/latest/${dataset}_full_category_stream_matrix_${baseline}_temperature/metrics_${dataset}_full_category_stream_matrix_${baseline}_temperature.csv" \
+    --manifest "results/latest/${dataset}_full_category_stream_matrix_${baseline}_temperature/manifest_${dataset}_full_category_stream_matrix_${baseline}_temperature.json" \
+    --output "results/latest/tables/${dataset}_${baseline}_temperature_smoke.tex" \
+    --caption "${dataset_title} ${pretty} stream/epsilon/calibration metrics" \
+    --label "tab:${dataset}-${baseline}-temperature-smoke"
+  done
 done
