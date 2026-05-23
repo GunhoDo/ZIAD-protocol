@@ -140,6 +140,22 @@ This validates the VisA adapter on `data/visa/1cls/candle` with a length-20,
 iid, epsilon-zero stream. It is measured smoke evidence only and keeps
 `paper_allowed=false`.
 
+## Run the VisA PatchCore smoke
+
+```bash
+bash scripts/run_smoke.sh experiments/configs/smoke_visa_patchcore.yaml
+python3 experiments/evaluate.py \
+  --scores-csv results/latest/scores_visa_patchcore.csv \
+  --latest-run results/latest/latest_run_visa_patchcore.json \
+  --output results/latest/metrics_visa_patchcore.csv \
+  --manifest results/latest/manifest_visa_patchcore.json
+```
+
+This validates PatchCore on `data/visa/1cls/candle` with the same length-20,
+iid, epsilon-zero stream contract. The smoke config uses `sampler: random`
+because the default approximate greedy coreset path is valid but much slower on
+CPU. Outputs remain paper-ineligible with `paper_allowed=false`.
+
 ## Run the VisA WinCLIP mini-matrix
 
 ```bash

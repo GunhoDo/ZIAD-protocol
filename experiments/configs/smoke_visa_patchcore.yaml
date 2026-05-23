@@ -1,0 +1,35 @@
+# PatchCore VisA smoke run: validates whether the MVTec-style PatchCore loader
+# can score VisA streams through the shared stream contract.
+# This is paper-ineligible smoke evidence only.
+baseline: PatchCore
+baseline_path: external/patchcore-inspection
+
+dataset: VisA
+dataset_root: data/visa/1cls
+category: candle
+
+stream_type: iid
+prevalence: 0.05
+contamination_epsilon: 0
+
+stream:
+  path: results/latest/stream_smoke_visa_patchcore.json
+  seed: 0
+  length: 20
+  burst_length: 5
+
+# Keep this feasibility smoke short. The default approximate greedy coreset path
+# is valid but took ~23 minutes on CPU for VisA candle train/good.
+sampler: random
+model_cache_root: results/latest/patchcore_model_cache_visa_smoke
+
+outputs:
+  scores_csv: results/latest/scores_visa_patchcore.csv
+  latest_run: results/latest/latest_run_visa_patchcore.json
+  manifest: results/latest/manifest_visa_patchcore.json
+
+provenance:
+  scoring_mode: stream_ordered_offline
+  latency_semantics: offline_batch_amortized
+  training_source: train/good
+  stream_source: test/*

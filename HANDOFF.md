@@ -151,6 +151,7 @@
   - WinCLIP bursty: `experiments/configs/smoke_visa_winclip_bursty.yaml`
   - AnomalyCLIP iid: `experiments/configs/smoke_visa_anomalyclip.yaml`
   - RareCLIP iid: `experiments/configs/smoke_visa_rareclip.yaml`
+  - PatchCore iid: `experiments/configs/smoke_visa_patchcore.yaml`
   - dataset root: `data/visa/1cls`
   - category: `candle`
   - stream/epsilon: ε=`0`, length=20
@@ -421,6 +422,17 @@
   - latest run: `results/latest/latest_run_visa_rareclip.json`
   - manifest: `results/latest/manifest_visa_rareclip.json`
   - result: 20 measured rows, labels `[0, 1]`, unique paths `20/20`, `paper_allowed=false`
+- VisA PatchCore iid standalone smoke 실행 완료:
+  - config: `experiments/configs/smoke_visa_patchcore.yaml`
+  - command: `bash scripts/run_smoke.sh experiments/configs/smoke_visa_patchcore.yaml`
+  - eval command: `python3 experiments/evaluate.py --scores-csv results/latest/scores_visa_patchcore.csv --latest-run results/latest/latest_run_visa_patchcore.json --output results/latest/metrics_visa_patchcore.csv --manifest results/latest/manifest_visa_patchcore.json`
+  - stream: `results/latest/stream_smoke_visa_patchcore.json`
+  - scores: `results/latest/scores_visa_patchcore.csv`
+  - metrics: `results/latest/metrics_visa_patchcore.csv`
+  - latest run: `results/latest/latest_run_visa_patchcore.json`
+  - manifest: `results/latest/manifest_visa_patchcore.json`
+  - result: 20 measured rows, labels `[0, 1]`, unique paths `20/20`, `status=measured_smoke`, `paper_allowed=false`
+  - config uses `sampler: random` for repeatable smoke speed; the default approximate greedy coreset path also reached the same valid wrapper path but took about 23 minutes on CPU for VisA candle
 - VisA full-category WinCLIP smoke sweep 실행 완료:
   - config: `experiments/configs/visa_full_category_sweep_winclip.yaml`
   - command: `bash scripts/run_visa_full_category_sweep_winclip.sh`
@@ -574,6 +586,12 @@ python3 experiments/evaluate.py \
   --latest-run results/latest/latest_run_visa_rareclip.json \
   --output results/latest/metrics_visa_rareclip.csv \
   --manifest results/latest/manifest_visa_rareclip.json
+bash scripts/run_smoke.sh experiments/configs/smoke_visa_patchcore.yaml
+python3 experiments/evaluate.py \
+  --scores-csv results/latest/scores_visa_patchcore.csv \
+  --latest-run results/latest/latest_run_visa_patchcore.json \
+  --output results/latest/metrics_visa_patchcore.csv \
+  --manifest results/latest/manifest_visa_patchcore.json
 bash scripts/run_visa_full_category_sweep_winclip.sh
 bash scripts/run_visa_full_category_sweep_anomalyclip.sh
 bash scripts/run_visa_full_category_sweep_rareclip.sh
@@ -613,6 +631,7 @@ git diff --check
 - VisA WinCLIP bursty standalone smoke: 20 rows, dataset `VisA`, category `candle`, labels `[0, 1]`, unique paths `20/20`, contiguous anomaly block lengths `[1]`, all `measured`, evaluated manifest `paper_allowed=false`
 - VisA AnomalyCLIP iid standalone smoke: 20 rows, dataset `VisA`, category `candle`, labels `[0, 1]`, unique paths `20/20`, all `measured`, evaluated manifest `paper_allowed=false`
 - VisA RareCLIP iid standalone smoke: 20 rows, dataset `VisA`, category `candle`, labels `[0, 1]`, unique paths `20/20`, all `measured`, evaluated manifest `paper_allowed=false`
+- VisA PatchCore iid standalone smoke: 20 rows, dataset `VisA`, category `candle`, labels `[0, 1]`, unique paths `20/20`, all `measured`, evaluated manifest `paper_allowed=false`
 - VisA full-category WinCLIP sweep: 12 rows, all 12 local VisA categories, all `measured_smoke`, all generated streams unique paths `20/20`, labels `[0, 1]`, aggregate manifest `paper_allowed=false`
 - VisA full-category AnomalyCLIP sweep: 12 rows, all 12 local VisA categories, all `measured_smoke`, all generated streams unique paths `20/20`, labels `[0, 1]`, aggregate manifest `paper_allowed=false`
 - VisA full-category RareCLIP sweep: 12 rows, all 12 local VisA categories, all `measured_smoke`, all generated streams unique paths `20/20`, labels `[0, 1]`, aggregate manifest `paper_allowed=false`
@@ -639,6 +658,7 @@ git diff --check
 11. VisA candle iid ε=0 length=20은 AnomalyCLIP과 RareCLIP에서도 실제 image-level score를 생성했다.
 12. VisA all-12-category iid ε=0 length=20은 WinCLIP, AnomalyCLIP, RareCLIP으로 실제 image-level score를 생성했다.
 13. VisA all-12-category `iid/bursty × ε 0/0.01/0.05` length=20은 WinCLIP, AnomalyCLIP, RareCLIP으로 실제 image-level score를 생성했다.
+14. VisA candle iid ε=0 length=20은 PatchCore에서도 실제 image-level score를 생성했다.
 
 하지만 아직 **논문 결과 단계는 아니다**.
 
@@ -646,7 +666,7 @@ git diff --check
 
 - CLIP baseline은 MVTec/VisA 모두 WinCLIP/AnomalyCLIP/RareCLIP full all-category stream/epsilon smoke matrix까지 완료
 - MVTec 전체 category는 PatchCore/WinCLIP/AnomalyCLIP/RareCLIP 모두 `iid/bursty × ε 0/0.01/0.05` smoke matrix 완료
-- VisA는 WinCLIP/AnomalyCLIP/RareCLIP all-category stream/epsilon matrix까지 실행됨; PatchCore VisA는 미실행
+- VisA는 WinCLIP/AnomalyCLIP/RareCLIP all-category stream/epsilon matrix까지 실행됨; PatchCore VisA는 candle iid ε=0 smoke만 완료
 - full P0 matrix 미실행
 - CRD-lite는 smoke aggregate summary로 구현됨; full P0/VisA 검증과 paper 해석은 미완
 - paper table pipeline은 smoke evidence table만 생성함; full matrix 기반 table/figure는 아직 아님
@@ -656,7 +676,7 @@ git diff --check
 
 ### 1순위 — VisA coverage 확장
 
-VisA stream adapter와 CLIP baselines(WinCLIP/AnomalyCLIP/RareCLIP) all-category stream/epsilon smoke matrix는 연결됐다. 다음은 PatchCore VisA adapter feasibility를 점검하고, 가능하면 candle length-20 iid ε=0 smoke부터 실행한다.
+VisA stream adapter와 CLIP baselines(WinCLIP/AnomalyCLIP/RareCLIP) all-category stream/epsilon smoke matrix는 연결됐고, PatchCore도 candle iid ε=0 smoke가 통과했다. 다음은 PatchCore VisA candle mini-matrix 또는 all-category iid ε=0 sweep로 확장한다.
 
 ### 2순위 — full P0 orchestration 설계
 
