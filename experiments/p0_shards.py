@@ -87,7 +87,8 @@ def _supported_memory_policies(
 
 def _supported_calibration(p0_cfg: dict[str, Any]) -> tuple[list[str], list[str]]:
     intended = [str(value) for value in _as_list(p0_cfg.get("calibration"), [])]
-    supported = ["none"] if "none" in intended else []
+    implemented = {"none", "temperature_scaling"}
+    supported = [value for value in intended if value in implemented]
     unsupported = [value for value in intended if value not in supported]
     return supported, unsupported
 

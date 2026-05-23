@@ -34,6 +34,16 @@ class BaselineExecutionContractTest(unittest.TestCase):
                 {"calibration": "temperature_scaling"}, baseline_name="RareCLIP"
             )
 
+    def test_can_allow_temperature_scaling_calibration(self):
+        memory_policy, calibration = validate_execution_contract(
+            {"calibration": "temperature_scaling"},
+            baseline_name="RareCLIP",
+            supported_calibrations={"none", "temperature_scaling"},
+        )
+
+        self.assertEqual("default/SCS", memory_policy)
+        self.assertEqual("temperature_scaling", calibration)
+
 
 if __name__ == "__main__":
     unittest.main()

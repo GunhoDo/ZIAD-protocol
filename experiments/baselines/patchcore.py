@@ -444,6 +444,7 @@ class PatchCoreWrapper(BaselineWrapper):
                 "Reservoir",
                 "Prototype-EMA",
             },
+            supported_calibrations={"none", "temperature_scaling"},
         )
 
         category = str(config.get("category") or _cfg(config, "category", "bottle"))

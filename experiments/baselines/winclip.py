@@ -140,7 +140,11 @@ class WinCLIPWrapper(BaselineWrapper):
     def run(self, stream_path: str, dataset_root: str, output_csv: str, config: dict) -> None:
         if not os.path.isdir(LOCAL_PATH):
             raise _setup_error(BASELINE_NAME, LOCAL_PATH)
-        validate_execution_contract(config, baseline_name=BASELINE_NAME)
+        validate_execution_contract(
+            config,
+            baseline_name=BASELINE_NAME,
+            supported_calibrations={"none", "temperature_scaling"},
+        )
 
         _ensure_winclip_importable()
         try:

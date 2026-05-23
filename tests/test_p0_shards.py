@@ -16,7 +16,7 @@ class P0ShardsTest(unittest.TestCase):
         self.assertEqual(8, manifest["shard_count"])
         self.assertEqual(8, manifest["ready_shard_count"])
         self.assertEqual([], manifest["missing_shards"])
-        self.assertEqual(["temperature_scaling"], manifest["unsupported_calibration"])
+        self.assertEqual([], manifest["unsupported_calibration"])
         self.assertEqual([], manifest["unsupported_memory_policies"])
 
         shards = {(shard["dataset"], shard["baseline"]): shard for shard in manifest["shards"]}
@@ -32,6 +32,10 @@ class P0ShardsTest(unittest.TestCase):
             shards[("MVTec AD", "PatchCore")]["current_supported_memory_policies"],
         )
         self.assertEqual([], shards[("MVTec AD", "PatchCore")]["unsupported_memory_policies"])
+        self.assertEqual(
+            ["none", "temperature_scaling"],
+            shards[("MVTec AD", "WinCLIP")]["current_supported_calibration"],
+        )
         for shard in manifest["shards"]:
             self.assertFalse(shard["paper_allowed"])
             self.assertEqual("ready_smoke_shard", shard["status"])

@@ -87,6 +87,7 @@ NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 mkdir -p results/latest
 mkdir -p "$(dirname "$SCORES_CSV")" "$(dirname "$LATEST_RUN")" "$(dirname "$MANIFEST")" "$(dirname "$SMOKE_STREAM_PATH")"
+CALIBRATION_METADATA="${SCORES_CSV%.csv}_calibration.json"
 
 BASELINE_REPO_URL="TBD"
 BASELINE_COMMIT_HASH="TBD"
@@ -244,6 +245,14 @@ config.update({
 mod.run(stream_path, dataset_root, output_csv, config)
 PY
 
+if [ "$SMOKE_CALIBRATION" != "none" ]; then
+  echo "Applying calibration: ${SMOKE_CALIBRATION}"
+  python3 experiments/calibration.py \
+    --scores-csv "$SCORES_CSV" \
+    --config "$CONFIG_FILE" \
+    --metadata-output "$CALIBRATION_METADATA"
+fi
+
 echo "Wrapper returned. Validating output..."
 
 # --- Validate scores.csv schema ---
@@ -279,13 +288,17 @@ python3 - \
   "$SMOKE_BASELINE" "$SMOKE_BASELINE_PATH" "$BASELINE_REPO_URL" "$BASELINE_COMMIT_HASH" "$SMOKE_DATASET" "$SMOKE_DATASET_ROOT" \
   "$SMOKE_CATEGORY" "$SMOKE_STREAM_TYPE" "$SMOKE_STREAM_PATH" \
   "$SMOKE_PREVALENCE" "$SMOKE_EPSILON" "$SMOKE_MEMORY_POLICY" "$SMOKE_CALIBRATION" "$SMOKE_STREAM_SEED" "$SMOKE_STREAM_LENGTH" "$SMOKE_BURST_LENGTH" \
-  "$LATEST_RUN" "$MANIFEST" "$NOW" "$SMOKE_SCORING_MODE" "$SMOKE_LATENCY_SEMANTICS" "$SMOKE_TRAINING_SOURCE" "$SMOKE_STREAM_SOURCE" <<'PY'
+  "$LATEST_RUN" "$MANIFEST" "$NOW" "$SMOKE_SCORING_MODE" "$SMOKE_LATENCY_SEMANTICS" "$SMOKE_TRAINING_SOURCE" "$SMOKE_STREAM_SOURCE" "$CALIBRATION_METADATA" <<'PY'
 import json, pathlib, sys
-baseline, bpath, repo_url, commit_hash, dataset, droot, cat, stype, spath, prevalence, epsilon, memory_policy, calibration, seed, length, burst_length, run_path, mpath, ts, scoring_mode, latency_semantics, training_source, stream_source = sys.argv[1:]
+baseline, bpath, repo_url, commit_hash, dataset, droot, cat, stype, spath, prevalence, epsilon, memory_policy, calibration, seed, length, burst_length, run_path, mpath, ts, scoring_mode, latency_semantics, training_source, stream_source, calibration_metadata_path = sys.argv[1:]
 stream_payload = json.loads(pathlib.Path(spath).read_text())
 if not isinstance(stream_payload, dict) or not isinstance(stream_payload.get("metadata"), dict):
     raise SystemExit(f"Stream metadata missing or invalid in {spath}")
 stream_metadata = stream_payload["metadata"]
+calibration_metadata = {}
+calibration_path = pathlib.Path(calibration_metadata_path)
+if calibration_path.exists():
+    calibration_metadata = json.loads(calibration_path.read_text())
 run = {
     "status": "success",
     "baseline": baseline,
@@ -308,6 +321,7 @@ run = {
     "latency_semantics": latency_semantics,
     "training_source": training_source,
     "stream_source": stream_source,
+    "calibration_metadata": calibration_metadata,
     "stream_metadata": {
         key: stream_metadata.get(key)
         for key in [

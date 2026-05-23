@@ -671,6 +671,7 @@ class RareCLIPWrapper(BaselineWrapper):
                 "Reservoir",
                 "Prototype-EMA",
             },
+            supported_calibrations={"none", "temperature_scaling"},
         )
 
         _ensure_rareclip_importable()
