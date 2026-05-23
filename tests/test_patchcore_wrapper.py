@@ -163,6 +163,27 @@ class PatchCoreWrapperHelpersTest(unittest.TestCase):
 
         self.assertEqual([2, 3], sampler.run([0, 1, 2, 3]))
 
+    def test_reservoir_sampler_is_seeded_and_bounded(self):
+        sampler_a = patchcore._ReservoirSampler(0.4, seed=7)
+        sampler_b = patchcore._ReservoirSampler(0.4, seed=7)
+
+        sampled_a = sampler_a.run([0, 1, 2, 3, 4])
+        sampled_b = sampler_b.run([0, 1, 2, 3, 4])
+
+        self.assertEqual(sampled_a, sampled_b)
+        self.assertEqual(2, len(sampled_a))
+
+    def test_make_sampler_supports_reservoir_memory_policy_sampler(self):
+        sampler = patchcore.PatchCoreWrapper._make_sampler(
+            sampler_module=None,
+            name="reservoir",
+            percentage=0.5,
+            device=None,
+            seed=11,
+        )
+
+        self.assertEqual(2, len(sampler.run([0, 1, 2, 3])))
+
 
 if __name__ == "__main__":
     unittest.main()

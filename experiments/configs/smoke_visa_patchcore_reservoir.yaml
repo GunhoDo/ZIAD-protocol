@@ -1,0 +1,36 @@
+# PatchCore VisA Reservoir smoke run.
+# This is paper-ineligible smoke evidence only.
+baseline: PatchCore
+baseline_path: external/patchcore-inspection
+
+dataset: VisA
+dataset_root: data/visa/1cls
+category: candle
+
+memory_policy: Reservoir
+reservoir_memory_fraction: 0.1
+reservoir_seed: 0
+calibration: none
+
+stream_type: iid
+prevalence: 0.05
+contamination_epsilon: 0
+
+stream:
+  path: results/latest/stream_smoke_visa_patchcore_reservoir.json
+  seed: 0
+  length: 20
+  burst_length: 5
+
+model_cache_root: results/latest/patchcore_model_cache_visa_reservoir_smoke
+
+outputs:
+  scores_csv: results/latest/scores_visa_patchcore_reservoir.csv
+  latest_run: results/latest/latest_run_visa_patchcore_reservoir.json
+  manifest: results/latest/manifest_visa_patchcore_reservoir.json
+
+provenance:
+  scoring_mode: stream_ordered_offline_reservoir_feature_bank
+  latency_semantics: offline_batch_amortized
+  training_source: train/good
+  stream_source: test/*

@@ -11,7 +11,44 @@
 - 논문 게이트는 아직 닫힘: 모든 현재 산출물은 `paper_allowed=false` 유지.
 - `.omx/`는 planning history이며 소스 오브 트루스가 아니다.
 
-## 0.1 최근 완료: RareCLIP Reservoir memory policy smoke path
+## 0.1 최근 완료: PatchCore Reservoir feature-bank smoke path
+
+- 목표: P0 memory policy 중 PatchCore `Reservoir`를 실제 feature-bank sampler로 구현하고, fake metric 없이 `paper_allowed=false`를 유지.
+- 주요 수정:
+  - `experiments/baselines/patchcore.py`에서 PatchCore `memory_policy=Reservoir`를 허용한다.
+  - Reservoir 실행 시 train/good feature bank를 seeded reservoir sampler로 bounded selection한다.
+  - `reservoir_memory_fraction`과 `reservoir_seed`가 config에서 제어된다.
+  - model cache key에 `memory_policy`와 `reservoir_seed`를 포함해 default/SCS, FIFO, Reservoir cache가 섞이지 않게 한다.
+  - `experiments/configs/smoke_visa_patchcore_reservoir.yaml` 추가.
+  - `experiments/p0_shards.py`와 `results/latest/p0_shards/manifest.json`에서 PatchCore/RareCLIP current supported memory policy가 `default/SCS,FIFO,Reservoir`로 표시된다.
+  - P0 shard memory policy unsupported list에는 이제 `Prototype-EMA`만 남는다.
+- 실행 명령:
+  - `python3 -m unittest tests.test_patchcore_wrapper tests.test_baseline_contract tests.test_p0_shards -v`
+  - `python3 -m compileall experiments tests`
+  - `python3 experiments/p0_shards.py plan experiments/configs/p0.yaml --output results/latest/p0_shards/manifest.json`
+  - `bash scripts/run_smoke.sh experiments/configs/smoke_visa_patchcore_reservoir.yaml`
+  - `python3 experiments/evaluate.py --scores-csv results/latest/scores_visa_patchcore_reservoir.csv --latest-run results/latest/latest_run_visa_patchcore_reservoir.json --output results/latest/metrics_visa_patchcore_reservoir.csv --manifest results/latest/manifest_visa_patchcore_reservoir.json`
+  - `python3 -m unittest discover -v`
+  - `git diff --check`
+- 생성 outputs:
+  - `results/latest/stream_smoke_visa_patchcore_reservoir.json`
+  - `results/latest/scores_visa_patchcore_reservoir.csv`
+  - `results/latest/metrics_visa_patchcore_reservoir.csv`
+  - `results/latest/latest_run_visa_patchcore_reservoir.json`
+  - `results/latest/manifest_visa_patchcore_reservoir.json`
+  - `results/latest/p0_shards/manifest.json`
+- 검증 결과:
+  - PatchCore Reservoir VisA candle smoke: 20 measured rows, unique image paths `20/20`, labels `[0,1]`, stream warnings `0`.
+  - latest_run records `memory_policy=Reservoir`, `calibration=none`.
+  - manifest keeps `paper_allowed=false`.
+  - P0 shard manifest keeps `paper_allowed=false`, PatchCore/RareCLIP supported memory policies are `default/SCS,FIFO,Reservoir`, unsupported memory policies are `Prototype-EMA`.
+  - unittest 61 tests OK, compileall OK, diff check OK.
+- 제한:
+  - PatchCore Reservoir는 train/good feature bank selection policy다. true online PatchCore update latency로 해석하면 안 된다.
+  - Prototype-EMA와 temperature scaling은 아직 미지원이며 명시적으로 실패해야 한다.
+  - 이 output은 smoke evidence이며 paper result가 아니다.
+
+## 0.2 최근 완료: RareCLIP Reservoir memory policy smoke path
 
 - 목표: P0 memory policy 중 RareCLIP `Reservoir`를 실제 online memory policy로 구현하고, fake metric 없이 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -21,7 +58,7 @@
   - upstream PSM layout(`region rows × feature refs`)을 고려해 feature reference column만 reservoir index로 자르고, square layout일 때만 row도 함께 자른다.
   - `reservoir_memory_size`와 `reservoir_seed`가 config에서 제어된다.
   - `experiments/configs/smoke_visa_rareclip_reservoir.yaml` 추가.
-  - `experiments/p0_shards.py`와 `results/latest/p0_shards/manifest.json`에서 RareCLIP current supported memory policy가 `default/SCS,FIFO,Reservoir`로 표시된다. 전체 unsupported list에는 PatchCore Reservoir 미지원 때문에 `Reservoir`가 아직 남는다.
+  - `experiments/p0_shards.py`와 `results/latest/p0_shards/manifest.json`에서 RareCLIP current supported memory policy가 `default/SCS,FIFO,Reservoir`로 표시된다. 이후 PatchCore Reservoir도 구현되어 전체 memory policy unsupported list에는 `Prototype-EMA`만 남는다.
 - 실행 명령:
   - `python3 -m unittest tests.test_rareclip_wrapper tests.test_baseline_contract tests.test_p0_shards -v`
   - `python3 -m compileall experiments tests`
@@ -43,11 +80,11 @@
   - manifest keeps `paper_allowed=false`.
   - unittest 59 tests OK, compileall OK, diff check OK.
 - 제한:
-  - Reservoir는 현재 RareCLIP wrapper에만 구현됨. PatchCore Reservoir는 아직 미지원이다.
+  - 이 단계 당시 Reservoir는 RareCLIP wrapper에 먼저 구현됐고, 이후 PatchCore Reservoir도 별도 커밋에서 구현됐다.
   - Prototype-EMA와 temperature scaling은 아직 미지원이며 명시적으로 실패해야 한다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.2 최근 완료: PatchCore FIFO feature-bank smoke path
+## 0.3 최근 완료: PatchCore FIFO feature-bank smoke path
 
 - 목표: P0 memory policy 중 PatchCore `FIFO`를 실제 feature-bank sampler로 구현하고, fake metric 없이 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -83,7 +120,7 @@
   - PatchCore Reservoir, Prototype-EMA, temperature scaling은 아직 미지원이며 명시적으로 실패해야 한다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.3 최근 완료: RareCLIP FIFO memory policy smoke path
+## 0.4 최근 완료: RareCLIP FIFO memory policy smoke path
 
 - 목표: P0 memory policy 중 하나를 실제 wrapper 동작으로 승격하되, fake metric 없이 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -118,7 +155,7 @@
   - Reservoir, Prototype-EMA, temperature scaling은 계속 미지원이며 명시적으로 실패해야 한다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.4 최근 완료: memory_policy/calibration execution contract
+## 0.5 최근 완료: memory_policy/calibration execution contract
 
 - 목표: P0 shard에서 미구현 `memory_policy`/`calibration` 값이 조용히 default로 대체되지 않도록 실행 전 contract를 고정.
 - 주요 수정:

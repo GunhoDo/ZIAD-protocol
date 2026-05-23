@@ -132,6 +132,39 @@ class _FIFOSampler:
         return features[-sample_count:]
 
 
+def _select_features(features: Any, indices: list[int]) -> Any:
+    if isinstance(features, list):
+        return [features[index] for index in indices]
+    return features[indices]
+
+
+class _ReservoirSampler:
+    """Sample a bounded feature bank with seeded reservoir replacement."""
+
+    def __init__(self, percentage: float, seed: int):
+        if not 0 < percentage <= 1:
+            raise ValueError("Reservoir percentage value must be in (0, 1].")
+        self.percentage = percentage
+        self.seed = int(seed)
+
+    def run(self, features: Any) -> Any:
+        feature_count = len(features)
+        if feature_count == 0 or self.percentage == 1:
+            return features
+
+        sample_count = max(1, int(feature_count * self.percentage))
+        if sample_count >= feature_count:
+            return features
+
+        rng = np.random.default_rng(self.seed)
+        reservoir = list(range(sample_count))
+        for index in range(sample_count, feature_count):
+            replacement = int(rng.integers(0, index + 1))
+            if replacement < sample_count:
+                reservoir[replacement] = index
+        return _select_features(features, reservoir)
+
+
 REQUIRED_STREAM_ITEM_FIELDS = {
     "stream_index",
     "image_path",
@@ -347,7 +380,7 @@ class PatchCoreWrapper(BaselineWrapper):
         memory_policy, _ = validate_execution_contract(
             config,
             baseline_name=BASELINE_NAME,
-            supported_memory_policies={"default/SCS", "FIFO"},
+            supported_memory_policies={"default/SCS", "FIFO", "Reservoir"},
         )
 
         category = str(config.get("category") or _cfg(config, "category", "bottle"))
@@ -366,6 +399,15 @@ class PatchCoreWrapper(BaselineWrapper):
                 sampler_percentage,
                 float,
             )
+        elif memory_policy == "Reservoir":
+            sampler_name = "reservoir"
+            sampler_percentage = _cfg(
+                config,
+                "reservoir_memory_fraction",
+                sampler_percentage,
+                float,
+            )
+        reservoir_seed = _cfg(config, "reservoir_seed", seed, int)
         pretrain_embed_dimension = _cfg(config, "pretrain_embed_dimension", 1024, int)
         target_embed_dimension = _cfg(config, "target_embed_dimension", 1024, int)
         anomaly_scorer_num_nn = _cfg(config, "anomaly_scorer_num_nn", 1, int)
@@ -390,6 +432,7 @@ class PatchCoreWrapper(BaselineWrapper):
                 "sampler": sampler_name,
                 "sampler_percentage": sampler_percentage,
                 "memory_policy": memory_policy,
+                "reservoir_seed": reservoir_seed,
                 "pretrain_embed_dimension": pretrain_embed_dimension,
                 "target_embed_dimension": target_embed_dimension,
                 "anomaly_scorer_num_nn": anomaly_scorer_num_nn,
@@ -471,7 +514,13 @@ class PatchCoreWrapper(BaselineWrapper):
             pin_memory=device.type == "cuda",
         )
 
-        sampler = self._make_sampler(patchcore.sampler, sampler_name, sampler_percentage, device)
+        sampler = self._make_sampler(
+            patchcore.sampler,
+            sampler_name,
+            sampler_percentage,
+            device,
+            seed=reservoir_seed,
+        )
         nn_method = patchcore.common.FaissNN(faiss_on_gpu, faiss_num_workers)
         backbone = patchcore.backbones.load(backbone_name)
         backbone.name = backbone_name
@@ -544,11 +593,20 @@ class PatchCoreWrapper(BaselineWrapper):
             writer.writerows(rows)
 
     @staticmethod
-    def _make_sampler(sampler_module: Any, name: str, percentage: float, device: Any) -> Any:
+    def _make_sampler(
+        sampler_module: Any,
+        name: str,
+        percentage: float,
+        device: Any,
+        *,
+        seed: int = 0,
+    ) -> Any:
         if name == "identity":
             return sampler_module.IdentitySampler()
         if name == "fifo":
             return _FIFOSampler(percentage)
+        if name == "reservoir":
+            return _ReservoirSampler(percentage, seed)
         if name == "greedy_coreset":
             return sampler_module.GreedyCoresetSampler(percentage, device)
         if name == "approx_greedy_coreset":
