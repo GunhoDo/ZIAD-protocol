@@ -108,6 +108,9 @@ def generate_matrix_configs(sweep_config: Path) -> list[Path]:
     stream_types = _as_list(cfg.get("stream_types", cfg.get("stream_type")), ["iid"])
     epsilons = _as_list(cfg.get("contamination_epsilon"), [0])
     stream_cfg = cfg.get("stream") or {}
+    baseline_options = cfg.get("baseline_options") or {}
+    if not isinstance(baseline_options, dict):
+        raise SystemExit("baseline_options must be a mapping when provided")
 
     paths: list[Path] = []
     for spec in iter_matrix_specs(cfg):
@@ -132,6 +135,8 @@ def generate_matrix_configs(sweep_config: Path) -> list[Path]:
                 "crd_lite_summary": str(spec["crd_lite_summary"]),
             },
         }
+        if baseline_options:
+            matrix_cfg["baseline_options"] = dict(baseline_options)
         if spec["provenance"]:
             matrix_cfg["provenance"] = spec["provenance"]
         path = spec["config_path"]

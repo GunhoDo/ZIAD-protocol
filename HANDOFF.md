@@ -1,6 +1,6 @@
 # HANDOFF — ZIAD 논문 구현 현재 상태
 
-최종 갱신: 2026-05-21
+최종 갱신: 2026-05-23
 프로젝트: Streaming Zero-Shot Industrial Anomaly Detection with CLIP / ZIAD Protocol
 
 ## 0. 절대 규칙
@@ -10,6 +10,29 @@
 - fake metric 금지. placeholder는 `placeholder_not_measured`, 실제 측정은 `measured`/`measured_smoke`만 사용한다.
 - 논문 게이트는 아직 닫힘: 모든 현재 산출물은 `paper_allowed=false` 유지.
 - `.omx/`는 planning history이며 소스 오브 트루스가 아니다.
+
+## 0.1 최근 완료: VisA PatchCore all-category iid smoke
+
+- 목표: VisA 12개 로컬 category에 PatchCore iid ε=0 length=20 smoke를 실제 anomaly score로 완료.
+- 주요 수정:
+  - `experiments/category_sweep.py`가 top-level `baseline_options`를 generated mini-matrix config로 전달한다.
+  - `scripts/run_smoke.sh`가 smoke YAML 전체를 wrapper config로 전달한 뒤 normalized core fields를 덮어쓴다. 이 수정 전에는 `sampler: identity`가 무시되어 PatchCore upstream coreset subsampling이 실행됐고, 해당 초기 실행은 중단했다.
+  - `experiments/configs/visa_full_category_sweep_patchcore.yaml`와 `scripts/run_visa_full_category_sweep_patchcore.sh` 추가.
+- 실행 명령:
+  - `bash scripts/run_smoke.sh results/latest/visa_full_category_sweep_patchcore/details/patchcore_candle/configs/patchcore_candle_iid_eps_0.yaml` — option passthrough 수정 후 단일 candle 재확인.
+  - `bash scripts/run_visa_full_category_sweep_patchcore.sh`
+- 생성된 trackable outputs:
+  - `results/latest/visa_full_category_sweep_patchcore/metrics_visa_full_category_sweep_patchcore.csv` — 12 rows.
+  - `results/latest/visa_full_category_sweep_patchcore/crd_lite_visa_full_category_sweep_patchcore.csv` — 12 rows.
+  - `results/latest/visa_full_category_sweep_patchcore/manifest_visa_full_category_sweep_patchcore.json` — `paper_allowed=false`, `status=visa_full_category_sweep_patchcore_complete`, `run_count=12`, `crd_lite_row_count=12`.
+- 세부 검증:
+  - 12개 stream file 확인.
+  - 각 stream은 20 items, duplicate image paths 0, labels `[0, 1]`, required fields 존재.
+  - 각 category smoke output은 20 non-placeholder measured score rows.
+- 제한:
+  - smoke evidence only. iid ε=0 length=20이며 논문 결과로 해석 금지.
+  - VisA PatchCore full stream/epsilon matrix는 아직 실행하지 않음.
+  - generated details/configs 및 `results/latest/patchcore_model_cache_visa_smoke/**`는 커밋 대상이 아니다.
 
 ## 1. 현재 논문 구현 진척
 
@@ -178,6 +201,15 @@
   - categories: all 12 local VisA categories (`candle,capsules,cashew,chewinggum,fryum,macaroni1,macaroni2,pcb1,pcb2,pcb3,pcb4,pipe_fryum`)
   - baseline: AnomalyCLIP only
   - stream/epsilon: `iid`, ε=`0`, length=20
+  - generated per-run configs/details are ignored; combined aggregate files remain trackable
+- VisA full-category PatchCore smoke sweep 구성 완료:
+  - config: `experiments/configs/visa_full_category_sweep_patchcore.yaml`
+  - runner: `scripts/run_visa_full_category_sweep_patchcore.sh`
+  - dataset root: `data/visa/1cls`
+  - categories: all 12 local VisA categories (`candle,capsules,cashew,chewinggum,fryum,macaroni1,macaroni2,pcb1,pcb2,pcb3,pcb4,pipe_fryum`)
+  - baseline: PatchCore only
+  - stream/epsilon: `iid`, ε=`0`, length=20
+  - `baseline_options` forwards `sampler: identity` to avoid slow upstream coreset subsampling during smoke
   - generated per-run configs/details are ignored; combined aggregate files remain trackable
 - VisA full-category RareCLIP smoke sweep 구성 완료:
   - config: `experiments/configs/visa_full_category_sweep_rareclip.yaml`

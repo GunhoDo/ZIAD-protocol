@@ -34,6 +34,10 @@ class CategorySweepTest(unittest.TestCase):
                         "stream_types": ["iid"],
                         "contamination_epsilon": [0],
                         "stream": {"seed": 3, "length": 20, "burst_length": 5},
+                        "baseline_options": {
+                            "sampler": "random",
+                            "model_cache_root": "results/latest/patchcore_model_cache_visa_smoke",
+                        },
                         "outputs": {"root": str(root / "category_quick_sweep")},
                     },
                     sort_keys=False,
@@ -49,6 +53,11 @@ class CategorySweepTest(unittest.TestCase):
             winclip = yaml.safe_load((root / "category_quick_sweep" / "configs" / "winclip_capsule_matrix.yaml").read_text())
             self.assertEqual(winclip["category"], "capsule")
             self.assertEqual(winclip["stream"]["length"], 20)
+            self.assertEqual(winclip["baseline_options"]["sampler"], "random")
+            self.assertEqual(
+                winclip["baseline_options"]["model_cache_root"],
+                "results/latest/patchcore_model_cache_visa_smoke",
+            )
             self.assertEqual(winclip["provenance"]["scoring_mode"], "stream_ordered_zero_shot")
 
     def test_aggregate_sweep_combines_metrics_and_crd_with_category(self):

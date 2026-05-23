@@ -210,17 +210,33 @@ PY
 
 # --- Gate 4: Run wrapper ---
 echo "Running wrapper..."
-python3 - "$SMOKE_BASELINE" "$SMOKE_STREAM_PATH" "$SMOKE_DATASET_ROOT" "$SCORES_CSV" "$SMOKE_DATASET" "$SMOKE_CATEGORY" "$SMOKE_STREAM_TYPE" "$SMOKE_SCORING_MODE" "$SMOKE_LATENCY_SEMANTICS" <<'PY'
+python3 - "$CONFIG_FILE" "$SMOKE_BASELINE" "$SMOKE_STREAM_PATH" "$SMOKE_DATASET_ROOT" "$SCORES_CSV" "$SMOKE_DATASET" "$SMOKE_CATEGORY" "$SMOKE_STREAM_TYPE" "$SMOKE_SCORING_MODE" "$SMOKE_LATENCY_SEMANTICS" <<'PY'
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path.cwd()))
-baseline, stream_path, dataset_root, output_csv, dataset, category, stream_type, scoring_mode, latency_semantics = sys.argv[1:]
+config_file, baseline, stream_path, dataset_root, output_csv, dataset, category, stream_type, scoring_mode, latency_semantics = sys.argv[1:]
 module_name = baseline.lower()
 try:
     import importlib
     mod = importlib.import_module(f"experiments.baselines.{module_name}")
 except ImportError as e:
     raise SystemExit(f"Cannot import wrapper experiments.baselines.{module_name}: {e}")
-config = {"baseline": baseline, "dataset": dataset, "category": category, "stream_type": stream_type, "scoring_mode": scoring_mode, "latency_semantics": latency_semantics}
+try:
+    import yaml
+    loaded = yaml.safe_load(pathlib.Path(config_file).read_text()) or {}
+    if not isinstance(loaded, dict):
+        loaded = {}
+except ImportError:
+    loaded = {}
+config = dict(loaded)
+config.update({
+    "baseline": baseline,
+    "dataset": dataset,
+    "dataset_root": dataset_root,
+    "category": category,
+    "stream_type": stream_type,
+    "scoring_mode": scoring_mode,
+    "latency_semantics": latency_semantics,
+})
 mod.run(stream_path, dataset_root, output_csv, config)
 PY
 

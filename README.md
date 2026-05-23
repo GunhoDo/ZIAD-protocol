@@ -200,6 +200,18 @@ This uses the same all-12-category VisA smoke shape for AnomalyCLIP with iid,
 epsilon-zero, length-20 streams. It is CPU single-image inference and remains
 smoke evidence with `paper_allowed=false`.
 
+## Run the VisA full-category PatchCore smoke sweep
+
+```bash
+bash scripts/run_visa_full_category_sweep_patchcore.sh
+```
+
+This uses the same all-12-category VisA smoke shape for PatchCore with iid,
+epsilon-zero, length-20 streams. It uses `baseline_options.sampler: identity` to
+avoid the slow upstream coreset subsampling step; `run_smoke.sh` forwards these
+baseline-specific YAML options into the wrapper. The aggregate output remains
+smoke evidence with `paper_allowed=false`.
+
 ## Run the VisA full-category RareCLIP smoke sweep
 
 ```bash
