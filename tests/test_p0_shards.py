@@ -34,13 +34,10 @@ class P0ShardsTest(unittest.TestCase):
             shards[("MVTec AD", "RareCLIP")]["unsupported_memory_policies"],
         )
         self.assertEqual(
-            ["default/SCS", "FIFO", "Reservoir"],
+            ["default/SCS", "FIFO", "Reservoir", "Prototype-EMA"],
             shards[("MVTec AD", "PatchCore")]["current_supported_memory_policies"],
         )
-        self.assertEqual(
-            ["Prototype-EMA"],
-            shards[("MVTec AD", "PatchCore")]["unsupported_memory_policies"],
-        )
+        self.assertEqual([], shards[("MVTec AD", "PatchCore")]["unsupported_memory_policies"])
         for shard in manifest["shards"]:
             self.assertFalse(shard["paper_allowed"])
             self.assertEqual("ready_smoke_shard", shard["status"])

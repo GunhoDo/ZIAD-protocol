@@ -184,6 +184,35 @@ class PatchCoreWrapperHelpersTest(unittest.TestCase):
 
         self.assertEqual(2, len(sampler.run([0, 1, 2, 3])))
 
+    def test_prototype_ema_sampler_is_bounded_and_updates_nearest_prototype(self):
+        sampler = patchcore._PrototypeEMASampler(0.5, alpha=0.5)
+
+        sampled = sampler.run(
+            [
+                [0.0, 0.0],
+                [10.0, 10.0],
+                [2.0, 0.0],
+                [10.0, 12.0],
+            ]
+        )
+
+        self.assertEqual((2, 2), sampled.shape)
+        self.assertAlmostEqual(1.0, float(sampled[0][0]))
+        self.assertAlmostEqual(0.0, float(sampled[0][1]))
+        self.assertAlmostEqual(10.0, float(sampled[1][0]))
+        self.assertAlmostEqual(11.0, float(sampled[1][1]))
+
+    def test_make_sampler_supports_prototype_ema_memory_policy_sampler(self):
+        sampler = patchcore.PatchCoreWrapper._make_sampler(
+            sampler_module=None,
+            name="prototype_ema",
+            percentage=0.5,
+            device=None,
+            prototype_ema_alpha=0.25,
+        )
+
+        self.assertEqual((2, 2), sampler.run([[0, 0], [4, 4], [4, 0], [4, 8]]).shape)
+
 
 if __name__ == "__main__":
     unittest.main()

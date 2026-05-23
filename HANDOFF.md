@@ -11,7 +11,42 @@
 - 논문 게이트는 아직 닫힘: 모든 현재 산출물은 `paper_allowed=false` 유지.
 - `.omx/`는 planning history이며 소스 오브 트루스가 아니다.
 
-## 0.1 최근 완료: PatchCore Reservoir feature-bank smoke path
+## 0.1 최근 완료: PatchCore Prototype-EMA feature-bank smoke path
+
+- 목표: P0 memory policy 중 PatchCore `Prototype-EMA`를 실제 feature-bank compression sampler로 구현하고, fake metric 없이 `paper_allowed=false`를 유지.
+- 주요 수정:
+  - `experiments/baselines/patchcore.py`에서 PatchCore `memory_policy=Prototype-EMA`를 허용한다.
+  - Prototype-EMA 실행 시 train/good feature stream을 nearest-prototype EMA 대표 feature bank로 압축한다.
+  - `prototype_ema_memory_fraction`, `prototype_ema_alpha`, `prototype_ema_max_prototypes`, `prototype_ema_batch_size`가 config에서 제어된다.
+  - 최초 구현의 `O(features × prototypes)` 비용을 피하려고 `max_prototypes` 상한과 batch assignment/update를 추가했다.
+  - model cache key에 `prototype_ema_alpha`, `prototype_ema_max_prototypes`, `prototype_ema_batch_size`를 포함해 다른 PatchCore memory policy/cache와 섞이지 않게 한다.
+  - `experiments/configs/smoke_visa_patchcore_prototype_ema.yaml` 추가.
+  - `experiments/p0_shards.py`와 `results/latest/p0_shards/manifest.json`에서 PatchCore current supported memory policy가 `default/SCS,FIFO,Reservoir,Prototype-EMA`로 표시되고, PatchCore shard unsupported memory policy는 빈 목록이다.
+  - 전체 P0 shard memory policy unsupported list에는 RareCLIP 미지원 때문에 `Prototype-EMA`가 아직 남는다.
+- 실행 명령:
+  - `python3 -m unittest tests.test_patchcore_wrapper tests.test_baseline_contract tests.test_p0_shards -v`
+  - `python3 -m compileall experiments tests`
+  - `python3 experiments/p0_shards.py plan experiments/configs/p0.yaml --output results/latest/p0_shards/manifest.json`
+  - `bash scripts/run_smoke.sh experiments/configs/smoke_visa_patchcore_prototype_ema.yaml`
+  - `python3 experiments/evaluate.py --scores-csv results/latest/scores_visa_patchcore_prototype_ema.csv --latest-run results/latest/latest_run_visa_patchcore_prototype_ema.json --output results/latest/metrics_visa_patchcore_prototype_ema.csv --manifest results/latest/manifest_visa_patchcore_prototype_ema.json`
+- 생성 outputs:
+  - `results/latest/stream_smoke_visa_patchcore_prototype_ema.json`
+  - `results/latest/scores_visa_patchcore_prototype_ema.csv`
+  - `results/latest/metrics_visa_patchcore_prototype_ema.csv`
+  - `results/latest/latest_run_visa_patchcore_prototype_ema.json`
+  - `results/latest/manifest_visa_patchcore_prototype_ema.json`
+  - `results/latest/p0_shards/manifest.json`
+- 검증 결과:
+  - PatchCore Prototype-EMA VisA candle smoke: 20 measured rows, unique image paths `20/20`, labels `[0,1]`, stream warnings `0`.
+  - latest_run records `memory_policy=Prototype-EMA`, `calibration=none`.
+  - manifest keeps `paper_allowed=false`.
+  - P0 shard manifest keeps `paper_allowed=false`; PatchCore supported memory policies are `default/SCS,FIFO,Reservoir,Prototype-EMA`; PatchCore unsupported memory policies are `[]`; overall unsupported memory policies are still `Prototype-EMA` because RareCLIP lacks it.
+- 제한:
+  - PatchCore Prototype-EMA는 train/good feature bank compression policy다. true online PatchCore update latency로 해석하면 안 된다.
+  - RareCLIP Prototype-EMA와 temperature scaling은 아직 미지원이며 명시적으로 실패해야 한다.
+  - 이 output은 smoke evidence이며 paper result가 아니다.
+
+## 0.2 최근 완료: PatchCore Reservoir feature-bank smoke path
 
 - 목표: P0 memory policy 중 PatchCore `Reservoir`를 실제 feature-bank sampler로 구현하고, fake metric 없이 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -45,10 +80,10 @@
   - unittest 61 tests OK, compileall OK, diff check OK.
 - 제한:
   - PatchCore Reservoir는 train/good feature bank selection policy다. true online PatchCore update latency로 해석하면 안 된다.
-  - Prototype-EMA와 temperature scaling은 아직 미지원이며 명시적으로 실패해야 한다.
+  - 이 단계 당시 PatchCore Prototype-EMA와 temperature scaling은 아직 미지원이었다. 이후 PatchCore Prototype-EMA는 별도 커밋에서 구현됐다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.2 최근 완료: RareCLIP Reservoir memory policy smoke path
+## 0.3 최근 완료: RareCLIP Reservoir memory policy smoke path
 
 - 목표: P0 memory policy 중 RareCLIP `Reservoir`를 실제 online memory policy로 구현하고, fake metric 없이 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -84,7 +119,7 @@
   - Prototype-EMA와 temperature scaling은 아직 미지원이며 명시적으로 실패해야 한다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.3 최근 완료: PatchCore FIFO feature-bank smoke path
+## 0.4 최근 완료: PatchCore FIFO feature-bank smoke path
 
 - 목표: P0 memory policy 중 PatchCore `FIFO`를 실제 feature-bank sampler로 구현하고, fake metric 없이 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -117,10 +152,10 @@
   - unittest 56 tests OK, compileall OK, diff check OK.
 - 제한:
   - PatchCore FIFO는 train/good feature bank selection policy다. true online PatchCore update latency로 해석하면 안 된다.
-  - PatchCore Reservoir, Prototype-EMA, temperature scaling은 아직 미지원이며 명시적으로 실패해야 한다.
+  - 이 단계 당시 PatchCore Reservoir/Prototype-EMA와 temperature scaling은 아직 미지원이었다. 이후 PatchCore Reservoir와 Prototype-EMA는 별도 커밋에서 구현됐다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.4 최근 완료: RareCLIP FIFO memory policy smoke path
+## 0.5 최근 완료: RareCLIP FIFO memory policy smoke path
 
 - 목표: P0 memory policy 중 하나를 실제 wrapper 동작으로 승격하되, fake metric 없이 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -155,7 +190,7 @@
   - Reservoir, Prototype-EMA, temperature scaling은 계속 미지원이며 명시적으로 실패해야 한다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.5 최근 완료: memory_policy/calibration execution contract
+## 0.6 최근 완료: memory_policy/calibration execution contract
 
 - 목표: P0 shard에서 미구현 `memory_policy`/`calibration` 값이 조용히 default로 대체되지 않도록 실행 전 contract를 고정.
 - 주요 수정:
@@ -183,7 +218,7 @@
   - latest_run records `memory_policy=default/SCS`, `calibration=none`.
   - unittest 48 tests OK, compileall OK, diff check OK.
 - 제한:
-  - FIFO/Reservoir/Prototype-EMA와 temperature scaling은 아직 구현되지 않았다. 현재는 명시적 거부만 한다.
+  - 이 단계 당시 FIFO/Reservoir/Prototype-EMA와 temperature scaling은 아직 구현되지 않았고 명시적 거부만 했다. 이후 FIFO/Reservoir와 PatchCore Prototype-EMA는 별도 커밋에서 구현됐다.
   - 이 단계는 execution contract hardening이며 full P0 실행이 아니다.
 
 ## 1. 현재 논문 구현 진척
@@ -873,7 +908,7 @@ git diff --check
 부족한 것:
 
 - full P0 matrix 미실행
-- P0 shard manifest는 생성됐지만, memory policy/calibration 차원 실행은 아직 구현되지 않음
+- P0 shard manifest는 생성됐지만, RareCLIP Prototype-EMA와 temperature scaling은 아직 구현되지 않음
 - CRD-lite는 smoke aggregate summary로 구현됨; full P0/VisA 검증과 paper 해석은 미완
 - paper table pipeline은 smoke evidence table만 생성함; full matrix 기반 table/figure는 아직 아님
 - review 전이므로 `paper_allowed=true` 금지
@@ -882,7 +917,7 @@ git diff --check
 
 ### 1순위 — 실제 memory policy 구현
 
-실행 contract는 고정됐다. 다음은 PatchCore/RareCLIP에 대해 `FIFO`, `Reservoir`, `Prototype-EMA` 중 하나를 작은 범위부터 실제 구현하거나, 구현 전 설계 문서와 tests를 먼저 추가한다. 구현되지 않은 policy는 계속 명시적으로 실패해야 한다.
+실행 contract는 고정됐다. 다음은 RareCLIP `Prototype-EMA`를 작은 범위부터 실제 구현하거나, calibration `temperature_scaling`의 입력/출력 contract와 tests를 먼저 추가한다. 구현되지 않은 policy/calibration은 계속 명시적으로 실패해야 한다.
 
 ### 2순위 — paper table/figure pipeline 확장
 

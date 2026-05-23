@@ -165,6 +165,64 @@ class _ReservoirSampler:
         return _select_features(features, reservoir)
 
 
+class _PrototypeEMASampler:
+    """Compress a feature stream into nearest-prototype EMA representatives."""
+
+    def __init__(
+        self,
+        percentage: float,
+        alpha: float,
+        *,
+        max_prototypes: int = 64,
+        batch_size: int = 1024,
+    ):
+        if not 0 < percentage <= 1:
+            raise ValueError("Prototype-EMA percentage value must be in (0, 1].")
+        if not 0 < alpha <= 1:
+            raise ValueError("Prototype-EMA alpha value must be in (0, 1].")
+        if max_prototypes < 1:
+            raise ValueError("Prototype-EMA max_prototypes value must be positive.")
+        if batch_size < 1:
+            raise ValueError("Prototype-EMA batch_size value must be positive.")
+        self.percentage = percentage
+        self.alpha = alpha
+        self.max_prototypes = int(max_prototypes)
+        self.batch_size = int(batch_size)
+
+    def run(self, features: Any) -> Any:
+        feature_count = len(features)
+        if feature_count == 0 or self.percentage == 1:
+            return features
+
+        prototype_count = min(
+            self.max_prototypes,
+            max(1, int(feature_count * self.percentage)),
+        )
+        if prototype_count >= feature_count:
+            return features
+
+        array = np.asarray(features)
+        if array.ndim < 2:
+            raise RuntimeError("Prototype-EMA sampler requires at least 2D feature arrays.")
+
+        prototypes = array[:prototype_count].astype(np.float32, copy=True)
+        for start in range(prototype_count, feature_count, self.batch_size):
+            batch = array[start : start + self.batch_size].astype(np.float32, copy=False)
+            flat_batch = batch.reshape(batch.shape[0], -1)
+            flat_prototypes = prototypes.reshape(prototype_count, -1)
+            distances = (
+                (flat_batch[:, None, :] - flat_prototypes[None, :, :]) ** 2
+            ).sum(axis=2)
+            assignments = np.argmin(distances, axis=1)
+            for nearest in sorted(set(int(index) for index in assignments.tolist())):
+                assigned = batch[assignments == nearest]
+                prototypes[nearest] = (
+                    (1.0 - self.alpha) * prototypes[nearest]
+                    + self.alpha * assigned.mean(axis=0)
+                )
+        return prototypes.astype(array.dtype, copy=False)
+
+
 REQUIRED_STREAM_ITEM_FIELDS = {
     "stream_index",
     "image_path",
@@ -380,7 +438,12 @@ class PatchCoreWrapper(BaselineWrapper):
         memory_policy, _ = validate_execution_contract(
             config,
             baseline_name=BASELINE_NAME,
-            supported_memory_policies={"default/SCS", "FIFO", "Reservoir"},
+            supported_memory_policies={
+                "default/SCS",
+                "FIFO",
+                "Reservoir",
+                "Prototype-EMA",
+            },
         )
 
         category = str(config.get("category") or _cfg(config, "category", "bottle"))
@@ -407,7 +470,28 @@ class PatchCoreWrapper(BaselineWrapper):
                 sampler_percentage,
                 float,
             )
+        elif memory_policy == "Prototype-EMA":
+            sampler_name = "prototype_ema"
+            sampler_percentage = _cfg(
+                config,
+                "prototype_ema_memory_fraction",
+                sampler_percentage,
+                float,
+            )
         reservoir_seed = _cfg(config, "reservoir_seed", seed, int)
+        prototype_ema_alpha = _cfg(config, "prototype_ema_alpha", 0.1, float)
+        prototype_ema_max_prototypes = _cfg(
+            config,
+            "prototype_ema_max_prototypes",
+            64,
+            int,
+        )
+        prototype_ema_batch_size = _cfg(
+            config,
+            "prototype_ema_batch_size",
+            1024,
+            int,
+        )
         pretrain_embed_dimension = _cfg(config, "pretrain_embed_dimension", 1024, int)
         target_embed_dimension = _cfg(config, "target_embed_dimension", 1024, int)
         anomaly_scorer_num_nn = _cfg(config, "anomaly_scorer_num_nn", 1, int)
@@ -433,6 +517,9 @@ class PatchCoreWrapper(BaselineWrapper):
                 "sampler_percentage": sampler_percentage,
                 "memory_policy": memory_policy,
                 "reservoir_seed": reservoir_seed,
+                "prototype_ema_alpha": prototype_ema_alpha,
+                "prototype_ema_max_prototypes": prototype_ema_max_prototypes,
+                "prototype_ema_batch_size": prototype_ema_batch_size,
                 "pretrain_embed_dimension": pretrain_embed_dimension,
                 "target_embed_dimension": target_embed_dimension,
                 "anomaly_scorer_num_nn": anomaly_scorer_num_nn,
@@ -520,6 +607,9 @@ class PatchCoreWrapper(BaselineWrapper):
             sampler_percentage,
             device,
             seed=reservoir_seed,
+            prototype_ema_alpha=prototype_ema_alpha,
+            prototype_ema_max_prototypes=prototype_ema_max_prototypes,
+            prototype_ema_batch_size=prototype_ema_batch_size,
         )
         nn_method = patchcore.common.FaissNN(faiss_on_gpu, faiss_num_workers)
         backbone = patchcore.backbones.load(backbone_name)
@@ -600,6 +690,9 @@ class PatchCoreWrapper(BaselineWrapper):
         device: Any,
         *,
         seed: int = 0,
+        prototype_ema_alpha: float = 0.1,
+        prototype_ema_max_prototypes: int = 64,
+        prototype_ema_batch_size: int = 1024,
     ) -> Any:
         if name == "identity":
             return sampler_module.IdentitySampler()
@@ -607,6 +700,13 @@ class PatchCoreWrapper(BaselineWrapper):
             return _FIFOSampler(percentage)
         if name == "reservoir":
             return _ReservoirSampler(percentage, seed)
+        if name == "prototype_ema":
+            return _PrototypeEMASampler(
+                percentage,
+                prototype_ema_alpha,
+                max_prototypes=prototype_ema_max_prototypes,
+                batch_size=prototype_ema_batch_size,
+            )
         if name == "greedy_coreset":
             return sampler_module.GreedyCoresetSampler(percentage, device)
         if name == "approx_greedy_coreset":
