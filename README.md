@@ -245,6 +245,7 @@ bash scripts/run_visa_full_category_stream_matrix_anomalyclip.sh
 bash scripts/run_visa_full_category_stream_matrix_anomalyclip_temperature.sh
 bash scripts/run_visa_full_category_stream_matrix_patchcore.sh
 bash scripts/run_visa_full_category_stream_matrix_rareclip.sh
+bash scripts/run_visa_full_category_stream_matrix_rareclip_temperature.sh
 ```
 
 Each command runs one baseline over all 12 local VisA categories for
