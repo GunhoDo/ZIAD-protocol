@@ -21,7 +21,7 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
-from .base import BaselineWrapper, _setup_error
+from .base import BaselineWrapper, _setup_error, validate_execution_contract
 
 BASELINE_NAME = "AnomalyCLIP"
 LOCAL_PATH = "external/AnomalyCLIP"
@@ -168,6 +168,7 @@ class AnomalyCLIPWrapper(BaselineWrapper):
     def run(self, stream_path: str, dataset_root: str, output_csv: str, config: dict) -> None:
         if not os.path.isdir(LOCAL_PATH):
             raise _setup_error(BASELINE_NAME, LOCAL_PATH)
+        validate_execution_contract(config, baseline_name=BASELINE_NAME)
 
         _ensure_anomalyclip_importable()
         try:

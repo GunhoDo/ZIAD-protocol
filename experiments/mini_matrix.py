@@ -108,6 +108,8 @@ def generate_run_configs(matrix_config: Path) -> list[Path]:
     dataset_root = cfg.get("dataset_root", "data/mvtec_ad")
     category = cfg.get("category", "bottle")
     prevalence = cfg.get("prevalence", 0.05)
+    memory_policy = cfg.get("memory_policy", "default/SCS")
+    calibration = cfg.get("calibration", "none")
     stream_cfg = cfg.get("stream") or {}
     outputs = cfg.get("outputs") or {}
     root = Path(outputs.get("root", DEFAULT_ROOT))
@@ -137,6 +139,8 @@ def generate_run_configs(matrix_config: Path) -> list[Path]:
                 "stream_type": stream_type,
                 "prevalence": prevalence,
                 "contamination_epsilon": epsilon,
+                "memory_policy": memory_policy,
+                "calibration": calibration,
                 "stream": {
                     "path": str(run_dir / "stream.json"),
                     "seed": stream_cfg.get("seed", 0),

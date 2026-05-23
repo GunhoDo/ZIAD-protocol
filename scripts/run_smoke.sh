@@ -19,7 +19,7 @@ if [ ! -f "$CONFIG_FILE" ]; then
 fi
 
 # Parse config fields with python (avoids yq dependency)
-IFS=$'\t' read -r SMOKE_BASELINE SMOKE_BASELINE_PATH SMOKE_DATASET SMOKE_DATASET_ROOT SMOKE_CATEGORY SMOKE_STREAM_TYPE SMOKE_STREAM_PATH SMOKE_PREVALENCE SMOKE_EPSILON SMOKE_STREAM_SEED SMOKE_STREAM_LENGTH SMOKE_BURST_LENGTH SCORES_CSV LATEST_RUN MANIFEST SMOKE_SCORING_MODE SMOKE_LATENCY_SEMANTICS SMOKE_TRAINING_SOURCE SMOKE_STREAM_SOURCE < <(python3 - "$CONFIG_FILE" <<'PY'
+IFS=$'\t' read -r SMOKE_BASELINE SMOKE_BASELINE_PATH SMOKE_DATASET SMOKE_DATASET_ROOT SMOKE_CATEGORY SMOKE_STREAM_TYPE SMOKE_STREAM_PATH SMOKE_PREVALENCE SMOKE_EPSILON SMOKE_MEMORY_POLICY SMOKE_CALIBRATION SMOKE_STREAM_SEED SMOKE_STREAM_LENGTH SMOKE_BURST_LENGTH SCORES_CSV LATEST_RUN MANIFEST SMOKE_SCORING_MODE SMOKE_LATENCY_SEMANTICS SMOKE_TRAINING_SOURCE SMOKE_STREAM_SOURCE < <(python3 - "$CONFIG_FILE" <<'PY'
 import sys, pathlib
 
 cfg_text = pathlib.Path(sys.argv[1]).read_text()
@@ -60,6 +60,8 @@ stream = cfg.get('stream') or {}
 stream_path = stream.get('path', 'results/latest/stream_smoke.json')
 prevalence = cfg.get('prevalence', 0.05)
 epsilon = cfg.get('contamination_epsilon', 0)
+memory_policy = cfg.get('memory_policy', 'default/SCS')
+calibration = cfg.get('calibration', 'none')
 seed = stream.get('seed', 0)
 length = stream.get('length')
 burst_length = stream.get('burst_length', 1)
@@ -75,7 +77,7 @@ stream_source = provenance.get('stream_source', 'test/*')
 length = '__NONE__' if length in {None, '', 'null', 'None'} else length
 print("\t".join(str(value) for value in [
     baseline, baseline_path, dataset, dataset_root, category, stream_type, stream_path,
-    prevalence, epsilon, seed, length, burst_length, scores_csv, latest_run,
+    prevalence, epsilon, memory_policy, calibration, seed, length, burst_length, scores_csv, latest_run,
     manifest, scoring_mode, latency_semantics, training_source, stream_source,
 ]))
 PY
@@ -120,11 +122,11 @@ if [ "$SETUP_COMPLETE" = "false" ]; then
   python3 - \
     "$SMOKE_BASELINE" "$SMOKE_BASELINE_PATH" "$BASELINE_REPO_URL" "$BASELINE_COMMIT_HASH" "$SMOKE_DATASET" "$SMOKE_DATASET_ROOT" \
     "$SMOKE_CATEGORY" "$SMOKE_STREAM_TYPE" "$SMOKE_STREAM_PATH" \
-    "$SMOKE_PREVALENCE" "$SMOKE_EPSILON" "$SMOKE_STREAM_SEED" "$SMOKE_STREAM_LENGTH" "$SMOKE_BURST_LENGTH" \
+    "$SMOKE_PREVALENCE" "$SMOKE_EPSILON" "$SMOKE_MEMORY_POLICY" "$SMOKE_CALIBRATION" "$SMOKE_STREAM_SEED" "$SMOKE_STREAM_LENGTH" "$SMOKE_BURST_LENGTH" \
     "$LATEST_RUN" "$MANIFEST" "$NOW" "$SMOKE_SCORING_MODE" "$SMOKE_LATENCY_SEMANTICS" "$SMOKE_TRAINING_SOURCE" "$SMOKE_STREAM_SOURCE" <<'PY'
 import json, pathlib, sys
 args = sys.argv[1:]
-baseline, bpath, repo_url, commit_hash, dataset, droot, cat, stype, spath, prevalence, epsilon, seed, length, burst_length, run_path, mpath, ts, scoring_mode, latency_semantics, training_source, stream_source = args
+baseline, bpath, repo_url, commit_hash, dataset, droot, cat, stype, spath, prevalence, epsilon, memory_policy, calibration, seed, length, burst_length, run_path, mpath, ts, scoring_mode, latency_semantics, training_source, stream_source = args
 stream_metadata = {}
 run = {
     "status": "setup_incomplete",
@@ -139,6 +141,8 @@ run = {
     "stream_path": spath,
     "prevalence": float(prevalence),
     "contamination_epsilon": float(epsilon),
+    "memory_policy": memory_policy,
+    "calibration": calibration,
     "stream_seed": int(seed),
     "stream_length": None if length == "__NONE__" else int(length),
     "burst_length": int(burst_length),
@@ -274,10 +278,10 @@ PY
 python3 - \
   "$SMOKE_BASELINE" "$SMOKE_BASELINE_PATH" "$BASELINE_REPO_URL" "$BASELINE_COMMIT_HASH" "$SMOKE_DATASET" "$SMOKE_DATASET_ROOT" \
   "$SMOKE_CATEGORY" "$SMOKE_STREAM_TYPE" "$SMOKE_STREAM_PATH" \
-  "$SMOKE_PREVALENCE" "$SMOKE_EPSILON" "$SMOKE_STREAM_SEED" "$SMOKE_STREAM_LENGTH" "$SMOKE_BURST_LENGTH" \
+  "$SMOKE_PREVALENCE" "$SMOKE_EPSILON" "$SMOKE_MEMORY_POLICY" "$SMOKE_CALIBRATION" "$SMOKE_STREAM_SEED" "$SMOKE_STREAM_LENGTH" "$SMOKE_BURST_LENGTH" \
   "$LATEST_RUN" "$MANIFEST" "$NOW" "$SMOKE_SCORING_MODE" "$SMOKE_LATENCY_SEMANTICS" "$SMOKE_TRAINING_SOURCE" "$SMOKE_STREAM_SOURCE" <<'PY'
 import json, pathlib, sys
-baseline, bpath, repo_url, commit_hash, dataset, droot, cat, stype, spath, prevalence, epsilon, seed, length, burst_length, run_path, mpath, ts, scoring_mode, latency_semantics, training_source, stream_source = sys.argv[1:]
+baseline, bpath, repo_url, commit_hash, dataset, droot, cat, stype, spath, prevalence, epsilon, memory_policy, calibration, seed, length, burst_length, run_path, mpath, ts, scoring_mode, latency_semantics, training_source, stream_source = sys.argv[1:]
 stream_payload = json.loads(pathlib.Path(spath).read_text())
 if not isinstance(stream_payload, dict) or not isinstance(stream_payload.get("metadata"), dict):
     raise SystemExit(f"Stream metadata missing or invalid in {spath}")
@@ -295,6 +299,8 @@ run = {
     "stream_path": spath,
     "prevalence": float(prevalence),
     "contamination_epsilon": float(epsilon),
+    "memory_policy": memory_policy,
+    "calibration": calibration,
     "stream_seed": int(seed),
     "stream_length": None if length == "__NONE__" else int(length),
     "burst_length": int(burst_length),

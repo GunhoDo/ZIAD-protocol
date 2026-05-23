@@ -11,34 +11,36 @@
 - 논문 게이트는 아직 닫힘: 모든 현재 산출물은 `paper_allowed=false` 유지.
 - `.omx/`는 planning history이며 소스 오브 트루스가 아니다.
 
-## 0.1 최근 완료: P0 shard orchestration manifest
+## 0.1 최근 완료: memory_policy/calibration execution contract
 
-- 목표: full P0를 바로 실행하지 않고, 현재 구현된 MVTec/VisA all-category stream/epsilon smoke runners를 8개 P0 shard로 매핑하는 orchestration manifest를 생성.
+- 목표: P0 shard에서 미구현 `memory_policy`/`calibration` 값이 조용히 default로 대체되지 않도록 실행 전 contract를 고정.
 - 주요 수정:
-  - `experiments/p0_shards.py` 추가.
-  - `tests/test_p0_shards.py` 추가.
-  - `README.md`, `AGENTS.md`, `HANDOFF.md`에 P0 shard planning 명령과 한계를 반영.
-  - `results/latest/p0_shards/manifest.json` 생성.
+  - `experiments/baselines/base.py`에 `validate_execution_contract()` 추가.
+  - PatchCore/RareCLIP/WinCLIP/AnomalyCLIP wrapper가 실행 시작 시 contract를 검증한다.
+  - 현재 지원값은 `memory_policy=default/SCS`, `calibration=none`뿐이다.
+  - `scripts/run_smoke.sh`가 `memory_policy`와 `calibration`을 latest_run provenance에 기록한다.
+  - `experiments/mini_matrix.py`가 matrix config의 `memory_policy`/`calibration`을 generated smoke config로 전달한다.
+  - `tests/test_baseline_contract.py` 추가, `tests/test_mini_matrix.py` 보강.
 - 실행 명령:
-  - `python3 experiments/p0_shards.py plan experiments/configs/p0.yaml --output results/latest/p0_shards/manifest.json`
-  - `python3 experiments/p0_shards.py verify results/latest/p0_shards/manifest.json --require-outputs`
-  - `python3 -m unittest tests.test_p0_shards -v`
+  - `python3 -m unittest tests.test_baseline_contract tests.test_mini_matrix tests.test_patchcore_wrapper tests.test_rareclip_wrapper tests.test_winclip_wrapper tests.test_anomalyclip_wrapper -v`
+  - `bash scripts/run_smoke.sh experiments/configs/smoke_visa_winclip.yaml`
+  - `bash scripts/run_smoke.sh /tmp/ziad-policy.../unsupported.yaml` — expected failure for `memory_policy=FIFO`
+  - `python3 experiments/evaluate.py --scores-csv results/latest/scores_visa_winclip.csv --latest-run results/latest/latest_run_visa_winclip.json --output results/latest/metrics_visa_winclip.csv --manifest results/latest/manifest_visa_winclip.json`
+  - `python3 experiments/evaluate.py --scores-csv results/latest/scores_visa_patchcore.csv --latest-run results/latest/latest_run_visa_patchcore.json --output results/latest/metrics_visa_patchcore.csv --manifest results/latest/manifest_visa_patchcore.json`
   - `python3 -m unittest discover -v`
   - `python3 -m compileall experiments tests`
   - `git diff --check`
-- 생성된 trackable output:
-  - `results/latest/p0_shards/manifest.json` — `paper_allowed=false`, `status=p0_shard_plan_ready`, `shard_count=8`, `ready_shard_count=8`.
+- 갱신된 trackable smoke outputs:
+  - `results/latest/latest_run_visa_winclip.json` — `memory_policy=default/SCS`, `calibration=none`, `paper_allowed=false`.
+  - `results/latest/metrics_visa_winclip.csv` / `scores_visa_winclip.csv` — contract verification용 fresh measured smoke output.
 - 세부 검증:
-  - shards: MVTec AD/VisA × RareCLIP/PatchCore/WinCLIP/AnomalyCLIP = 8.
-  - current smoke run counts: MVTec shard 90 each, VisA shard 72 each.
-  - all 8 shard configs/runners exist.
-  - existing aggregate outputs required by each shard exist.
-  - unsupported dimensions are explicit: memory policies `FIFO`, `Reservoir`, `Prototype-EMA`; calibration `temperature_scaling`.
-  - unittest 45 tests OK, compileall OK, diff check OK.
+  - `memory_policy=FIFO` smoke config fails with explicit RuntimeError and does not run as default/SCS.
+  - normal VisA WinCLIP smoke still produces 20 measured rows.
+  - latest_run records `memory_policy=default/SCS`, `calibration=none`.
+  - unittest 48 tests OK, compileall OK, diff check OK.
 - 제한:
-  - orchestration manifest only. 새 metric을 만들지 않는다.
-  - full P0 실행, memory policy 구현, calibration 구현은 아직 미완.
-  - manifest는 현재 smoke runners를 P0 shard 후보로 매핑한 것이며 paper evidence가 아니다.
+  - FIFO/Reservoir/Prototype-EMA와 temperature scaling은 아직 구현되지 않았다. 현재는 명시적 거부만 한다.
+  - 이 단계는 execution contract hardening이며 full P0 실행이 아니다.
 
 ## 1. 현재 논문 구현 진척
 
@@ -734,9 +736,9 @@ git diff --check
 
 ## 4. 다음 에이전트가 빠르게 해야 할 일
 
-### 1순위 — memory policy 실행 표면 구현
+### 1순위 — 실제 memory policy 구현
 
-P0 shard manifest가 현재 smoke runners를 8개 shard로 매핑한다. 다음은 PatchCore/RareCLIP에 대해 `default/SCS` 외 `FIFO`, `Reservoir`, `Prototype-EMA`가 config에서 거부/지원 여부를 명확히 가지도록 runner contract를 확장한다. 아직 구현하지 않은 policy는 조용히 default로 대체하면 안 된다.
+실행 contract는 고정됐다. 다음은 PatchCore/RareCLIP에 대해 `FIFO`, `Reservoir`, `Prototype-EMA` 중 하나를 작은 범위부터 실제 구현하거나, 구현 전 설계 문서와 tests를 먼저 추가한다. 구현되지 않은 policy는 계속 명시적으로 실패해야 한다.
 
 ### 2순위 — paper table/figure pipeline 확장
 

@@ -23,6 +23,8 @@ class MiniMatrixTest(unittest.TestCase):
                         "dataset_root": "data/mvtec_ad",
                         "category": "bottle",
                         "prevalence": 0.05,
+                        "memory_policy": "FIFO",
+                        "calibration": "temperature_scaling",
                         "stream_types": ["iid", "bursty"],
                         "contamination_epsilon": [0, 0.05],
                         "stream": {"seed": 7, "length": None, "burst_length": 5},
@@ -46,6 +48,8 @@ class MiniMatrixTest(unittest.TestCase):
             )
             generated = yaml.safe_load(paths[0].read_text())
             self.assertEqual(generated["baseline"], "WinCLIP")
+            self.assertEqual(generated["memory_policy"], "FIFO")
+            self.assertEqual(generated["calibration"], "temperature_scaling")
             self.assertEqual(generated["stream"]["seed"], 7)
             self.assertEqual(
                 generated["provenance"]["scoring_mode"], "stream_ordered_zero_shot"
