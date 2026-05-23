@@ -107,6 +107,8 @@ def generate_matrix_configs(sweep_config: Path) -> list[Path]:
     prevalence = cfg.get("prevalence", 0.05)
     stream_types = _as_list(cfg.get("stream_types", cfg.get("stream_type")), ["iid"])
     epsilons = _as_list(cfg.get("contamination_epsilon"), [0])
+    memory_policy = cfg.get("memory_policy")
+    calibration = cfg.get("calibrations", cfg.get("calibration"))
     stream_cfg = cfg.get("stream") or {}
     baseline_options = cfg.get("baseline_options") or {}
     if not isinstance(baseline_options, dict):
@@ -135,6 +137,14 @@ def generate_matrix_configs(sweep_config: Path) -> list[Path]:
                 "crd_lite_summary": str(spec["crd_lite_summary"]),
             },
         }
+        if memory_policy is not None:
+            matrix_cfg["memory_policy"] = memory_policy
+        if calibration is not None:
+            matrix_cfg["calibration"] = calibration
+        if "calibration_temperature" in cfg:
+            matrix_cfg["calibration_temperature"] = cfg["calibration_temperature"]
+        if "temperature" in cfg:
+            matrix_cfg["temperature"] = cfg["temperature"]
         if baseline_options:
             matrix_cfg["baseline_options"] = dict(baseline_options)
         if spec["provenance"]:
@@ -227,6 +237,10 @@ def aggregate_sweep(sweep_config: Path) -> tuple[Path, Path, Path, list[dict[str
         "baselines": [entry["name"] for entry in _baseline_entries(cfg)],
         "stream_types": [str(value) for value in _as_list(cfg.get("stream_types", cfg.get("stream_type")), ["iid"])],
         "contamination_epsilon": [str(value) for value in _as_list(cfg.get("contamination_epsilon"), [0])],
+        "calibration": [
+            str(value)
+            for value in _as_list(cfg.get("calibrations", cfg.get("calibration")), ["none"])
+        ],
         "aggregate_metrics": str(aggregate_metrics),
         "crd_lite_summary": str(crd_lite_summary),
         "run_count": len(metric_rows),

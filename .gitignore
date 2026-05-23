@@ -51,6 +51,8 @@ results/latest/visa_mini_matrix/configs/**
 results/latest/visa_mini_matrix/*_eps_*/**
 results/latest/visa_patchcore_mini_matrix/configs/**
 results/latest/visa_patchcore_mini_matrix/*_eps_*/**
+results/latest/visa_temperature_mini_matrix/configs/**
+results/latest/visa_temperature_mini_matrix/*_eps_*/**
 
 # Category quick-sweep generated details; keep combined aggregate CSV/manifest trackable.
 results/latest/category_quick_sweep/configs/**

@@ -11,7 +11,44 @@
 - 논문 게이트는 아직 닫힘: 모든 현재 산출물은 `paper_allowed=false` 유지.
 - `.omx/`는 planning history이며 소스 오브 트루스가 아니다.
 
-## 0.1 최근 완료: temperature_scaling smoke calibration path
+## 0.1 최근 완료: calibration-axis mini-matrix execution path
+
+- 목표: 단일 `temperature_scaling` smoke를 넘어서 mini/full-category matrix runner가 calibration 축을 충돌 없이 생성/집계하도록 확장.
+- 주요 수정:
+  - `experiments/mini_matrix.py`가 `calibration` list 또는 `calibrations` list를 matrix 축으로 확장한다.
+  - run id에 calibration 축이 필요한 경우 `_cal_none`, `_cal_temperature_scaling` suffix를 붙여 기존 run output 충돌을 방지한다.
+  - `calibration_temperature`/`temperature`를 generated smoke config로 전달한다.
+  - aggregate metrics/manifest가 calibration 축을 기록하고 CRD-lite grouping도 기존처럼 calibration별로 분리된다.
+  - `experiments/category_sweep.py`가 sweep config의 `memory_policy`, `calibration`, `calibration_temperature`를 per-category mini-matrix config로 전달한다.
+  - `experiments/configs/visa_winclip_temperature_mini_matrix.yaml` 추가.
+- 실행 명령:
+  - `python3 -m unittest tests.test_mini_matrix tests.test_category_sweep tests.test_calibration -v`
+  - `bash scripts/run_baseline_mini_matrix.sh experiments/configs/visa_winclip_temperature_mini_matrix.yaml`
+  - output sanity check: aggregate row count, calibration values, sidecar count, `paper_allowed=false`
+  - `python3 -m unittest discover -v`
+  - `python3 -m compileall experiments tests`
+  - `git diff --check`
+- 생성 outputs:
+  - `results/latest/visa_temperature_mini_matrix/metrics_winclip_candle.csv`
+  - `results/latest/visa_temperature_mini_matrix/manifest_winclip_candle.json`
+  - `results/latest/visa_temperature_mini_matrix/crd_lite_winclip_candle.csv`
+  - `results/latest/visa_temperature_mini_matrix/configs/*.yaml`
+  - `results/latest/visa_temperature_mini_matrix/winclip_candle_*/*`
+- 검증 결과:
+  - VisA candle WinCLIP temperature mini-matrix: 12 aggregate metric rows.
+  - 축: `iid/bursty × ε 0/0.01/0.05 × calibration none/temperature_scaling`.
+  - all aggregate rows `status=measured_smoke`.
+  - calibration values are `none` and `temperature_scaling`; temperature rows `6`.
+  - calibration sidecars `6`, each generated from measured scores.
+  - aggregate manifest records `run_count=12`, `calibration=['none','temperature_scaling']`, `paper_allowed=false`.
+  - all per-run manifests keep `paper_allowed=false`.
+  - unittest 72 tests OK, compileall OK, diff check OK.
+- 제한:
+  - 이 단계는 WinCLIP/VisA candle lightweight matrix 검증이다. full P0 calibration matrix는 아직 실행하지 않았다.
+  - `temperature_scaling`은 여전히 smoke score postprocessor이며 calibration-set fitting이 아니다.
+  - 이 output은 smoke evidence이며 paper result가 아니다.
+
+## 0.2 최근 완료: temperature_scaling smoke calibration path
 
 - 목표: P0 calibration 값 `temperature_scaling`을 fake 없이 실제 smoke score 후처리 경로로 구현하고, 모든 산출물의 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -52,7 +89,7 @@
   - 현재 ECE는 여전히 diagnostic이며 calibrated probability 결론으로 쓰지 않는다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.2 최근 완료: RareCLIP Prototype-EMA memory policy smoke path
+## 0.3 최근 완료: RareCLIP Prototype-EMA memory policy smoke path
 
 - 목표: P0 memory policy 중 RareCLIP `Prototype-EMA`를 실제 online memory policy로 구현하고, fake metric 없이 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -90,7 +127,7 @@
   - full P0 temperature-scaling matrix는 아직 미실행이다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.3 최근 완료: PatchCore Prototype-EMA feature-bank smoke path
+## 0.4 최근 완료: PatchCore Prototype-EMA feature-bank smoke path
 
 - 목표: P0 memory policy 중 PatchCore `Prototype-EMA`를 실제 feature-bank compression sampler로 구현하고, fake metric 없이 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -125,7 +162,7 @@
   - 이 단계 당시 RareCLIP Prototype-EMA와 temperature scaling은 아직 미지원이었다. 이후 RareCLIP Prototype-EMA와 temperature_scaling smoke path는 별도 커밋에서 구현됐다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.4 최근 완료: PatchCore Reservoir feature-bank smoke path
+## 0.5 최근 완료: PatchCore Reservoir feature-bank smoke path
 
 - 목표: P0 memory policy 중 PatchCore `Reservoir`를 실제 feature-bank sampler로 구현하고, fake metric 없이 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -162,7 +199,7 @@
   - 이 단계 당시 PatchCore Prototype-EMA와 temperature scaling은 아직 미지원이었다. 이후 PatchCore Prototype-EMA와 temperature_scaling smoke path는 별도 커밋에서 구현됐다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.5 최근 완료: RareCLIP Reservoir memory policy smoke path
+## 0.6 최근 완료: RareCLIP Reservoir memory policy smoke path
 
 - 목표: P0 memory policy 중 RareCLIP `Reservoir`를 실제 online memory policy로 구현하고, fake metric 없이 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -198,7 +235,7 @@
   - 이 단계 당시 Prototype-EMA와 temperature scaling은 아직 미지원이었다. 이후 RareCLIP/PatchCore Prototype-EMA와 temperature_scaling smoke path는 별도 커밋에서 구현됐다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.6 최근 완료: PatchCore FIFO feature-bank smoke path
+## 0.7 최근 완료: PatchCore FIFO feature-bank smoke path
 
 - 목표: P0 memory policy 중 PatchCore `FIFO`를 실제 feature-bank sampler로 구현하고, fake metric 없이 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -234,7 +271,7 @@
   - 이 단계 당시 PatchCore Reservoir/Prototype-EMA와 temperature scaling은 아직 미지원이었다. 이후 PatchCore Reservoir/Prototype-EMA와 temperature_scaling smoke path는 별도 커밋에서 구현됐다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.7 최근 완료: RareCLIP FIFO memory policy smoke path
+## 0.8 최근 완료: RareCLIP FIFO memory policy smoke path
 
 - 목표: P0 memory policy 중 하나를 실제 wrapper 동작으로 승격하되, fake metric 없이 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -269,7 +306,7 @@
   - 이 단계 당시 Reservoir, Prototype-EMA, temperature scaling은 계속 미지원이었다. 이후 FIFO/Reservoir/Prototype-EMA와 temperature_scaling smoke path는 별도 커밋에서 구현됐다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.8 최근 완료: memory_policy/calibration execution contract
+## 0.9 최근 완료: memory_policy/calibration execution contract
 
 - 목표: P0 shard에서 미구현 `memory_policy`/`calibration` 값이 조용히 default로 대체되지 않도록 실행 전 contract를 고정.
 - 주요 수정:
@@ -947,6 +984,7 @@ git diff --check
 - MVTec full-category PatchCore stream/epsilon matrix: 90 rows, all MVTec AD categories × `iid/bursty` × ε `0/0.01/0.05`, all `measured_smoke`, CRD-lite all `derived_smoke`, `paper_allowed=false`
 - VisA WinCLIP iid smoke: 20 rows, dataset `VisA`, category `candle`, labels `[0, 1]`, unique paths `20/20`, all `measured`, evaluated manifest `paper_allowed=false`
 - VisA WinCLIP iid temperature-scaling smoke: 20 rows, dataset `VisA`, category `candle`, labels `[0, 1]`, unique paths `20/20`, all `measured`, calibration metadata rows `20`, evaluated manifest `paper_allowed=false`
+- VisA WinCLIP temperature mini-matrix: 12 rows, dataset `VisA`, category `candle`, stream types `iid/bursty`, epsilon `0/0.01/0.05`, calibration `none/temperature_scaling`, all `measured_smoke`, 6 calibration sidecars, aggregate manifest `paper_allowed=false`
 - VisA WinCLIP mini-matrix: 6 rows, dataset `VisA`, category `candle`, stream types `iid/bursty`, epsilon `0/0.01/0.05`, all `measured_smoke`, CRD-lite all `derived_smoke`, aggregate manifest `paper_allowed=false`
 - VisA PatchCore mini-matrix: 6 rows, dataset `VisA`, category `candle`, stream types `iid/bursty`, epsilon `0/0.01/0.05`, all `measured_smoke`, CRD-lite all `derived_smoke`, generated streams unique paths `20/20`, labels `[0, 1]`, warning count 2, aggregate manifest `paper_allowed=false`
 - VisA WinCLIP bursty standalone smoke: 20 rows, dataset `VisA`, category `candle`, labels `[0, 1]`, unique paths `20/20`, contiguous anomaly block lengths `[1]`, all `measured`, evaluated manifest `paper_allowed=false`
@@ -983,22 +1021,23 @@ git diff --check
 14. VisA candle iid ε=0 length=20은 PatchCore에서도 실제 image-level score를 생성했다.
 15. VisA candle `iid/bursty × ε 0/0.01/0.05` length=20은 PatchCore에서도 실제 image-level score를 생성했다.
 16. `temperature_scaling`은 smoke runner 공통 score postprocessor로 구현됐고, VisA candle WinCLIP iid ε=0 length=20에서 실제 measured score 20개를 보정했다.
+17. mini/full-category matrix 생성기는 calibration 축을 전달할 수 있으며, VisA candle WinCLIP `iid/bursty × ε 0/0.01/0.05 × calibration none/temperature_scaling` 12-run matrix가 실제 measured smoke로 통과했다.
 
 하지만 아직 **논문 결과 단계는 아니다**.
 
 부족한 것:
 
 - full P0 matrix 미실행
-- P0 shard manifest는 생성됐고 `temperature_scaling` smoke postprocessor는 구현됐지만, full P0 calibration matrix는 아직 미실행
+- P0 shard manifest는 생성됐고 `temperature_scaling` smoke postprocessor 및 calibration-axis mini-matrix는 구현됐지만, full P0 calibration matrix는 아직 미실행
 - CRD-lite는 smoke aggregate summary로 구현됨; full P0/VisA 검증과 paper 해석은 미완
 - paper table pipeline은 smoke evidence table만 생성함; full matrix 기반 table/figure는 아직 아님
 - review 전이므로 `paper_allowed=true` 금지
 
 ## 4. 다음 에이전트가 빠르게 해야 할 일
 
-### 1순위 — full P0 temperature-scaling matrix 준비
+### 1순위 — full-category calibration matrix를 shard 단위로 실행
 
-smoke-level `temperature_scaling` 후처리와 metadata contract는 고정됐다. 다음은 full matrix config/runner에 calibration 축을 안전하게 확장하고, 여전히 `paper_allowed=false`로 둔 상태에서 shard 단위로 실행 시간을 통제한다.
+smoke-level `temperature_scaling` 후처리와 mini/full-category config propagation contract는 고정됐다. 다음은 가장 짧은 shard부터 full-category calibration matrix를 `paper_allowed=false`로 실행하고, runtime이 큰 baseline은 별도 shard로 분리한다.
 
 ### 2순위 — paper table/figure pipeline 확장
 

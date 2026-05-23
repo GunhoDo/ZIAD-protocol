@@ -33,6 +33,9 @@ class CategorySweepTest(unittest.TestCase):
                         ],
                         "stream_types": ["iid"],
                         "contamination_epsilon": [0],
+                        "memory_policy": "default/SCS",
+                        "calibration": ["none", "temperature_scaling"],
+                        "calibration_temperature": 2.0,
                         "stream": {"seed": 3, "length": 20, "burst_length": 5},
                         "baseline_options": {
                             "sampler": "random",
@@ -53,6 +56,9 @@ class CategorySweepTest(unittest.TestCase):
             winclip = yaml.safe_load((root / "category_quick_sweep" / "configs" / "winclip_capsule_matrix.yaml").read_text())
             self.assertEqual(winclip["category"], "capsule")
             self.assertEqual(winclip["stream"]["length"], 20)
+            self.assertEqual(winclip["memory_policy"], "default/SCS")
+            self.assertEqual(winclip["calibration"], ["none", "temperature_scaling"])
+            self.assertEqual(winclip["calibration_temperature"], 2.0)
             self.assertEqual(winclip["baseline_options"]["sampler"], "random")
             self.assertEqual(
                 winclip["baseline_options"]["model_cache_root"],
@@ -136,6 +142,7 @@ class CategorySweepTest(unittest.TestCase):
             self.assertFalse(manifest_payload["paper_allowed"])
             self.assertEqual(manifest_payload["run_count"], 2)
             self.assertEqual(manifest_payload["notes"], "custom smoke notes")
+            self.assertEqual(manifest_payload["calibration"], ["none"])
 
 
 if __name__ == "__main__":

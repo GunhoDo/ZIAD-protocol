@@ -70,8 +70,23 @@ def _matrix_values(cfg: dict[str, Any]) -> tuple[list[Any], list[Any]]:
     return stream_types, epsilons
 
 
-def _run_id(baseline: Any, category: Any, stream_type: Any, epsilon: Any) -> str:
-    return f"{slug(baseline)}_{slug(category)}_{slug(stream_type)}_eps_{slug(epsilon)}"
+def _calibration_values(cfg: dict[str, Any]) -> list[Any]:
+    return _as_list(cfg.get("calibrations", cfg.get("calibration")), ["none"])
+
+
+def _run_id(
+    baseline: Any,
+    category: Any,
+    stream_type: Any,
+    epsilon: Any,
+    calibration: Any = "none",
+    *,
+    include_calibration: bool = False,
+) -> str:
+    base = f"{slug(baseline)}_{slug(category)}_{slug(stream_type)}_eps_{slug(epsilon)}"
+    if include_calibration:
+        return f"{base}_cal_{slug(calibration)}"
+    return base
 
 
 def default_aggregate_paths(cfg: dict[str, Any], root: Path) -> tuple[Path, Path]:
@@ -109,7 +124,8 @@ def generate_run_configs(matrix_config: Path) -> list[Path]:
     category = cfg.get("category", "bottle")
     prevalence = cfg.get("prevalence", 0.05)
     memory_policy = cfg.get("memory_policy", "default/SCS")
-    calibration = cfg.get("calibration", "none")
+    calibrations = _calibration_values(cfg)
+    include_calibration = len(calibrations) > 1 or str(calibrations[0]) != "none"
     stream_cfg = cfg.get("stream") or {}
     outputs = cfg.get("outputs") or {}
     root = Path(outputs.get("root", DEFAULT_ROOT))
@@ -127,38 +143,52 @@ def generate_run_configs(matrix_config: Path) -> list[Path]:
     paths: list[Path] = []
     for stream_type in stream_types:
         for epsilon in epsilons:
-            run_id = _run_id(baseline_slug, category_slug, stream_type, epsilon)
-            run_dir = root / run_id
-            run_dir.mkdir(parents=True, exist_ok=True)
-            run_cfg: dict[str, Any] = {
-                "baseline": baseline,
-                "baseline_path": baseline_path,
-                "dataset": dataset,
-                "dataset_root": dataset_root,
-                "category": category,
-                "stream_type": stream_type,
-                "prevalence": prevalence,
-                "contamination_epsilon": epsilon,
-                "memory_policy": memory_policy,
-                "calibration": calibration,
-                "stream": {
-                    "path": str(run_dir / "stream.json"),
-                    "seed": stream_cfg.get("seed", 0),
-                    "length": stream_cfg.get("length"),
-                    "burst_length": stream_cfg.get("burst_length", 1),
-                },
-                "outputs": {
-                    "scores_csv": str(run_dir / "scores.csv"),
-                    "latest_run": str(run_dir / "latest_run.json"),
-                    "manifest": str(run_dir / "manifest.json"),
-                },
-            }
-            if provenance:
-                run_cfg["provenance"] = provenance
-            run_cfg.update(baseline_options)
-            path = configs_dir / f"{run_id}.yaml"
-            path.write_text(yaml.safe_dump(run_cfg, sort_keys=False), encoding="utf-8")
-            paths.append(path)
+            for calibration in calibrations:
+                run_id = _run_id(
+                    baseline_slug,
+                    category_slug,
+                    stream_type,
+                    epsilon,
+                    calibration,
+                    include_calibration=include_calibration,
+                )
+                run_dir = root / run_id
+                run_dir.mkdir(parents=True, exist_ok=True)
+                run_cfg: dict[str, Any] = {
+                    "baseline": baseline,
+                    "baseline_path": baseline_path,
+                    "dataset": dataset,
+                    "dataset_root": dataset_root,
+                    "category": category,
+                    "stream_type": stream_type,
+                    "prevalence": prevalence,
+                    "contamination_epsilon": epsilon,
+                    "memory_policy": memory_policy,
+                    "calibration": calibration,
+                    "stream": {
+                        "path": str(run_dir / "stream.json"),
+                        "seed": stream_cfg.get("seed", 0),
+                        "length": stream_cfg.get("length"),
+                        "burst_length": stream_cfg.get("burst_length", 1),
+                    },
+                    "outputs": {
+                        "scores_csv": str(run_dir / "scores.csv"),
+                        "latest_run": str(run_dir / "latest_run.json"),
+                        "manifest": str(run_dir / "manifest.json"),
+                    },
+                }
+                if "calibration_temperature" in cfg:
+                    run_cfg["calibration_temperature"] = cfg["calibration_temperature"]
+                if "temperature" in cfg:
+                    run_cfg["temperature"] = cfg["temperature"]
+                if provenance:
+                    run_cfg["provenance"] = provenance
+                run_cfg.update(baseline_options)
+                path = configs_dir / f"{run_id}.yaml"
+                path.write_text(
+                    yaml.safe_dump(run_cfg, sort_keys=False), encoding="utf-8"
+                )
+                paths.append(path)
     return paths
 
 
@@ -284,20 +314,30 @@ def aggregate_metrics(matrix_config: Path) -> tuple[Path, Path, list[dict[str, s
     baseline = cfg.get("baseline", "PatchCore")
     category = cfg.get("category", "bottle")
     stream_types, epsilons = _matrix_values(cfg)
+    calibrations = _calibration_values(cfg)
+    include_calibration = len(calibrations) > 1 or str(calibrations[0]) != "none"
 
     rows: list[dict[str, str]] = []
     for stream_type in stream_types:
         for epsilon in epsilons:
-            run_id = _run_id(baseline, category, stream_type, epsilon)
-            metrics_path = root / run_id / "metrics.csv"
-            if not metrics_path.exists():
-                raise SystemExit(f"Missing mini-matrix metrics: {metrics_path}")
-            with metrics_path.open(newline="") as handle:
-                reader = csv.DictReader(handle)
-                for row in reader:
-                    row = dict(row)
-                    row["run_dir"] = str(metrics_path.parent)
-                    rows.append(row)
+            for calibration in calibrations:
+                run_id = _run_id(
+                    baseline,
+                    category,
+                    stream_type,
+                    epsilon,
+                    calibration,
+                    include_calibration=include_calibration,
+                )
+                metrics_path = root / run_id / "metrics.csv"
+                if not metrics_path.exists():
+                    raise SystemExit(f"Missing mini-matrix metrics: {metrics_path}")
+                with metrics_path.open(newline="") as handle:
+                    reader = csv.DictReader(handle)
+                    for row in reader:
+                        row = dict(row)
+                        row["run_dir"] = str(metrics_path.parent)
+                        rows.append(row)
 
     if not rows:
         raise SystemExit(f"No mini-matrix metrics found under {root} for {slug(baseline)}")
@@ -322,6 +362,7 @@ def aggregate_metrics(matrix_config: Path) -> tuple[Path, Path, list[dict[str, s
         "category": str(category),
         "stream_types": [str(value) for value in stream_types],
         "contamination_epsilon": [str(value) for value in epsilons],
+        "calibration": [str(value) for value in calibrations],
         "aggregate_metrics": str(aggregate_metrics),
         "crd_lite_summary": str(crd_lite_summary),
         "run_count": len(rows),

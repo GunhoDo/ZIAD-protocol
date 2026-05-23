@@ -25,6 +25,7 @@ class MiniMatrixTest(unittest.TestCase):
                         "prevalence": 0.05,
                         "memory_policy": "FIFO",
                         "calibration": "temperature_scaling",
+                        "calibration_temperature": 2.0,
                         "stream_types": ["iid", "bursty"],
                         "contamination_epsilon": [0, 0.05],
                         "stream": {"seed": 7, "length": None, "burst_length": 5},
@@ -46,10 +47,14 @@ class MiniMatrixTest(unittest.TestCase):
             self.assertTrue(
                 all(path.name.startswith("winclip_bottle_") for path in paths)
             )
+            self.assertTrue(
+                all("_cal_temperature_scaling" in path.stem for path in paths)
+            )
             generated = yaml.safe_load(paths[0].read_text())
             self.assertEqual(generated["baseline"], "WinCLIP")
             self.assertEqual(generated["memory_policy"], "FIFO")
             self.assertEqual(generated["calibration"], "temperature_scaling")
+            self.assertEqual(generated["calibration_temperature"], 2.0)
             self.assertEqual(generated["stream"]["seed"], 7)
             self.assertEqual(
                 generated["provenance"]["scoring_mode"], "stream_ordered_zero_shot"
@@ -57,6 +62,47 @@ class MiniMatrixTest(unittest.TestCase):
             self.assertTrue(
                 generated["outputs"]["scores_csv"].endswith("/scores.csv")
             )
+
+    def test_generate_run_configs_expands_calibration_axis(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            matrix = root / "winclip_matrix.yaml"
+            matrix.write_text(
+                yaml.safe_dump(
+                    {
+                        "baseline": "WinCLIP",
+                        "baseline_path": "external/WinClip",
+                        "dataset": "VisA",
+                        "dataset_root": "data/visa/1cls",
+                        "category": "candle",
+                        "stream_types": ["iid"],
+                        "contamination_epsilon": [0, 0.05],
+                        "calibration": ["none", "temperature_scaling"],
+                        "calibration_temperature": 2.0,
+                        "outputs": {"root": str(root / "mini_matrix")},
+                    },
+                    sort_keys=False,
+                )
+            )
+
+            paths = mini_matrix.generate_run_configs(matrix)
+
+            self.assertEqual(4, len(paths))
+            names = sorted(path.stem for path in paths)
+            self.assertIn("winclip_candle_iid_eps_0_cal_none", names)
+            self.assertIn(
+                "winclip_candle_iid_eps_0p05_cal_temperature_scaling", names
+            )
+            generated = yaml.safe_load(
+                (
+                    root
+                    / "mini_matrix"
+                    / "configs"
+                    / "winclip_candle_iid_eps_0p05_cal_temperature_scaling.yaml"
+                ).read_text()
+            )
+            self.assertEqual("temperature_scaling", generated["calibration"])
+            self.assertEqual(2.0, generated["calibration_temperature"])
 
     def test_generate_run_configs_preserves_visa_dataset_fields(self):
         with tempfile.TemporaryDirectory() as tmp:
