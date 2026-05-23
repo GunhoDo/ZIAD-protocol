@@ -11,12 +11,21 @@ class P0ShardsTest(unittest.TestCase):
     def test_build_manifest_maps_current_smoke_shards_and_keeps_paper_false(self):
         manifest = p0_shards.build_manifest(Path("experiments/configs/p0.yaml"))
 
-        self.assertEqual("p0_shard_plan_ready", manifest["status"])
+        self.assertEqual("p0_shard_plan_ready_memory_partial", manifest["status"])
         self.assertFalse(manifest["paper_allowed"])
         self.assertEqual(8, manifest["shard_count"])
         self.assertEqual(8, manifest["ready_shard_count"])
         self.assertEqual(8, manifest["ready_calibration_shard_count"])
         self.assertEqual([], manifest["missing_shards"])
+        self.assertEqual(12, len(manifest["missing_memory_policy_shards"]))
+        self.assertIn(
+            "mvtec_ad_rareclip_stream_epsilon_smoke:FIFO",
+            manifest["missing_memory_policy_shards"],
+        )
+        self.assertIn(
+            "visa_patchcore_stream_epsilon_smoke:Prototype-EMA",
+            manifest["missing_memory_policy_shards"],
+        )
         self.assertEqual([], manifest["missing_calibration_shards"])
         self.assertEqual([], manifest["unsupported_calibration"])
         self.assertEqual([], manifest["unsupported_memory_policies"])
@@ -28,12 +37,29 @@ class P0ShardsTest(unittest.TestCase):
             ["default/SCS", "FIFO", "Reservoir", "Prototype-EMA"],
             shards[("MVTec AD", "RareCLIP")]["current_supported_memory_policies"],
         )
+        self.assertEqual(
+            ["default/SCS"],
+            shards[("MVTec AD", "RareCLIP")]["current_implemented_memory_policies"],
+        )
+        self.assertEqual(
+            ["FIFO", "Reservoir", "Prototype-EMA"],
+            shards[("MVTec AD", "RareCLIP")]["missing_memory_policies"],
+        )
         self.assertEqual([], shards[("MVTec AD", "RareCLIP")]["unsupported_memory_policies"])
         self.assertEqual(
             ["default/SCS", "FIFO", "Reservoir", "Prototype-EMA"],
             shards[("MVTec AD", "PatchCore")]["current_supported_memory_policies"],
         )
+        self.assertEqual(
+            ["default/SCS"],
+            shards[("MVTec AD", "PatchCore")]["current_implemented_memory_policies"],
+        )
         self.assertEqual([], shards[("MVTec AD", "PatchCore")]["unsupported_memory_policies"])
+        self.assertEqual(
+            ["default/SCS"],
+            shards[("MVTec AD", "WinCLIP")]["current_implemented_memory_policies"],
+        )
+        self.assertEqual([], shards[("MVTec AD", "WinCLIP")]["missing_memory_policies"])
         self.assertEqual(
             ["none", "temperature_scaling"],
             shards[("MVTec AD", "WinCLIP")]["current_supported_calibration"],
@@ -114,6 +140,7 @@ class P0ShardsTest(unittest.TestCase):
             self.assertFalse(payload["paper_allowed"])
             self.assertEqual(8, payload["ready_shard_count"])
             self.assertEqual(8, payload["ready_calibration_shard_count"])
+            self.assertEqual(12, len(payload["missing_memory_policy_shards"]))
 
 
 if __name__ == "__main__":

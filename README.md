@@ -59,6 +59,10 @@ The compact summary artifacts are:
 - `results/latest/tables/p0_smoke_summary_manifest.json`
 - `results/latest/tables/p0_smoke_summary.tex`
 
+The compact summary includes the `memory_policy` axis. Current smoke evidence
+contains only `default/SCS`; RareCLIP/PatchCore FIFO, Reservoir, and
+Prototype-EMA remain explicit P0 gaps until their own shards are run.
+
 ## Refresh placeholder P0 outputs
 
 ```bash

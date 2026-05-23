@@ -105,6 +105,20 @@ def _supported_memory_policies(
     return supported, unsupported
 
 
+def _implemented_memory_policies(
+    baseline: str, shard_cfg: dict[str, Any] | None, p0_cfg: dict[str, Any]
+) -> tuple[list[str], list[str]]:
+    supported, _ = _supported_memory_policies(baseline, p0_cfg)
+    if not supported:
+        return [], []
+    current = "default/SCS"
+    if shard_cfg is not None:
+        current = str(shard_cfg.get("memory_policy", "default/SCS"))
+    implemented = [value for value in supported if value == current]
+    missing = [value for value in supported if value not in implemented]
+    return implemented, missing
+
+
 def _supported_calibration(p0_cfg: dict[str, Any]) -> tuple[list[str], list[str]]:
     intended = [str(value) for value in _as_list(p0_cfg.get("calibration"), [])]
     implemented = {"none", "temperature_scaling"}
@@ -185,6 +199,9 @@ def build_shards(p0_cfg: dict[str, Any]) -> list[dict[str, Any]]:
             supported_memory, unsupported_memory = _supported_memory_policies(
                 baseline, p0_cfg
             )
+            implemented_memory, missing_memory = _implemented_memory_policies(
+                baseline, shard_cfg, p0_cfg
+            )
             implemented_calibration = ["none"]
             missing_calibration = []
             if "temperature_scaling" in supported_calibration:
@@ -211,6 +228,8 @@ def build_shards(p0_cfg: dict[str, Any]) -> list[dict[str, Any]]:
                 "command": f"bash {runner_path}",
                 "current_supported_memory_policies": supported_memory,
                 "unsupported_memory_policies": unsupported_memory,
+                "current_implemented_memory_policies": implemented_memory,
+                "missing_memory_policies": missing_memory,
                 "current_supported_calibration": supported_calibration,
                 "unsupported_calibration": unsupported_calibration,
                 "current_implemented_calibration": implemented_calibration,
@@ -257,6 +276,11 @@ def build_manifest(p0_config: Path) -> dict[str, Any]:
             for value in shard["unsupported_calibration"]
         }
     )
+    missing_memory = [
+        f"{shard['shard_id']}:{value}"
+        for shard in shards
+        for value in shard.get("missing_memory_policies", [])
+    ]
     missing_calibration = [
         f"{shard['shard_id']}:{value}"
         for shard in shards
@@ -270,6 +294,8 @@ def build_manifest(p0_config: Path) -> dict[str, Any]:
     ]
     if missing:
         status = "p0_shard_plan_incomplete"
+    elif missing_memory:
+        status = "p0_shard_plan_ready_memory_partial"
     elif missing_calibration:
         status = "p0_shard_plan_ready_calibration_partial"
     else:
@@ -281,6 +307,7 @@ def build_manifest(p0_config: Path) -> dict[str, Any]:
         "shard_count": len(shards),
         "ready_shard_count": len(shards) - len(missing),
         "ready_calibration_shard_count": len(ready_calibration_shards),
+        "missing_memory_policy_shards": missing_memory,
         "missing_calibration_shards": missing_calibration,
         "missing_shards": missing,
         "unsupported_memory_policies": unsupported_memory,

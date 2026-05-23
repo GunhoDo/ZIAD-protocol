@@ -30,6 +30,7 @@ class SummarizeP0SmokeTest(unittest.TestCase):
             none_row = next(row for row in rows if row["calibration"] == "none")
             self.assertEqual("MVTec AD", none_row["dataset"])
             self.assertEqual("WinCLIP", none_row["baseline"])
+            self.assertEqual("default/SCS", none_row["memory_policy"])
             self.assertEqual("2", none_row["category_count"])
             self.assertEqual("2", none_row["run_count"])
             self.assertEqual("2", none_row["stream_type_count"])
@@ -48,6 +49,7 @@ class SummarizeP0SmokeTest(unittest.TestCase):
                 {
                     "dataset": "VisA",
                     "baseline": "PatchCore",
+                    "memory_policy": "default/SCS",
                     "calibration": "temperature_scaling",
                     "category_count": "12",
                     "run_count": "72",
@@ -88,6 +90,7 @@ class SummarizeP0SmokeTest(unittest.TestCase):
             self.assertFalse(json.loads(manifest_path.read_text())["paper_allowed"])
             self.assertIn("paper_allowed=false", body)
             self.assertIn("P0 smoke matrix summary", body)
+            self.assertIn("default/SCS", body)
             self.assertIn("temperature\\_scaling", body)
 
     def test_rejects_non_measured_smoke_rows(self):

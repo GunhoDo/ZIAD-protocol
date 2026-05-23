@@ -31,6 +31,7 @@ DEFAULT_TEX = Path("results/latest/tables/p0_smoke_summary.tex")
 SUMMARY_FIELDS = [
     "dataset",
     "baseline",
+    "memory_policy",
     "calibration",
     "category_count",
     "run_count",
@@ -68,7 +69,7 @@ def _mean(values: list[float]) -> str:
 
 
 def summarize_metrics(metrics_paths: list[Path]) -> list[dict[str, str]]:
-    groups: dict[tuple[str, str, str], list[dict[str, str]]] = defaultdict(list)
+    groups: dict[tuple[str, str, str, str], list[dict[str, str]]] = defaultdict(list)
     for path in metrics_paths:
         for row in _read_rows(path):
             status = row.get("status", "")
@@ -77,15 +78,18 @@ def summarize_metrics(metrics_paths: list[Path]) -> list[dict[str, str]]:
             key = (
                 row.get("dataset", ""),
                 row.get("baseline", ""),
+                row.get("memory_policy", "default/SCS") or "default/SCS",
                 row.get("calibration", "none") or "none",
             )
             if not all(key):
-                raise SystemExit(f"Missing dataset/baseline/calibration in {path}")
+                raise SystemExit(
+                    f"Missing dataset/baseline/memory_policy/calibration in {path}"
+                )
             groups[key].append(row)
 
     summaries: list[dict[str, str]] = []
     for key in sorted(groups):
-        dataset, baseline, calibration = key
+        dataset, baseline, memory_policy, calibration = key
         rows = groups[key]
         numeric: dict[str, list[float]] = {field: [] for field in NUMERIC_FIELDS}
         for row in rows:
@@ -100,6 +104,7 @@ def summarize_metrics(metrics_paths: list[Path]) -> list[dict[str, str]]:
             {
                 "dataset": dataset,
                 "baseline": baseline,
+                "memory_policy": memory_policy,
                 "calibration": calibration,
                 "category_count": str(len({row["category"] for row in rows})),
                 "run_count": str(len(rows)),
@@ -144,6 +149,7 @@ def write_manifest(
         "row_count": len(rows),
         "datasets": sorted({row["dataset"] for row in rows}),
         "baselines": sorted({row["baseline"] for row in rows}),
+        "memory_policies": sorted({row["memory_policy"] for row in rows}),
         "calibration": sorted({row["calibration"] for row in rows}),
         "notes": (
             "Compact summary of measured smoke matrices only; paper-ineligible "
@@ -169,10 +175,10 @@ def render_summary_table(
         "\\caption{P0 smoke matrix summary (non-final, paper-ineligible smoke evidence).}",
         "\\label{tab:p0-smoke-summary}",
         "\\centering",
-        "\\begin{tabular}{lllrrrrrr}",
+        "\\begin{tabular}{llllrrrrrr}",
         "\\hline",
         (
-            "Dataset & Baseline & Calibration & Categories & Runs & AUROC & "
+            "Dataset & Baseline & Memory & Calibration & Categories & Runs & AUROC & "
             "AUPR & ECE & Latency \\\\"
         ),
         "\\hline",
@@ -183,6 +189,7 @@ def render_summary_table(
                 [
                     _latex_escape(row["dataset"]),
                     _latex_escape(row["baseline"]),
+                    _latex_escape(row["memory_policy"]),
                     _latex_escape(row["calibration"]),
                     row["category_count"],
                     row["run_count"],
