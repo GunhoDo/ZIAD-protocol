@@ -11,7 +11,43 @@
 - 논문 게이트는 아직 닫힘: 모든 현재 산출물은 `paper_allowed=false` 유지.
 - `.omx/`는 planning history이며 소스 오브 트루스가 아니다.
 
-## 0.1 최근 완료: RareCLIP FIFO memory policy smoke path
+## 0.1 최근 완료: PatchCore FIFO feature-bank smoke path
+
+- 목표: P0 memory policy 중 PatchCore `FIFO`를 실제 feature-bank sampler로 구현하고, fake metric 없이 `paper_allowed=false`를 유지.
+- 주요 수정:
+  - `experiments/baselines/patchcore.py`에서 PatchCore도 `memory_policy=FIFO`를 허용한다.
+  - FIFO 실행 시 PatchCore feature sampler를 oldest-first eviction 의미의 newest-retention sampler로 교체한다.
+  - `fifo_memory_fraction`이 feature bank 보존 비율을 제어한다.
+  - model cache key에 `memory_policy`를 포함해 default/SCS cache와 FIFO cache가 섞이지 않게 한다.
+  - `experiments/configs/smoke_visa_patchcore_fifo.yaml` 추가.
+  - `experiments/p0_shards.py`와 `results/latest/p0_shards/manifest.json`에서 PatchCore/RareCLIP current supported memory policy가 `default/SCS,FIFO`로 표시된다.
+  - `.gitignore`는 PatchCore model cache 계열을 계속 제외하도록 정리했다.
+- 실행 명령:
+  - `python3 -m unittest tests.test_patchcore_wrapper tests.test_baseline_contract tests.test_p0_shards -v`
+  - `python3 -m compileall experiments tests`
+  - `python3 experiments/p0_shards.py plan experiments/configs/p0.yaml --output results/latest/p0_shards/manifest.json`
+  - `bash scripts/run_smoke.sh experiments/configs/smoke_visa_patchcore_fifo.yaml`
+  - `python3 experiments/evaluate.py --scores-csv results/latest/scores_visa_patchcore_fifo.csv --latest-run results/latest/latest_run_visa_patchcore_fifo.json --output results/latest/metrics_visa_patchcore_fifo.csv --manifest results/latest/manifest_visa_patchcore_fifo.json`
+  - `python3 -m unittest discover -v`
+  - `git diff --check`
+- 생성 outputs:
+  - `results/latest/stream_smoke_visa_patchcore_fifo.json`
+  - `results/latest/scores_visa_patchcore_fifo.csv`
+  - `results/latest/metrics_visa_patchcore_fifo.csv`
+  - `results/latest/latest_run_visa_patchcore_fifo.json`
+  - `results/latest/manifest_visa_patchcore_fifo.json`
+  - `results/latest/p0_shards/manifest.json`
+- 검증 결과:
+  - PatchCore FIFO VisA candle smoke: 20 measured rows, unique image paths `20/20`, labels `[0,1]`, stream warnings `0`.
+  - latest_run records `memory_policy=FIFO`, `calibration=none`.
+  - manifest keeps `paper_allowed=false`.
+  - unittest 56 tests OK, compileall OK, diff check OK.
+- 제한:
+  - PatchCore FIFO는 train/good feature bank selection policy다. true online PatchCore update latency로 해석하면 안 된다.
+  - Reservoir, Prototype-EMA, temperature scaling은 아직 미지원이며 명시적으로 실패해야 한다.
+  - 이 output은 smoke evidence이며 paper result가 아니다.
+
+## 0.2 최근 완료: RareCLIP FIFO memory policy smoke path
 
 - 목표: P0 memory policy 중 하나를 실제 wrapper 동작으로 승격하되, fake metric 없이 `paper_allowed=false`를 유지.
 - 주요 수정:
@@ -46,7 +82,7 @@
   - PatchCore FIFO, Reservoir, Prototype-EMA, temperature scaling은 계속 미지원이며 명시적으로 실패해야 한다.
   - 이 output은 smoke evidence이며 paper result가 아니다.
 
-## 0.2 최근 완료: memory_policy/calibration execution contract
+## 0.3 최근 완료: memory_policy/calibration execution contract
 
 - 목표: P0 shard에서 미구현 `memory_policy`/`calibration` 값이 조용히 default로 대체되지 않도록 실행 전 contract를 고정.
 - 주요 수정:

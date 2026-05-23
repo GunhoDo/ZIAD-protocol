@@ -18,7 +18,7 @@ class P0ShardsTest(unittest.TestCase):
         self.assertEqual([], manifest["missing_shards"])
         self.assertEqual(["temperature_scaling"], manifest["unsupported_calibration"])
         self.assertEqual(
-            ["FIFO", "Prototype-EMA", "Reservoir"],
+            ["Prototype-EMA", "Reservoir"],
             manifest["unsupported_memory_policies"],
         )
 
@@ -34,10 +34,13 @@ class P0ShardsTest(unittest.TestCase):
             shards[("MVTec AD", "RareCLIP")]["unsupported_memory_policies"],
         )
         self.assertEqual(
-            ["default/SCS"],
+            ["default/SCS", "FIFO"],
             shards[("MVTec AD", "PatchCore")]["current_supported_memory_policies"],
         )
-        self.assertIn("FIFO", shards[("MVTec AD", "PatchCore")]["unsupported_memory_policies"])
+        self.assertEqual(
+            ["Reservoir", "Prototype-EMA"],
+            shards[("MVTec AD", "PatchCore")]["unsupported_memory_policies"],
+        )
         for shard in manifest["shards"]:
             self.assertFalse(shard["paper_allowed"])
             self.assertEqual("ready_smoke_shard", shard["status"])

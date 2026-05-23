@@ -117,6 +117,21 @@ def _write_score_cache(path: Path, rows: dict[str, dict[str, Any]]) -> None:
     )
 
 
+class _FIFOSampler:
+    """Keep the newest features after oldest-first eviction."""
+
+    def __init__(self, percentage: float):
+        if not 0 < percentage <= 1:
+            raise ValueError("FIFO percentage value must be in (0, 1].")
+        self.percentage = percentage
+
+    def run(self, features: Any) -> Any:
+        if len(features) == 0 or self.percentage == 1:
+            return features
+        sample_count = max(1, int(len(features) * self.percentage))
+        return features[-sample_count:]
+
+
 REQUIRED_STREAM_ITEM_FIELDS = {
     "stream_index",
     "image_path",
@@ -329,7 +344,11 @@ class PatchCoreWrapper(BaselineWrapper):
     def run(self, stream_path: str, dataset_root: str, output_csv: str, config: dict) -> None:
         if not os.path.isdir(LOCAL_PATH):
             raise _setup_error(BASELINE_NAME, LOCAL_PATH)
-        validate_execution_contract(config, baseline_name=BASELINE_NAME)
+        memory_policy, _ = validate_execution_contract(
+            config,
+            baseline_name=BASELINE_NAME,
+            supported_memory_policies={"default/SCS", "FIFO"},
+        )
 
         category = str(config.get("category") or _cfg(config, "category", "bottle"))
         seed = _cfg(config, "seed", 0, int)
@@ -339,6 +358,14 @@ class PatchCoreWrapper(BaselineWrapper):
         layers = _csv_list(_cfg(config, "layers", None), ["layer2", "layer3"])
         sampler_name = str(_cfg(config, "sampler", "approx_greedy_coreset"))
         sampler_percentage = _cfg(config, "sampler_percentage", 0.1, float)
+        if memory_policy == "FIFO":
+            sampler_name = "fifo"
+            sampler_percentage = _cfg(
+                config,
+                "fifo_memory_fraction",
+                sampler_percentage,
+                float,
+            )
         pretrain_embed_dimension = _cfg(config, "pretrain_embed_dimension", 1024, int)
         target_embed_dimension = _cfg(config, "target_embed_dimension", 1024, int)
         anomaly_scorer_num_nn = _cfg(config, "anomaly_scorer_num_nn", 1, int)
@@ -362,6 +389,7 @@ class PatchCoreWrapper(BaselineWrapper):
                 "layers": layers,
                 "sampler": sampler_name,
                 "sampler_percentage": sampler_percentage,
+                "memory_policy": memory_policy,
                 "pretrain_embed_dimension": pretrain_embed_dimension,
                 "target_embed_dimension": target_embed_dimension,
                 "anomaly_scorer_num_nn": anomaly_scorer_num_nn,
@@ -519,6 +547,8 @@ class PatchCoreWrapper(BaselineWrapper):
     def _make_sampler(sampler_module: Any, name: str, percentage: float, device: Any) -> Any:
         if name == "identity":
             return sampler_module.IdentitySampler()
+        if name == "fifo":
+            return _FIFOSampler(percentage)
         if name == "greedy_coreset":
             return sampler_module.GreedyCoresetSampler(percentage, device)
         if name == "approx_greedy_coreset":

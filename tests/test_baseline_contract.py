@@ -21,7 +21,7 @@ class BaselineExecutionContractTest(unittest.TestCase):
     def test_can_allow_baseline_specific_memory_policy(self):
         memory_policy, calibration = validate_execution_contract(
             {"memory_policy": "FIFO"},
-            baseline_name="RareCLIP",
+            baseline_name="PatchCore",
             supported_memory_policies={"default/SCS", "FIFO"},
         )
 

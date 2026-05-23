@@ -139,6 +139,30 @@ class PatchCoreWrapperHelpersTest(unittest.TestCase):
     def test_score_to_float_accepts_numpy_like_values(self):
         self.assertEqual(patchcore._score_to_float([[1.25]]), 1.25)
 
+    def test_fifo_sampler_keeps_newest_features(self):
+        sampler = patchcore._FIFOSampler(0.4)
+
+        sampled = sampler.run([0, 1, 2, 3, 4])
+
+        self.assertEqual([3, 4], sampled)
+
+    def test_fifo_sampler_keeps_at_least_one_feature(self):
+        sampler = patchcore._FIFOSampler(0.01)
+
+        sampled = sampler.run([0, 1, 2])
+
+        self.assertEqual([2], sampled)
+
+    def test_make_sampler_supports_fifo_memory_policy_sampler(self):
+        sampler = patchcore.PatchCoreWrapper._make_sampler(
+            sampler_module=None,
+            name="fifo",
+            percentage=0.5,
+            device=None,
+        )
+
+        self.assertEqual([2, 3], sampler.run([0, 1, 2, 3]))
+
 
 if __name__ == "__main__":
     unittest.main()

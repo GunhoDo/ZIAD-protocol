@@ -77,7 +77,7 @@ def _supported_memory_policies(
         return ["default/SCS"], []
     implemented_by_baseline = {
         "RareCLIP": {"default/SCS", "FIFO"},
-        "PatchCore": {"default/SCS"},
+        "PatchCore": {"default/SCS", "FIFO"},
     }
     implemented = implemented_by_baseline.get(baseline, {"default/SCS"})
     supported = [value for value in intended if value in implemented]

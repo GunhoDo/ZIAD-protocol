@@ -30,8 +30,7 @@ results/latest/**/*.npz
 results/latest/**/*.pt
 results/latest/**/*.pth
 results/latest/streams/**
-results/latest/patchcore_model_cache/**
-results/latest/patchcore_model_cache_visa_smoke/**
+results/latest/patchcore_model_cache*/**
 
 # OMX planning state — not source of truth
 .omx/
