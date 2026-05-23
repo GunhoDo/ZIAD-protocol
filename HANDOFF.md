@@ -147,6 +147,13 @@
   - category: `candle`
   - stream/epsilon: `iid`, `bursty` × ε=`0`, `0.01`, `0.05`, length=20
   - generated per-run configs/details are ignored; aggregate files remain trackable
+- VisA PatchCore mini-matrix 구성 완료:
+  - config: `experiments/configs/visa_patchcore_mini_matrix.yaml`
+  - dataset root: `data/visa/1cls`
+  - category: `candle`
+  - stream/epsilon: `iid`, `bursty` × ε=`0`, `0.01`, `0.05`, length=20
+  - `baseline_options` forwards `sampler: random` to generated smoke configs for bounded CPU runtime
+  - generated per-run configs/details are ignored; aggregate files remain trackable
 - VisA standalone smoke configs 구성 완료:
   - WinCLIP bursty: `experiments/configs/smoke_visa_winclip_bursty.yaml`
   - AnomalyCLIP iid: `experiments/configs/smoke_visa_anomalyclip.yaml`
@@ -392,6 +399,18 @@
   - all generated streams have unique paths `20/20`; bursty streams record contiguous anomaly block metadata
   - ε=`0.01` emitted the expected feasible-ratio warning in iid and bursty runs
   - `paper_allowed=false`
+- VisA PatchCore mini-matrix 6 runs 실행 완료:
+  - config: `experiments/configs/visa_patchcore_mini_matrix.yaml`
+  - command: `bash scripts/run_baseline_mini_matrix.sh experiments/configs/visa_patchcore_mini_matrix.yaml`
+  - aggregate metrics: `results/latest/visa_patchcore_mini_matrix/metrics_patchcore_candle.csv`
+  - CRD-lite summary: `results/latest/visa_patchcore_mini_matrix/crd_lite_patchcore_candle.csv`
+  - aggregate manifest: `results/latest/visa_patchcore_mini_matrix/manifest_patchcore_candle.json`
+  - rows: 6 measured_smoke rows
+  - stream types: `iid`, `bursty`
+  - epsilon: `0.0`, `0.01`, `0.05`
+  - all generated streams have unique paths `20/20`, labels `[0, 1]`, bursty streams record contiguous anomaly block metadata
+  - warning count: 2 expected `target_fraction_adjusted` warnings for ε=`0.01`
+  - `paper_allowed=false`
 - VisA WinCLIP bursty standalone smoke 실행 완료:
   - config: `experiments/configs/smoke_visa_winclip_bursty.yaml`
   - command: `bash scripts/run_smoke.sh experiments/configs/smoke_visa_winclip_bursty.yaml`
@@ -568,6 +587,7 @@ python3 experiments/evaluate.py \
   --output results/latest/metrics_visa_winclip.csv \
   --manifest results/latest/manifest_visa_winclip.json
 bash scripts/run_baseline_mini_matrix.sh experiments/configs/visa_winclip_mini_matrix.yaml
+bash scripts/run_baseline_mini_matrix.sh experiments/configs/visa_patchcore_mini_matrix.yaml
 bash scripts/run_smoke.sh experiments/configs/smoke_visa_winclip_bursty.yaml
 python3 experiments/evaluate.py \
   --scores-csv results/latest/scores_visa_winclip_bursty.csv \
@@ -628,6 +648,7 @@ git diff --check
 - MVTec full-category PatchCore stream/epsilon matrix: 90 rows, all MVTec AD categories × `iid/bursty` × ε `0/0.01/0.05`, all `measured_smoke`, CRD-lite all `derived_smoke`, `paper_allowed=false`
 - VisA WinCLIP iid smoke: 20 rows, dataset `VisA`, category `candle`, labels `[0, 1]`, unique paths `20/20`, all `measured`, evaluated manifest `paper_allowed=false`
 - VisA WinCLIP mini-matrix: 6 rows, dataset `VisA`, category `candle`, stream types `iid/bursty`, epsilon `0/0.01/0.05`, all `measured_smoke`, CRD-lite all `derived_smoke`, aggregate manifest `paper_allowed=false`
+- VisA PatchCore mini-matrix: 6 rows, dataset `VisA`, category `candle`, stream types `iid/bursty`, epsilon `0/0.01/0.05`, all `measured_smoke`, CRD-lite all `derived_smoke`, generated streams unique paths `20/20`, labels `[0, 1]`, warning count 2, aggregate manifest `paper_allowed=false`
 - VisA WinCLIP bursty standalone smoke: 20 rows, dataset `VisA`, category `candle`, labels `[0, 1]`, unique paths `20/20`, contiguous anomaly block lengths `[1]`, all `measured`, evaluated manifest `paper_allowed=false`
 - VisA AnomalyCLIP iid standalone smoke: 20 rows, dataset `VisA`, category `candle`, labels `[0, 1]`, unique paths `20/20`, all `measured`, evaluated manifest `paper_allowed=false`
 - VisA RareCLIP iid standalone smoke: 20 rows, dataset `VisA`, category `candle`, labels `[0, 1]`, unique paths `20/20`, all `measured`, evaluated manifest `paper_allowed=false`
@@ -659,6 +680,7 @@ git diff --check
 12. VisA all-12-category iid ε=0 length=20은 WinCLIP, AnomalyCLIP, RareCLIP으로 실제 image-level score를 생성했다.
 13. VisA all-12-category `iid/bursty × ε 0/0.01/0.05` length=20은 WinCLIP, AnomalyCLIP, RareCLIP으로 실제 image-level score를 생성했다.
 14. VisA candle iid ε=0 length=20은 PatchCore에서도 실제 image-level score를 생성했다.
+15. VisA candle `iid/bursty × ε 0/0.01/0.05` length=20은 PatchCore에서도 실제 image-level score를 생성했다.
 
 하지만 아직 **논문 결과 단계는 아니다**.
 
@@ -666,7 +688,7 @@ git diff --check
 
 - CLIP baseline은 MVTec/VisA 모두 WinCLIP/AnomalyCLIP/RareCLIP full all-category stream/epsilon smoke matrix까지 완료
 - MVTec 전체 category는 PatchCore/WinCLIP/AnomalyCLIP/RareCLIP 모두 `iid/bursty × ε 0/0.01/0.05` smoke matrix 완료
-- VisA는 WinCLIP/AnomalyCLIP/RareCLIP all-category stream/epsilon matrix까지 실행됨; PatchCore VisA는 candle iid ε=0 smoke만 완료
+- VisA는 WinCLIP/AnomalyCLIP/RareCLIP all-category stream/epsilon matrix까지 실행됨; PatchCore VisA는 candle stream/epsilon mini-matrix까지 완료
 - full P0 matrix 미실행
 - CRD-lite는 smoke aggregate summary로 구현됨; full P0/VisA 검증과 paper 해석은 미완
 - paper table pipeline은 smoke evidence table만 생성함; full matrix 기반 table/figure는 아직 아님
@@ -676,7 +698,7 @@ git diff --check
 
 ### 1순위 — VisA coverage 확장
 
-VisA stream adapter와 CLIP baselines(WinCLIP/AnomalyCLIP/RareCLIP) all-category stream/epsilon smoke matrix는 연결됐고, PatchCore도 candle iid ε=0 smoke가 통과했다. 다음은 PatchCore VisA candle mini-matrix 또는 all-category iid ε=0 sweep로 확장한다.
+VisA stream adapter와 CLIP baselines(WinCLIP/AnomalyCLIP/RareCLIP) all-category stream/epsilon smoke matrix는 연결됐고, PatchCore도 candle stream/epsilon mini-matrix가 통과했다. 다음은 PatchCore VisA all-category iid ε=0 sweep로 확장한다.
 
 ### 2순위 — full P0 orchestration 설계
 

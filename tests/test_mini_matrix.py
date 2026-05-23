@@ -69,6 +69,10 @@ class MiniMatrixTest(unittest.TestCase):
                         "stream_types": ["iid"],
                         "contamination_epsilon": [0],
                         "stream": {"seed": 0, "length": 20, "burst_length": 5},
+                        "baseline_options": {
+                            "sampler": "random",
+                            "model_cache_root": "results/latest/patchcore_model_cache_visa_smoke",
+                        },
                         "outputs": {"root": str(root / "visa_mini_matrix")},
                     },
                     sort_keys=False,
@@ -83,6 +87,11 @@ class MiniMatrixTest(unittest.TestCase):
             self.assertEqual(generated["dataset_root"], "data/visa/1cls")
             self.assertEqual(generated["category"], "candle")
             self.assertEqual(generated["stream"]["length"], 20)
+            self.assertEqual(generated["sampler"], "random")
+            self.assertEqual(
+                generated["model_cache_root"],
+                "results/latest/patchcore_model_cache_visa_smoke",
+            )
 
     def test_aggregate_metrics_filters_to_requested_baseline(self):
         with tempfile.TemporaryDirectory() as tmp:

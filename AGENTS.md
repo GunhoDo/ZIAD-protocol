@@ -51,6 +51,7 @@ ZIAD-protocol/
       smoke_rareclip.yaml    # RareCLIP bottle iid epsilon-zero smoke
       smoke_visa_patchcore.yaml # PatchCore VisA candle iid epsilon-zero smoke
       smoke_visa_winclip.yaml # WinCLIP VisA candle iid epsilon-zero smoke
+      visa_patchcore_mini_matrix.yaml # PatchCore VisA candle iid/bursty × epsilon smoke matrix
       visa_winclip_mini_matrix.yaml # WinCLIP VisA candle iid/bursty × epsilon smoke matrix
       winclip_mini_matrix.yaml # WinCLIP bottle iid/bursty × epsilon smoke matrix
       p0.yaml                 # Full P0 matrix (future path, not required for first success)
@@ -153,6 +154,7 @@ bash scripts/run_smoke.sh experiments/configs/smoke_visa_winclip.yaml
 bash scripts/run_baseline_mini_matrix.sh experiments/configs/winclip_mini_matrix.yaml
 bash scripts/run_baseline_mini_matrix.sh experiments/configs/anomalyclip_mini_matrix.yaml
 bash scripts/run_baseline_mini_matrix.sh experiments/configs/rareclip_mini_matrix.yaml
+bash scripts/run_baseline_mini_matrix.sh experiments/configs/visa_patchcore_mini_matrix.yaml
 bash scripts/run_baseline_mini_matrix.sh experiments/configs/visa_winclip_mini_matrix.yaml
 bash scripts/run_category_quick_sweep.sh experiments/configs/category_quick_sweep.yaml
 bash scripts/run_mvtec_full_category_sweep.sh

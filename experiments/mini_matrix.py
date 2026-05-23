@@ -118,6 +118,9 @@ def generate_run_configs(matrix_config: Path) -> list[Path]:
     category_slug = slug(category)
     stream_types, epsilons = _matrix_values(cfg)
     provenance = cfg.get("provenance") or {}
+    baseline_options = cfg.get("baseline_options") or {}
+    if not isinstance(baseline_options, dict):
+        raise SystemExit("baseline_options must be a mapping when provided")
 
     paths: list[Path] = []
     for stream_type in stream_types:
@@ -148,6 +151,7 @@ def generate_run_configs(matrix_config: Path) -> list[Path]:
             }
             if provenance:
                 run_cfg["provenance"] = provenance
+            run_cfg.update(baseline_options)
             path = configs_dir / f"{run_id}.yaml"
             path.write_text(yaml.safe_dump(run_cfg, sort_keys=False), encoding="utf-8")
             paths.append(path)

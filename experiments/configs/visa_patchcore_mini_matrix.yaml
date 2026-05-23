@@ -1,0 +1,38 @@
+# Fast VisA PatchCore matrix to validate iid/bursty stream coverage before full P0.
+# This is paper-ineligible smoke evidence only.
+baseline: PatchCore
+baseline_path: external/patchcore-inspection
+
+dataset: VisA
+dataset_root: data/visa/1cls
+category: candle
+
+prevalence: 0.05
+stream_types:
+  - iid
+  - bursty
+contamination_epsilon:
+  - 0
+  - 0.01
+  - 0.05
+stream:
+  seed: 0
+  length: 20
+  burst_length: 5
+
+baseline_options:
+  # The default approximate greedy coreset path is valid but too slow for smoke.
+  sampler: random
+  model_cache_root: results/latest/patchcore_model_cache_visa_smoke
+
+outputs:
+  root: results/latest/visa_patchcore_mini_matrix
+  aggregate_metrics: results/latest/visa_patchcore_mini_matrix/metrics_patchcore_candle.csv
+  aggregate_manifest: results/latest/visa_patchcore_mini_matrix/manifest_patchcore_candle.json
+  crd_lite_summary: results/latest/visa_patchcore_mini_matrix/crd_lite_patchcore_candle.csv
+
+provenance:
+  scoring_mode: stream_ordered_offline
+  latency_semantics: offline_batch_amortized
+  training_source: train/good
+  stream_source: test/*
