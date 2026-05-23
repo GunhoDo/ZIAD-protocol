@@ -60,8 +60,9 @@ The compact summary artifacts are:
 - `results/latest/tables/p0_smoke_summary.tex`
 
 The compact summary includes the `memory_policy` axis. Current smoke evidence
-contains only `default/SCS`; RareCLIP/PatchCore FIFO, Reservoir, and
-Prototype-EMA remain explicit P0 gaps until their own shards are run.
+contains `default/SCS` plus the first measured memory-policy shard,
+`VisA × RareCLIP × FIFO`; the remaining RareCLIP/PatchCore FIFO, Reservoir,
+and Prototype-EMA shards remain explicit P0 gaps until their own shards are run.
 
 ## Refresh placeholder P0 outputs
 
@@ -259,6 +260,7 @@ bash scripts/run_visa_full_category_stream_matrix_anomalyclip_temperature.sh
 bash scripts/run_visa_full_category_stream_matrix_patchcore.sh
 bash scripts/run_visa_full_category_stream_matrix_patchcore_temperature.sh
 bash scripts/run_visa_full_category_stream_matrix_rareclip.sh
+bash scripts/run_visa_full_category_stream_matrix_rareclip_fifo.sh
 bash scripts/run_visa_full_category_stream_matrix_rareclip_temperature.sh
 ```
 
@@ -271,6 +273,11 @@ smoke evidence with `paper_allowed=false`. The temperature runners add the
 roots. They materialize from the corresponding measured non-temperature stream
 matrix and apply deterministic calibration postprocessing, so they do not rerun
 baseline inference for calibration variants.
+
+The RareCLIP FIFO runner is a memory-policy shard over the same all-category
+VisA stream/epsilon smoke shape. It writes to
+`results/latest/visa_full_category_stream_matrix_rareclip_fifo/` and is
+tracked separately from the default/SCS and calibration shards.
 
 ## Run a category quick sweep
 

@@ -17,14 +17,32 @@ from experiments.render_paper_tables import _latex_escape
 
 BASELINES = ["winclip", "anomalyclip", "rareclip", "patchcore"]
 DATASETS = ["mvtec", "visa"]
-DEFAULT_METRICS = [
-    Path(
-        f"results/latest/{dataset}_full_category_stream_matrix_{baseline}_temperature/"
-        f"metrics_{dataset}_full_category_stream_matrix_{baseline}_temperature.csv"
-    )
-    for dataset in DATASETS
-    for baseline in BASELINES
-]
+MEMORY_BASELINES = ["rareclip", "patchcore"]
+MEMORY_POLICIES = ["fifo", "reservoir", "prototype_ema"]
+
+
+def default_metrics_paths() -> list[Path]:
+    paths = [
+        Path(
+            f"results/latest/{dataset}_full_category_stream_matrix_{baseline}_temperature/"
+            f"metrics_{dataset}_full_category_stream_matrix_{baseline}_temperature.csv"
+        )
+        for dataset in DATASETS
+        for baseline in BASELINES
+    ]
+    optional_memory_paths = [
+        Path(
+            f"results/latest/{dataset}_full_category_stream_matrix_{baseline}_{memory_policy}/"
+            f"metrics_{dataset}_full_category_stream_matrix_{baseline}_{memory_policy}.csv"
+        )
+        for dataset in DATASETS
+        for baseline in MEMORY_BASELINES
+        for memory_policy in MEMORY_POLICIES
+    ]
+    paths.extend(path for path in optional_memory_paths if path.exists())
+    return paths
+
+
 DEFAULT_OUTPUT = Path("results/latest/tables/p0_smoke_summary.csv")
 DEFAULT_MANIFEST = Path("results/latest/tables/p0_smoke_summary_manifest.json")
 DEFAULT_TEX = Path("results/latest/tables/p0_smoke_summary.tex")
@@ -225,7 +243,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    metrics_paths = args.metrics_csv or DEFAULT_METRICS
+    metrics_paths = args.metrics_csv or default_metrics_paths()
     rows = summarize_metrics(metrics_paths)
     write_summary_csv(args.output, rows)
     write_manifest(

@@ -101,6 +101,8 @@ results/latest/visa_full_category_stream_matrix_anomalyclip_temperature/configs/
 results/latest/visa_full_category_stream_matrix_anomalyclip_temperature/details/**
 results/latest/visa_full_category_stream_matrix_rareclip/configs/**
 results/latest/visa_full_category_stream_matrix_rareclip/details/**
+results/latest/visa_full_category_stream_matrix_rareclip_fifo/configs/**
+results/latest/visa_full_category_stream_matrix_rareclip_fifo/details/**
 results/latest/visa_full_category_stream_matrix_rareclip_temperature/configs/**
 results/latest/visa_full_category_stream_matrix_rareclip_temperature/details/**
 results/latest/visa_full_category_stream_matrix_patchcore/configs/**

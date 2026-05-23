@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -88,6 +89,30 @@ def _calibration_shard_runner_path(dataset: str, baseline: str) -> Path:
     )
 
 
+def _memory_policy_slug(memory_policy: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", memory_policy.strip().lower()).strip("_")
+
+
+def _memory_shard_config_path(dataset: str, baseline: str, memory_policy: str) -> Path:
+    return (
+        CONFIG_ROOT
+        / (
+            f"{_dataset_prefix(dataset)}_full_category_stream_matrix_"
+            f"{mini_matrix.slug(baseline)}_{_memory_policy_slug(memory_policy)}.yaml"
+        )
+    )
+
+
+def _memory_shard_runner_path(dataset: str, baseline: str, memory_policy: str) -> Path:
+    return (
+        SCRIPT_ROOT
+        / (
+            f"run_{_dataset_prefix(dataset)}_full_category_stream_matrix_"
+            f"{mini_matrix.slug(baseline)}_{_memory_policy_slug(memory_policy)}.sh"
+        )
+    )
+
+
 def _supported_memory_policies(
     baseline: str, p0_cfg: dict[str, Any]
 ) -> tuple[list[str], list[str]]:
@@ -107,16 +132,53 @@ def _supported_memory_policies(
 
 def _implemented_memory_policies(
     baseline: str, shard_cfg: dict[str, Any] | None, p0_cfg: dict[str, Any]
-) -> tuple[list[str], list[str]]:
+) -> tuple[list[str], list[str], list[dict[str, Any]]]:
     supported, _ = _supported_memory_policies(baseline, p0_cfg)
     if not supported:
-        return [], []
+        return [], [], []
     current = "default/SCS"
     if shard_cfg is not None:
         current = str(shard_cfg.get("memory_policy", "default/SCS"))
     implemented = [value for value in supported if value == current]
+    memory_shards: list[dict[str, Any]] = []
+    for memory_policy in supported:
+        if memory_policy == current:
+            continue
+        memory_shard = _memory_shard(
+            str(shard_cfg.get("dataset", "")) if shard_cfg else "",
+            baseline,
+            memory_policy,
+        )
+        memory_shards.append(memory_shard)
+        if memory_shard["status"] == "ready_smoke_shard":
+            implemented.append(memory_policy)
     missing = [value for value in supported if value not in implemented]
-    return implemented, missing
+    return implemented, missing, memory_shards
+
+
+def _memory_shard(dataset: str, baseline: str, memory_policy: str) -> dict[str, Any]:
+    config_path = _memory_shard_config_path(dataset, baseline, memory_policy)
+    runner_path = _memory_shard_runner_path(dataset, baseline, memory_policy)
+    shard_cfg = _read_shard_config(config_path)
+    status = (
+        "ready_smoke_shard"
+        if config_path.exists() and runner_path.exists()
+        else "missing_runner_or_config"
+    )
+    return {
+        "memory_policy": memory_policy,
+        "paper_allowed": False,
+        "status": status,
+        "config": str(config_path),
+        "runner": str(runner_path),
+        "command": f"bash {runner_path}",
+        "current_smoke_run_count": _expected_smoke_runs(shard_cfg),
+        "outputs": _output_paths(shard_cfg),
+        "notes": (
+            "Memory-policy shard is a measured smoke shard and remains "
+            "paper-ineligible."
+        ),
+    }
 
 
 def _supported_calibration(p0_cfg: dict[str, Any]) -> tuple[list[str], list[str]]:
@@ -199,7 +261,7 @@ def build_shards(p0_cfg: dict[str, Any]) -> list[dict[str, Any]]:
             supported_memory, unsupported_memory = _supported_memory_policies(
                 baseline, p0_cfg
             )
-            implemented_memory, missing_memory = _implemented_memory_policies(
+            implemented_memory, missing_memory, memory_shards = _implemented_memory_policies(
                 baseline, shard_cfg, p0_cfg
             )
             implemented_calibration = ["none"]
@@ -230,6 +292,7 @@ def build_shards(p0_cfg: dict[str, Any]) -> list[dict[str, Any]]:
                 "unsupported_memory_policies": unsupported_memory,
                 "current_implemented_memory_policies": implemented_memory,
                 "missing_memory_policies": missing_memory,
+                "memory_policy_shards": memory_shards,
                 "current_supported_calibration": supported_calibration,
                 "unsupported_calibration": unsupported_calibration,
                 "current_implemented_calibration": implemented_calibration,
@@ -281,6 +344,12 @@ def build_manifest(p0_config: Path) -> dict[str, Any]:
         for shard in shards
         for value in shard.get("missing_memory_policies", [])
     ]
+    ready_memory_shards = [
+        memory_shard
+        for shard in shards
+        for memory_shard in shard.get("memory_policy_shards", [])
+        if memory_shard.get("status") == "ready_smoke_shard"
+    ]
     missing_calibration = [
         f"{shard['shard_id']}:{value}"
         for shard in shards
@@ -306,6 +375,7 @@ def build_manifest(p0_config: Path) -> dict[str, Any]:
         "p0_config": str(p0_config),
         "shard_count": len(shards),
         "ready_shard_count": len(shards) - len(missing),
+        "ready_memory_policy_shard_count": len(ready_memory_shards),
         "ready_calibration_shard_count": len(ready_calibration_shards),
         "missing_memory_policy_shards": missing_memory,
         "missing_calibration_shards": missing_calibration,
@@ -342,6 +412,28 @@ def verify_manifest(manifest: dict[str, Any], *, require_outputs: bool) -> list[
                     errors.append(
                         f"{shard.get('shard_id')}: missing output {key}: {value}"
                     )
+        for memory_shard in shard.get("memory_policy_shards", []):
+            if memory_shard.get("paper_allowed") is not False:
+                errors.append(
+                    f"{shard.get('shard_id')}:{memory_shard.get('memory_policy')}: "
+                    "paper_allowed must be false"
+                )
+            if memory_shard.get("status") != "ready_smoke_shard":
+                continue
+            for key in ["config", "runner"]:
+                path = Path(str(memory_shard.get(key, "")))
+                if not path.exists():
+                    errors.append(
+                        f"{shard.get('shard_id')}:{memory_shard.get('memory_policy')}: "
+                        f"missing {key}: {path}"
+                    )
+            if require_outputs:
+                for key, value in (memory_shard.get("outputs") or {}).items():
+                    if not Path(str(value)).exists():
+                        errors.append(
+                            f"{shard.get('shard_id')}:{memory_shard.get('memory_policy')}: "
+                            f"missing output {key}: {value}"
+                        )
         for calibration_shard in shard.get("calibration_shards", []):
             if calibration_shard.get("paper_allowed") is not False:
                 errors.append(

@@ -11,6 +11,39 @@
 - 논문 게이트는 아직 닫힘: 모든 현재 산출물은 `paper_allowed=false` 유지.
 - `.omx/`는 planning history이며 소스 오브 트루스가 아니다.
 
+## 최신 진행: VisA RareCLIP FIFO memory-policy shard
+
+- 목표: P0 memory-policy gap 중 첫 번째 실제 shard로 `VisA × RareCLIP × FIFO`를 all-12-category `iid/bursty × ε 0/0.01/0.05`, length-20 smoke matrix로 실행하고 planner/table에 반영.
+- 주요 수정:
+  - `experiments/configs/visa_full_category_stream_matrix_rareclip_fifo.yaml` 추가.
+  - `scripts/run_visa_full_category_stream_matrix_rareclip_fifo.sh` 추가.
+  - `experiments/p0_shards.py`가 memory-policy shard config/runner/output readiness를 manifest에 기록한다.
+  - `experiments/summarize_p0_smoke.py`가 존재하는 optional memory-policy aggregate를 compact P0 smoke summary에 포함한다.
+  - `README.md`/`AGENTS.md`에 FIFO shard runner와 현재 상태를 기록.
+  - `.gitignore`에 generated per-category configs/details ignore rule 추가. Aggregate metrics/manifest/CRD-lite summary만 추적 대상으로 둔다.
+- 실행 명령:
+  - `bash scripts/run_visa_full_category_stream_matrix_rareclip_fifo.sh`
+  - `python3 experiments/p0_shards.py plan experiments/configs/p0.yaml --output results/latest/p0_shards/manifest.json`
+  - `bash scripts/render_paper_tables.sh`
+  - aggregate sanity check: rows/categories/memory policy/status/`paper_allowed=false`
+- 생성 outputs:
+  - `results/latest/visa_full_category_stream_matrix_rareclip_fifo/metrics_visa_full_category_stream_matrix_rareclip_fifo.csv`
+  - `results/latest/visa_full_category_stream_matrix_rareclip_fifo/manifest_visa_full_category_stream_matrix_rareclip_fifo.json`
+  - `results/latest/visa_full_category_stream_matrix_rareclip_fifo/crd_lite_visa_full_category_stream_matrix_rareclip_fifo.csv`
+  - ignored details/configs under `results/latest/visa_full_category_stream_matrix_rareclip_fifo/details/` and `.../configs/`
+  - updated `results/latest/p0_shards/manifest.json`
+  - updated compact summary under `results/latest/tables/p0_smoke_summary.*`
+- 검증 결과:
+  - Aggregate metrics rows `72`, categories `12`, stream types `iid/bursty`, contamination epsilons `0/0.01/0.05`.
+  - all aggregate rows `memory_policy=FIFO`, `status=measured_smoke`.
+  - aggregate manifest keeps `paper_allowed=false`.
+  - P0 shard manifest keeps `status=p0_shard_plan_ready_memory_partial`, `ready_memory_policy_shard_count=1`, `missing_memory_policy_shards=11`, `ready_calibration_shard_count=8`.
+  - compact P0 smoke summary rows `17`, memory policies `default/SCS` and `FIFO`, summary manifest `paper_allowed=false`.
+- 제한:
+  - 이 단계는 paper-ineligible smoke shard evidence다. full P0 또는 paper result가 아니다.
+  - FIFO는 VisA RareCLIP에만 완료됐다. 남은 memory-policy shards는 MVTec RareCLIP FIFO/Reservoir/Prototype-EMA, MVTec PatchCore FIFO/Reservoir/Prototype-EMA, VisA RareCLIP Reservoir/Prototype-EMA, VisA PatchCore FIFO/Reservoir/Prototype-EMA이다.
+  - ε=0.01 stream 생성의 target-fraction warning은 중복 샘플 금지 계약에 따른 expected adjustment다.
+
 ## 0.0 최근 완료: VisA PatchCore full-category temperature matrix
 
 - 목표: reusable calibration materialization helper를 사용해 VisA PatchCore 전체 12개 category에서 `iid/bursty × ε 0/0.01/0.05 × calibration none/temperature_scaling` smoke matrix를 추가.
