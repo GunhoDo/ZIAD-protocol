@@ -18,6 +18,16 @@ class BaselineExecutionContractTest(unittest.TestCase):
                 {"memory_policy": "FIFO"}, baseline_name="PatchCore"
             )
 
+    def test_can_allow_baseline_specific_memory_policy(self):
+        memory_policy, calibration = validate_execution_contract(
+            {"memory_policy": "FIFO"},
+            baseline_name="RareCLIP",
+            supported_memory_policies={"default/SCS", "FIFO"},
+        )
+
+        self.assertEqual("FIFO", memory_policy)
+        self.assertEqual("none", calibration)
+
     def test_rejects_unsupported_calibration(self):
         with self.assertRaisesRegex(RuntimeError, "calibration='temperature_scaling'"):
             validate_execution_contract(

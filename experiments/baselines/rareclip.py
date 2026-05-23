@@ -161,6 +161,135 @@ def _score_to_float(score: Any) -> float:
     return float(array[0])
 
 
+def _contiguous(value: Any) -> Any:
+    if hasattr(value, "contiguous"):
+        return value.contiguous()
+    return value
+
+
+def _trim_tensor_fifo(tensor: Any, limit: int, *, preserve_prefix: int = 0) -> Any:
+    if tensor is None or not hasattr(tensor, "shape") or len(tensor.shape) == 0:
+        return tensor
+    if limit < 1:
+        raise RuntimeError("RareCLIP FIFO memory limit must be positive.")
+
+    length = int(tensor.shape[0])
+    prefix = max(0, min(int(preserve_prefix), length))
+    mutable_length = length - prefix
+    if mutable_length <= limit:
+        return tensor
+
+    prefix_part = tensor[:prefix] if prefix else None
+    tail = tensor[-limit:]
+    if prefix_part is None:
+        return _contiguous(tail)
+    if hasattr(prefix_part, "new_empty"):
+        import torch
+
+        return _contiguous(torch.cat((prefix_part, tail), dim=0))
+    return np.concatenate((np.asarray(prefix_part), np.asarray(tail)), axis=0)
+
+
+def _trim_similarity_fifo(similarity: Any, limit: int) -> Any:
+    if similarity is None or not hasattr(similarity, "shape"):
+        return similarity
+    trimmed = similarity
+    if len(trimmed.shape) >= 1 and int(trimmed.shape[0]) > limit:
+        trimmed = trimmed[-limit:]
+    if len(trimmed.shape) >= 2 and int(trimmed.shape[1]) > limit:
+        trimmed = trimmed[:, -limit:]
+    return _contiguous(trimmed)
+
+
+def _install_fifo_sampler(model: Any) -> None:
+    """Replace RareCLIP's patch sampler with oldest-first retention."""
+
+    def fifo_sample(
+        F_ref: Any = None,
+        S_ref: Any = None,
+        normal_fnum: int = 0,
+        **_: Any,
+    ) -> tuple[Any, Any, int]:
+        limit = int(getattr(model, "sample_num", 0) or 0)
+        if limit < 1 or F_ref is None or not hasattr(F_ref, "shape"):
+            return F_ref, S_ref, normal_fnum
+
+        length = int(F_ref.shape[0])
+        drop = max(0, length - limit)
+        if drop == 0:
+            return F_ref, S_ref, normal_fnum
+
+        F_ref = _contiguous(F_ref[-limit:])
+        S_ref = _trim_similarity_fifo(S_ref, limit)
+        normal_fnum = max(0, int(normal_fnum) - drop)
+        return F_ref, S_ref, normal_fnum
+
+    model.sample = fifo_sample
+
+
+def _trim_patch_grid_fifo(grid: Any, limit: int) -> None:
+    if not isinstance(grid, list):
+        return
+    for region_index, region in enumerate(grid):
+        if isinstance(region, dict):
+            items = list(region.items())
+        elif isinstance(region, list):
+            items = list(enumerate(region))
+        else:
+            continue
+        for layer, value in items:
+            if value is None or not hasattr(value, "shape") or len(value.shape) == 0:
+                continue
+            if int(value.shape[0]) > limit:
+                grid[region_index][layer] = _contiguous(value[-limit:])
+
+
+def _trim_patch_similarity_grid_fifo(grid: Any, limit: int) -> None:
+    if not isinstance(grid, list):
+        return
+    for region_index, region in enumerate(grid):
+        if isinstance(region, dict):
+            items = list(region.items())
+        elif isinstance(region, list):
+            items = list(enumerate(region))
+        else:
+            continue
+        for layer, value in items:
+            grid[region_index][layer] = _trim_similarity_fifo(value, limit)
+
+
+def _apply_fifo_memory_policy(model: Any, memory_limit: int) -> None:
+    """Keep RareCLIP online memories bounded by dropping oldest entries first."""
+    limit = int(memory_limit)
+    if limit < 1:
+        raise RuntimeError("RareCLIP FIFO memory limit must be positive.")
+
+    for attr in ("score_memory", "IF_memory"):
+        value = getattr(model, attr, None)
+        if value is not None:
+            setattr(model, attr, _trim_tensor_fifo(value, limit))
+
+    k_shot = int(getattr(model, "k_shot", 0) or 0)
+    aaif_memory = getattr(model, "AAIF_memory", None)
+    if isinstance(aaif_memory, dict):
+        for layer, value in list(aaif_memory.items()):
+            aaif_memory[layer] = _trim_tensor_fifo(
+                value,
+                limit,
+                preserve_prefix=k_shot,
+            )
+    elif isinstance(aaif_memory, list):
+        for layer, value in enumerate(list(aaif_memory)):
+            aaif_memory[layer] = _trim_tensor_fifo(
+                value,
+                limit,
+                preserve_prefix=k_shot,
+            )
+
+    _trim_patch_grid_fifo(getattr(model, "PFM", None), limit)
+    _trim_patch_similarity_grid_fifo(getattr(model, "PSM", None), limit)
+
+
 def _prepare_openai_clip_cache(cache_dir: Path) -> None:
     """Reuse an already downloaded OpenAI CLIP weight when available.
 
@@ -215,7 +344,11 @@ class RareCLIPWrapper(BaselineWrapper):
     def run(self, stream_path: str, dataset_root: str, output_csv: str, config: dict) -> None:
         if not os.path.isdir(LOCAL_PATH):
             raise _setup_error(BASELINE_NAME, LOCAL_PATH)
-        validate_execution_contract(config, baseline_name=BASELINE_NAME)
+        memory_policy, _ = validate_execution_contract(
+            config,
+            baseline_name=BASELINE_NAME,
+            supported_memory_policies={"default/SCS", "FIFO"},
+        )
 
         _ensure_rareclip_importable()
         try:
@@ -238,12 +371,15 @@ class RareCLIPWrapper(BaselineWrapper):
         update_memory = _cfg(config, "online", True, bool)
         direct = _cfg(config, "direct", False, bool)
         args = _rareclip_args(config, checkpoint_path)
+        fifo_memory_size = _cfg(config, "fifo_memory_size", args.keep_inum, int)
 
         cache_dir = _resolve_repo_path(str(_cfg(config, "clip_cache_dir", DEFAULT_CLIP_CACHE)))
         _prepare_openai_clip_cache(cache_dir)
 
         with _temporary_cwd(Path(LOCAL_PATH).resolve()):
             model = RareCLIP_d(args) if direct else RareCLIP(args)
+            if memory_policy == "FIFO":
+                _install_fifo_sampler(model)
             if hasattr(model.clip_model, "eval"):
                 model.clip_model.eval()
             model.renew_memory()
@@ -255,6 +391,8 @@ class RareCLIPWrapper(BaselineWrapper):
                 update_memory=update_memory,
                 device=model.device,
                 torch=torch,
+                memory_policy=memory_policy,
+                memory_limit=fifo_memory_size,
             )
 
         output_path = Path(output_csv)
@@ -274,6 +412,8 @@ class RareCLIPWrapper(BaselineWrapper):
         update_memory: bool,
         device: Any,
         torch: Any,
+        memory_policy: str = "default/SCS",
+        memory_limit: int | None = None,
     ) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
         device_obj = torch.device(device)
@@ -288,6 +428,8 @@ class RareCLIPWrapper(BaselineWrapper):
             start = time.perf_counter()
             with torch.no_grad():
                 result = model.process_image_and_update(tensor, update=update_memory)
+                if update_memory and memory_policy == "FIFO":
+                    _apply_fifo_memory_policy(model, int(memory_limit or 1))
             if result is None:
                 raise RuntimeError("RareCLIP returned no score; k_shot warmup is unsupported for score rows.")
             _, anomaly_score = result

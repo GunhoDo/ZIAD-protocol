@@ -75,7 +75,12 @@ def _supported_memory_policies(
     scoped = {str(value) for value in _as_list(p0_cfg.get("memory_policy_scope"), [])}
     if baseline not in scoped:
         return ["default/SCS"], []
-    supported = ["default/SCS"] if "default/SCS" in intended else []
+    implemented_by_baseline = {
+        "RareCLIP": {"default/SCS", "FIFO"},
+        "PatchCore": {"default/SCS"},
+    }
+    implemented = implemented_by_baseline.get(baseline, {"default/SCS"})
+    supported = [value for value in intended if value in implemented]
     unsupported = [value for value in intended if value not in supported]
     return supported, unsupported
 

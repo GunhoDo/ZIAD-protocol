@@ -1,0 +1,33 @@
+# RareCLIP VisA FIFO smoke run.
+# This is paper-ineligible smoke evidence only.
+baseline: RareCLIP
+baseline_path: external/RareCLIP
+
+dataset: VisA
+dataset_root: data/visa/1cls
+category: candle
+
+memory_policy: FIFO
+fifo_memory_size: 8
+calibration: none
+
+stream_type: iid
+prevalence: 0.05
+contamination_epsilon: 0
+
+stream:
+  path: results/latest/stream_smoke_visa_rareclip_fifo.json
+  seed: 0
+  length: 20
+  burst_length: 5
+
+outputs:
+  scores_csv: results/latest/scores_visa_rareclip_fifo.csv
+  latest_run: results/latest/latest_run_visa_rareclip_fifo.json
+  manifest: results/latest/manifest_visa_rareclip_fifo.json
+
+provenance:
+  scoring_mode: stream_ordered_online_zero_shot_fifo
+  latency_semantics: wrapper_single_image_online
+  training_source: rareclip_mvtec_text_projection_checkpoint
+  stream_source: test/*

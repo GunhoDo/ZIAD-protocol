@@ -11,7 +11,42 @@
 - 논문 게이트는 아직 닫힘: 모든 현재 산출물은 `paper_allowed=false` 유지.
 - `.omx/`는 planning history이며 소스 오브 트루스가 아니다.
 
-## 0.1 최근 완료: memory_policy/calibration execution contract
+## 0.1 최근 완료: RareCLIP FIFO memory policy smoke path
+
+- 목표: P0 memory policy 중 하나를 실제 wrapper 동작으로 승격하되, fake metric 없이 `paper_allowed=false`를 유지.
+- 주요 수정:
+  - `experiments/baselines/rareclip.py`에서 RareCLIP만 `memory_policy=FIFO`를 허용한다.
+  - FIFO 실행 시 upstream RareCLIP patch sampler를 oldest-first retention으로 교체한다.
+  - online update 후 `score_memory`, `IF_memory`, `AAIF_memory`, `PFM`, `PSM`을 `fifo_memory_size` 기준으로 trimming한다.
+  - upstream RareCLIP의 list/list memory layout과 test fake model의 dict layout을 모두 테스트한다.
+  - `experiments/configs/smoke_visa_rareclip_fifo.yaml` 추가.
+  - `experiments/p0_shards.py`와 `results/latest/p0_shards/manifest.json`에서 RareCLIP current supported memory policy가 `default/SCS,FIFO`로 표시된다. PatchCore는 아직 `default/SCS`만 지원한다.
+- 실행 명령:
+  - `python3 -m unittest tests.test_rareclip_wrapper tests.test_baseline_contract tests.test_p0_shards -v`
+  - `python3 -m compileall experiments tests`
+  - `python3 experiments/p0_shards.py plan experiments/configs/p0.yaml --output results/latest/p0_shards/manifest.json`
+  - `bash scripts/run_smoke.sh experiments/configs/smoke_visa_rareclip_fifo.yaml`
+  - `python3 experiments/evaluate.py --scores-csv results/latest/scores_visa_rareclip_fifo.csv --latest-run results/latest/latest_run_visa_rareclip_fifo.json --output results/latest/metrics_visa_rareclip_fifo.csv --manifest results/latest/manifest_visa_rareclip_fifo.json`
+  - `python3 -m unittest discover -v`
+  - `git diff --check`
+- 생성 outputs:
+  - `results/latest/stream_smoke_visa_rareclip_fifo.json`
+  - `results/latest/scores_visa_rareclip_fifo.csv`
+  - `results/latest/metrics_visa_rareclip_fifo.csv`
+  - `results/latest/latest_run_visa_rareclip_fifo.json`
+  - `results/latest/manifest_visa_rareclip_fifo.json`
+  - `results/latest/p0_shards/manifest.json`
+- 검증 결과:
+  - RareCLIP FIFO VisA candle smoke: 20 measured rows, unique image paths `20/20`, labels `[0,1]`, stream warnings `0`.
+  - latest_run records `memory_policy=FIFO`, `calibration=none`.
+  - manifest keeps `paper_allowed=false`.
+  - unittest 53 tests OK, compileall OK, diff check OK.
+- 제한:
+  - FIFO는 현재 RareCLIP wrapper에만 구현됨.
+  - PatchCore FIFO, Reservoir, Prototype-EMA, temperature scaling은 계속 미지원이며 명시적으로 실패해야 한다.
+  - 이 output은 smoke evidence이며 paper result가 아니다.
+
+## 0.2 최근 완료: memory_policy/calibration execution contract
 
 - 목표: P0 shard에서 미구현 `memory_policy`/`calibration` 값이 조용히 default로 대체되지 않도록 실행 전 contract를 고정.
 - 주요 수정:
