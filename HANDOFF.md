@@ -1,6 +1,6 @@
 # HANDOFF — ZIAD 논문 구현 현재 상태
 
-최종 갱신: 2026-05-23
+최종 갱신: 2026-05-24
 프로젝트: Streaming Zero-Shot Industrial Anomaly Detection with CLIP / ZIAD Protocol
 
 ## 0. 절대 규칙
@@ -10,6 +10,38 @@
 - fake metric 금지. placeholder는 `placeholder_not_measured`, 실제 측정은 `measured`/`measured_smoke`만 사용한다.
 - 논문 게이트는 아직 닫힘: 모든 현재 산출물은 `paper_allowed=false` 유지.
 - `.omx/`는 planning history이며 소스 오브 트루스가 아니다.
+
+## 최신 진행: VisA RareCLIP Prototype-EMA memory-policy shard
+
+- 목표: P0 memory-policy gap 중 세 번째 VisA RareCLIP shard로 `VisA × RareCLIP × Prototype-EMA`를 all-12-category `iid/bursty × ε 0/0.01/0.05`, length-20 smoke matrix로 실행하고 planner/table에 반영.
+- 주요 수정:
+  - `experiments/configs/visa_full_category_stream_matrix_rareclip_prototype_ema.yaml` 추가.
+  - `scripts/run_visa_full_category_stream_matrix_rareclip_prototype_ema.sh` 추가.
+  - `tests/test_p0_shards.py` 기대값을 ready memory-policy shard 3개, missing memory-policy shard 9개로 갱신.
+  - `README.md`/`AGENTS.md`에 Prototype-EMA shard runner와 현재 상태를 기록.
+  - `.gitignore`에 generated per-category configs/details ignore rule 추가. Aggregate metrics/manifest/CRD-lite summary만 추적 대상으로 둔다.
+- 실행 명령:
+  - `bash scripts/run_visa_full_category_stream_matrix_rareclip_prototype_ema.sh`
+  - `python3 experiments/p0_shards.py plan experiments/configs/p0.yaml --output results/latest/p0_shards/manifest.json`
+  - `bash scripts/render_paper_tables.sh`
+  - aggregate sanity check: rows/categories/memory policy/status/`paper_allowed=false`
+- 생성 outputs:
+  - `results/latest/visa_full_category_stream_matrix_rareclip_prototype_ema/metrics_visa_full_category_stream_matrix_rareclip_prototype_ema.csv`
+  - `results/latest/visa_full_category_stream_matrix_rareclip_prototype_ema/manifest_visa_full_category_stream_matrix_rareclip_prototype_ema.json`
+  - `results/latest/visa_full_category_stream_matrix_rareclip_prototype_ema/crd_lite_visa_full_category_stream_matrix_rareclip_prototype_ema.csv`
+  - ignored details/configs under `results/latest/visa_full_category_stream_matrix_rareclip_prototype_ema/details/` and `.../configs/`
+  - updated `results/latest/p0_shards/manifest.json`
+  - updated compact summary under `results/latest/tables/p0_smoke_summary.*`
+- 검증 결과:
+  - Aggregate metrics rows `72`, categories `12`, stream types `iid/bursty`, contamination epsilons `0/0.01/0.05`.
+  - all aggregate rows `memory_policy=Prototype-EMA`, `status=measured_smoke`.
+  - aggregate manifest keeps `paper_allowed=false`.
+  - P0 shard manifest keeps `status=p0_shard_plan_ready_memory_partial`, `ready_memory_policy_shard_count=3`, `missing_memory_policy_shards=9`, `ready_calibration_shard_count=8`.
+  - compact P0 smoke summary rows `19`, memory policies `default/SCS`, `FIFO`, `Reservoir`, and `Prototype-EMA`, summary manifest `paper_allowed=false`.
+- 제한:
+  - 이 단계는 paper-ineligible smoke shard evidence다. full P0 또는 paper result가 아니다.
+  - VisA RareCLIP memory-policy shards는 FIFO/Reservoir/Prototype-EMA 모두 완료됐다. 남은 memory-policy shards는 MVTec RareCLIP FIFO/Reservoir/Prototype-EMA, MVTec PatchCore FIFO/Reservoir/Prototype-EMA, VisA PatchCore FIFO/Reservoir/Prototype-EMA이다.
+  - ε=0.01 stream 생성의 target-fraction warning은 중복 샘플 금지 계약에 따른 expected adjustment다.
 
 ## 최신 진행: VisA RareCLIP Reservoir memory-policy shard
 
