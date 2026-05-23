@@ -39,6 +39,32 @@ class RenderPaperTablesTest(unittest.TestCase):
             self.assertIn("non-final, paper-ineligible smoke evidence", body)
             self.assertIn("metal\\_nut", body)
             self.assertIn("WinCLIP \\& Patch", body)
+            self.assertIn("Stream & $\\epsilon$ & Calibration", body)
+            self.assertIn("iid & 0.0 & none", body)
+
+    def test_render_smoke_evidence_table_accepts_caption_and_label(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            metrics = root / "metrics.csv"
+            manifest = root / "manifest.json"
+            output = root / "table.tex"
+            metrics.write_text(
+                "category,baseline,image_auroc,aupr,ece,latency_ms,crd_lite\n"
+                "candle,WinCLIP,1.000000,1.000000,0.100000,1.000000,0.000000\n"
+            )
+            manifest.write_text(json.dumps({"paper_allowed": False}))
+
+            body = render_paper_tables.render_smoke_evidence_table(
+                metrics,
+                manifest,
+                output,
+                caption="VisA WinCLIP calibration smoke",
+                label="tab:visa-winclip-calibration-smoke",
+            )
+
+            self.assertIn("VisA WinCLIP calibration smoke", body)
+            self.assertIn(r"\label{tab:visa-winclip-calibration-smoke}", body)
+            self.assertNotIn("Calibration", body)
 
     def test_missing_metrics_fails(self):
         with tempfile.TemporaryDirectory() as tmp:

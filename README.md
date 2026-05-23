@@ -47,9 +47,11 @@ bash scripts/render_paper_tables.sh
 make paper-tables
 ```
 
-This renders checked result CSVs into LaTeX tables. Current quick-sweep tables
-are explicitly marked non-final and paper-ineligible because `paper_allowed`
-remains `false`.
+This renders checked result CSVs into LaTeX tables. With no arguments it
+refreshes the MVTec quick-sweep smoke table plus the VisA
+stream/epsilon/calibration smoke tables for PatchCore, WinCLIP, AnomalyCLIP,
+and RareCLIP. All generated tables are explicitly marked non-final and
+paper-ineligible because `paper_allowed` remains `false`.
 
 ## Refresh placeholder P0 outputs
 
@@ -71,9 +73,10 @@ python3 experiments/p0_shards.py verify results/latest/p0_shards/manifest.json \
 ```
 
 This writes an orchestration manifest that maps the intended P0 matrix onto the
-currently implemented all-category smoke matrix runners. It creates no metrics,
-keeps `paper_allowed=false`, and records unsupported memory-policy/calibration
-dimensions explicitly.
+currently implemented all-category smoke matrix runners. It also records which
+temperature-scaling calibration shards are implemented separately from the base
+stream/epsilon shards. It creates no metrics, keeps `paper_allowed=false`, and
+records unsupported or missing dimensions explicitly.
 
 ## Run a measured mini-matrix smoke
 

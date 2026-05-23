@@ -11,11 +11,21 @@ class P0ShardsTest(unittest.TestCase):
     def test_build_manifest_maps_current_smoke_shards_and_keeps_paper_false(self):
         manifest = p0_shards.build_manifest(Path("experiments/configs/p0.yaml"))
 
-        self.assertEqual("p0_shard_plan_ready", manifest["status"])
+        self.assertEqual("p0_shard_plan_ready_calibration_partial", manifest["status"])
         self.assertFalse(manifest["paper_allowed"])
         self.assertEqual(8, manifest["shard_count"])
         self.assertEqual(8, manifest["ready_shard_count"])
+        self.assertEqual(4, manifest["ready_calibration_shard_count"])
         self.assertEqual([], manifest["missing_shards"])
+        self.assertEqual(
+            [
+                "mvtec_ad_rareclip_stream_epsilon_smoke:temperature_scaling",
+                "mvtec_ad_patchcore_stream_epsilon_smoke:temperature_scaling",
+                "mvtec_ad_winclip_stream_epsilon_smoke:temperature_scaling",
+                "mvtec_ad_anomalyclip_stream_epsilon_smoke:temperature_scaling",
+            ],
+            manifest["missing_calibration_shards"],
+        )
         self.assertEqual([], manifest["unsupported_calibration"])
         self.assertEqual([], manifest["unsupported_memory_policies"])
 
@@ -36,11 +46,27 @@ class P0ShardsTest(unittest.TestCase):
             ["none", "temperature_scaling"],
             shards[("MVTec AD", "WinCLIP")]["current_supported_calibration"],
         )
+        self.assertEqual(
+            ["none"],
+            shards[("MVTec AD", "WinCLIP")]["current_implemented_calibration"],
+        )
+        self.assertEqual(
+            ["none", "temperature_scaling"],
+            shards[("VisA", "WinCLIP")]["current_implemented_calibration"],
+        )
+        self.assertEqual(
+            144,
+            shards[("VisA", "WinCLIP")]["calibration_shards"][0][
+                "current_smoke_run_count"
+            ],
+        )
         for shard in manifest["shards"]:
             self.assertFalse(shard["paper_allowed"])
             self.assertEqual("ready_smoke_shard", shard["status"])
             self.assertTrue(Path(shard["config"]).exists())
             self.assertTrue(Path(shard["runner"]).exists())
+            for calibration_shard in shard["calibration_shards"]:
+                self.assertFalse(calibration_shard["paper_allowed"])
 
     def test_verify_manifest_can_require_existing_smoke_outputs(self):
         manifest = p0_shards.build_manifest(Path("experiments/configs/p0.yaml"))
@@ -59,6 +85,7 @@ class P0ShardsTest(unittest.TestCase):
                     "config": "experiments/configs/p0.yaml",
                     "runner": "scripts/run_p0.sh",
                     "outputs": {"aggregate_metrics": "missing.csv"},
+                    "calibration_shards": [],
                 }
             ],
         }
@@ -88,6 +115,7 @@ class P0ShardsTest(unittest.TestCase):
             payload = json.loads(output.read_text())
             self.assertFalse(payload["paper_allowed"])
             self.assertEqual(8, payload["ready_shard_count"])
+            self.assertEqual(4, payload["ready_calibration_shard_count"])
 
 
 if __name__ == "__main__":

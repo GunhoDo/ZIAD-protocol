@@ -21,6 +21,20 @@ DEFAULT_MANIFEST = Path(
     "results/latest/category_quick_sweep/manifest_mvtec_category_quick_sweep.json"
 )
 DEFAULT_OUTPUT = Path("results/latest/tables/smoke_evidence_summary.tex")
+DEFAULT_CAPTION = "MVTec AD category quick-sweep metrics"
+DEFAULT_LABEL = "tab:mvtec-category-quick-sweep"
+DEFAULT_TABLE_COLUMNS = [
+    ("category", "Category", "l"),
+    ("baseline", "Baseline", "l"),
+    ("stream_type", "Stream", "l"),
+    ("contamination_epsilon", r"$\epsilon$", "c"),
+    ("calibration", "Calibration", "l"),
+    ("image_auroc", "AUROC", "c"),
+    ("aupr", "AUPR", "c"),
+    ("ece", "ECE", "c"),
+    ("latency_ms", "Latency", "c"),
+    ("crd_lite", "CRD-lite", "c"),
+]
 
 
 def _read_json(path: Path) -> dict[str, Any]:
@@ -60,19 +74,33 @@ def _format_cell(row: dict[str, str], key: str) -> str:
     return _latex_escape(value)
 
 
-def _sort_key(row: dict[str, str]) -> tuple[str, str, str, str]:
+def _sort_key(row: dict[str, str]) -> tuple[str, str, str, str, str]:
     return (
         row.get("category", ""),
         row.get("baseline", ""),
         row.get("stream_type", ""),
         row.get("contamination_epsilon", ""),
+        row.get("calibration", ""),
     )
+
+
+def _visible_columns(rows: list[dict[str, str]]) -> list[tuple[str, str, str]]:
+    columns: list[tuple[str, str, str]] = []
+    for key, label, alignment in DEFAULT_TABLE_COLUMNS:
+        if key in {"stream_type", "contamination_epsilon", "calibration"}:
+            if not any(row.get(key, "") not in {"", "NA"} for row in rows):
+                continue
+        columns.append((key, label, alignment))
+    return columns
 
 
 def render_smoke_evidence_table(
     metrics_csv: Path = DEFAULT_METRICS,
     manifest_path: Path = DEFAULT_MANIFEST,
     output_path: Path = DEFAULT_OUTPUT,
+    *,
+    caption: str = DEFAULT_CAPTION,
+    label: str = DEFAULT_LABEL,
 ) -> str:
     rows = _read_csv(metrics_csv)
     if not rows:
@@ -87,32 +115,23 @@ def render_smoke_evidence_table(
     else:
         note = "smoke evidence only; paper_allowed=false"
         caption_suffix = "non-final, paper-ineligible smoke evidence"
+    columns = _visible_columns(rows)
 
     lines = [
         f"% Auto-generated from {metrics_csv}.",
         f"% Manifest: {manifest_path}; status={status}; {note}.",
         "\\begin{table}[t]",
-        f"\\caption{{MVTec AD category quick-sweep metrics ({caption_suffix}).}}",
-        "\\label{tab:mvtec-category-quick-sweep}",
+        f"\\caption{{{_latex_escape(caption)} ({caption_suffix}).}}",
+        f"\\label{{{_latex_escape(label)}}}",
         "\\centering",
-        "\\begin{tabular}{llccccc}",
+        "\\begin{tabular}{" + "".join(column[2] for column in columns) + "}",
         "\\hline",
-        "Category & Baseline & AUROC & AUPR & ECE & Latency & CRD-lite \\\\",
+        " & ".join(column[1] for column in columns) + r" \\",
         "\\hline",
     ]
     for row in sorted(rows, key=_sort_key):
         lines.append(
-            " & ".join(
-                [
-                    _format_cell(row, "category"),
-                    _format_cell(row, "baseline"),
-                    _format_cell(row, "image_auroc"),
-                    _format_cell(row, "aupr"),
-                    _format_cell(row, "ece"),
-                    _format_cell(row, "latency_ms"),
-                    _format_cell(row, "crd_lite"),
-                ]
-            )
+            " & ".join(_format_cell(row, column[0]) for column in columns)
             + r" \\"
         )
     lines.extend(
@@ -135,12 +154,20 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--metrics-csv", type=Path, default=DEFAULT_METRICS)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--caption", default=DEFAULT_CAPTION)
+    parser.add_argument("--label", default=DEFAULT_LABEL)
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    render_smoke_evidence_table(args.metrics_csv, args.manifest, args.output)
+    render_smoke_evidence_table(
+        args.metrics_csv,
+        args.manifest,
+        args.output,
+        caption=args.caption,
+        label=args.label,
+    )
     print(args.output)
 
 

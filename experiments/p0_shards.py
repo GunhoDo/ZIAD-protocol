@@ -68,6 +68,26 @@ def _shard_runner_path(dataset: str, baseline: str) -> Path:
     )
 
 
+def _calibration_shard_config_path(dataset: str, baseline: str) -> Path:
+    return (
+        CONFIG_ROOT
+        / (
+            f"{_dataset_prefix(dataset)}_full_category_stream_matrix_"
+            f"{mini_matrix.slug(baseline)}_temperature.yaml"
+        )
+    )
+
+
+def _calibration_shard_runner_path(dataset: str, baseline: str) -> Path:
+    return (
+        SCRIPT_ROOT
+        / (
+            f"run_{_dataset_prefix(dataset)}_full_category_stream_matrix_"
+            f"{mini_matrix.slug(baseline)}_temperature.sh"
+        )
+    )
+
+
 def _supported_memory_policies(
     baseline: str, p0_cfg: dict[str, Any]
 ) -> tuple[list[str], list[str]]:
@@ -117,7 +137,40 @@ def _expected_smoke_runs(shard_cfg: dict[str, Any] | None) -> int:
     baselines = shard_cfg.get("baselines") or [shard_cfg.get("baseline")]
     stream_types = _as_list(shard_cfg.get("stream_types", shard_cfg.get("stream_type")), [])
     epsilons = _as_list(shard_cfg.get("contamination_epsilon"), [])
-    return len(categories) * len(baselines) * len(stream_types) * len(epsilons)
+    calibrations = _as_list(shard_cfg.get("calibration"), ["none"])
+    return (
+        len(categories)
+        * len(baselines)
+        * len(stream_types)
+        * len(epsilons)
+        * len(calibrations)
+    )
+
+
+def _calibration_shard(dataset: str, baseline: str) -> dict[str, Any]:
+    config_path = _calibration_shard_config_path(dataset, baseline)
+    runner_path = _calibration_shard_runner_path(dataset, baseline)
+    shard_cfg = _read_shard_config(config_path)
+    status = (
+        "ready_smoke_shard"
+        if config_path.exists() and runner_path.exists()
+        else "missing_runner_or_config"
+    )
+    shard: dict[str, Any] = {
+        "calibration": "temperature_scaling",
+        "paper_allowed": False,
+        "status": status,
+        "config": str(config_path),
+        "runner": str(runner_path),
+        "command": f"bash {runner_path}",
+        "current_smoke_run_count": _expected_smoke_runs(shard_cfg),
+        "outputs": _output_paths(shard_cfg),
+        "notes": (
+            "Temperature scaling shard is materialized from measured smoke "
+            "scores and remains paper-ineligible."
+        ),
+    }
+    return shard
 
 
 def build_shards(p0_cfg: dict[str, Any]) -> list[dict[str, Any]]:
@@ -128,9 +181,17 @@ def build_shards(p0_cfg: dict[str, Any]) -> list[dict[str, Any]]:
             config_path = _shard_config_path(dataset, baseline)
             runner_path = _shard_runner_path(dataset, baseline)
             shard_cfg = _read_shard_config(config_path)
+            calibration_shard = _calibration_shard(dataset, baseline)
             supported_memory, unsupported_memory = _supported_memory_policies(
                 baseline, p0_cfg
             )
+            implemented_calibration = ["none"]
+            missing_calibration = []
+            if "temperature_scaling" in supported_calibration:
+                if calibration_shard["status"] == "ready_smoke_shard":
+                    implemented_calibration.append("temperature_scaling")
+                else:
+                    missing_calibration.append("temperature_scaling")
             shard_id = (
                 f"{mini_matrix.slug(dataset)}_{mini_matrix.slug(baseline)}"
                 "_stream_epsilon_smoke"
@@ -152,6 +213,8 @@ def build_shards(p0_cfg: dict[str, Any]) -> list[dict[str, Any]]:
                 "unsupported_memory_policies": unsupported_memory,
                 "current_supported_calibration": supported_calibration,
                 "unsupported_calibration": unsupported_calibration,
+                "current_implemented_calibration": implemented_calibration,
+                "missing_calibration": missing_calibration,
                 "intended_stream_types": [
                     str(value) for value in _as_list(p0_cfg.get("stream_types"), [])
                 ],
@@ -161,9 +224,11 @@ def build_shards(p0_cfg: dict[str, Any]) -> list[dict[str, Any]]:
                 ],
                 "current_smoke_run_count": _expected_smoke_runs(shard_cfg),
                 "outputs": _output_paths(shard_cfg),
+                "calibration_shards": [calibration_shard],
                 "notes": (
                     "Current shard maps to the implemented all-category stream/epsilon "
-                    "smoke runner only. It is not a reviewed full-P0 shard."
+                    "smoke runner. Calibration shards are tracked separately and are "
+                    "not reviewed full-P0 shards."
                 ),
             }
             shards.append(shard)
@@ -192,12 +257,31 @@ def build_manifest(p0_config: Path) -> dict[str, Any]:
             for value in shard["unsupported_calibration"]
         }
     )
+    missing_calibration = [
+        f"{shard['shard_id']}:{value}"
+        for shard in shards
+        for value in shard.get("missing_calibration", [])
+    ]
+    ready_calibration_shards = [
+        calibration_shard
+        for shard in shards
+        for calibration_shard in shard.get("calibration_shards", [])
+        if calibration_shard.get("status") == "ready_smoke_shard"
+    ]
+    if missing:
+        status = "p0_shard_plan_incomplete"
+    elif missing_calibration:
+        status = "p0_shard_plan_ready_calibration_partial"
+    else:
+        status = "p0_shard_plan_ready"
     return {
-        "status": "p0_shard_plan_ready" if not missing else "p0_shard_plan_incomplete",
+        "status": status,
         "paper_allowed": False,
         "p0_config": str(p0_config),
         "shard_count": len(shards),
         "ready_shard_count": len(shards) - len(missing),
+        "ready_calibration_shard_count": len(ready_calibration_shards),
+        "missing_calibration_shards": missing_calibration,
         "missing_shards": missing,
         "unsupported_memory_policies": unsupported_memory,
         "unsupported_calibration": unsupported_calibration,
@@ -231,6 +315,28 @@ def verify_manifest(manifest: dict[str, Any], *, require_outputs: bool) -> list[
                     errors.append(
                         f"{shard.get('shard_id')}: missing output {key}: {value}"
                     )
+        for calibration_shard in shard.get("calibration_shards", []):
+            if calibration_shard.get("paper_allowed") is not False:
+                errors.append(
+                    f"{shard.get('shard_id')}:{calibration_shard.get('calibration')}: "
+                    "paper_allowed must be false"
+                )
+            if calibration_shard.get("status") != "ready_smoke_shard":
+                continue
+            for key in ["config", "runner"]:
+                path = Path(str(calibration_shard.get(key, "")))
+                if not path.exists():
+                    errors.append(
+                        f"{shard.get('shard_id')}:{calibration_shard.get('calibration')}: "
+                        f"missing {key}: {path}"
+                    )
+            if require_outputs:
+                for key, value in (calibration_shard.get("outputs") or {}).items():
+                    if not Path(str(value)).exists():
+                        errors.append(
+                            f"{shard.get('shard_id')}:{calibration_shard.get('calibration')}: "
+                            f"missing output {key}: {value}"
+                        )
     return errors
 
 
@@ -257,6 +363,7 @@ def main() -> None:
         print(
             "status="
             f"{manifest['status']} ready={manifest['ready_shard_count']}/{manifest['shard_count']} "
+            f"calibration_ready={manifest['ready_calibration_shard_count']} "
             "paper_allowed=false"
         )
     elif args.command == "verify":
@@ -269,6 +376,7 @@ def main() -> None:
         print(
             "p0 shard manifest valid: "
             f"{manifest.get('ready_shard_count')}/{manifest.get('shard_count')} ready, "
+            f"{manifest.get('ready_calibration_shard_count', 0)} calibration shards ready, "
             "paper_allowed=false"
         )
 
