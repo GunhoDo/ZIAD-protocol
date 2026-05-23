@@ -76,7 +76,7 @@ def _supported_memory_policies(
     if baseline not in scoped:
         return ["default/SCS"], []
     implemented_by_baseline = {
-        "RareCLIP": {"default/SCS", "FIFO", "Reservoir"},
+        "RareCLIP": {"default/SCS", "FIFO", "Reservoir", "Prototype-EMA"},
         "PatchCore": {"default/SCS", "FIFO", "Reservoir", "Prototype-EMA"},
     }
     implemented = implemented_by_baseline.get(baseline, {"default/SCS"})

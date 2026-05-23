@@ -252,6 +252,61 @@ class RareCLIPWrapperHelpersTest(unittest.TestCase):
         self.assertEqual(3, len(model.IF_memory))
         self.assertEqual(3, len(model.AAIF_memory[6]))
 
+    def test_prototype_ema_sampler_updates_nearest_patch_prototypes(self):
+        model = type("Model", (), {"sample_num": 2})()
+        rareclip._install_prototype_ema_sampler(model, alpha=0.5)
+        features = torch.tensor([[0.0], [10.0], [2.0], [12.0]])
+        similarity = torch.arange(16, dtype=torch.float32).reshape(4, 4)
+
+        sampled_features, sampled_similarity, normal_fnum = model.sample(
+            F_ref=features,
+            S_ref=similarity,
+            normal_fnum=4,
+        )
+
+        self.assertEqual([[1.0], [11.0]], sampled_features.tolist())
+        self.assertEqual((2, 2), tuple(sampled_similarity.shape))
+        self.assertEqual(2, normal_fnum)
+
+    def test_prototype_ema_memory_policy_keeps_score_and_if_memory_aligned(self):
+        model = FakeRareCLIPModel()
+        for _ in range(4):
+            model.process_image_and_update(torch.zeros((1, 3, 8, 8)), update=True)
+
+        rareclip._apply_prototype_ema_memory_policy(model, 2, alpha=0.5)
+
+        self.assertEqual([[1.0], [2.75]], model.score_memory.tolist())
+        self.assertEqual([[1.0, 1.0], [2.75, 2.75]], model.IF_memory.tolist())
+        self.assertEqual(2, len(model.AAIF_memory[6]))
+
+    def test_predict_rows_applies_prototype_ema_policy_after_updates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "mvtec_ad"
+            for index in range(4):
+                image(root / "bottle" / "test" / "good" / f"{index:03d}.png")
+            items = [
+                stream_item(index, f"bottle/test/good/{index:03d}.png")
+                for index in range(4)
+            ]
+            model = FakeRareCLIPModel()
+            rows = rareclip.RareCLIPWrapper._predict_rows(
+                model=model,
+                stream_items=items,
+                dataset_root=root,
+                category="bottle",
+                update_memory=True,
+                device=torch.device("cpu"),
+                torch=torch,
+                memory_policy="Prototype-EMA",
+                memory_limit=2,
+                memory_alpha=0.5,
+            )
+
+        self.assertEqual(4, len(rows))
+        self.assertEqual(2, len(model.score_memory))
+        self.assertEqual(2, len(model.IF_memory))
+        self.assertEqual(2, len(model.AAIF_memory[6]))
+
 
 if __name__ == "__main__":
     unittest.main()
