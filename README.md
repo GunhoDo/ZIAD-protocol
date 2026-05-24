@@ -150,6 +150,11 @@ python3 experiments/run_p0_full_step.py \
   --step-id mvtec_ad:winclip:default_no_memory:none \
   --output-root results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none \
   --stream-length 2
+python3 experiments/run_p0_full_step.py \
+  --plan results/latest/p0_full/execution_plan.json \
+  --step-id mvtec_ad:winclip:default_no_memory:temperature_scaling \
+  --output-root results/latest/p0_full/mvtec_ad/winclip/default_no_memory/temperature_scaling \
+  --stream-length 2
 ```
 
 This defines a separate full-P0 planning tier without running inference. Smoke
@@ -165,9 +170,9 @@ and memory policies `default/SCS,Reservoir` for PatchCore/RareCLIP plus
 pending aggregate steps. Production validation is category-aware: MVTec steps
 expect 15 categories and 180 rows, VisA steps expect 12 categories and 144
 rows, for production matrix count `3888`. The execution-plan runner can dry-run
-this skeleton. Production non-dry-run execution is guarded to one selected
-validation step, `mvtec_ad:winclip:default_no_memory:none`; do not run the full
-24-step plan.
+this skeleton. Production non-dry-run execution is guarded to the two selected
+MVTec WinCLIP validation steps for `none` and `temperature_scaling`; do not run
+the full 24-step plan.
 
 The single-step full-P0 executor resolves one step by id or index, enforces
 `results/latest/p0_full/` output paths, and dry-runs without creating outputs.
@@ -177,18 +182,20 @@ Lightweight outputs are not accepted as completed production outputs; a
 completed production aggregate manifest must declare `execution_mode=production`
 and match the production row count.
 
-The current production validation output for
-`mvtec_ad:winclip:default_no_memory:none` is:
+The current production validation outputs are:
 
 - `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none/metrics.csv`
 - `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none/manifest.json`
 - `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none/crd_lite.csv`
+- `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/temperature_scaling/metrics.csv`
+- `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/temperature_scaling/manifest.json`
+- `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/temperature_scaling/crd_lite.csv`
 
-It has 180 aggregate rows across 15 MVTec categories, status
-`measured_full_p0`, `execution_mode=production`, and keeps
-`paper_allowed=false`/`claim_allowed=false`. It used `--stream-length 2` as the
-cheapest production validation setting and is not a reviewed paper result.
-After this run, full-P0 dry-run reports `skipped=1` and `pending=23`.
+Each completed MVTec WinCLIP production aggregate has 180 rows across 15 MVTec
+categories, status `measured_full_p0`, `execution_mode=production`, and keeps
+`paper_allowed=false`/`claim_allowed=false`. These used `--stream-length 2` as
+the cheapest production validation setting and are not reviewed paper results.
+After these runs, full-P0 dry-run reports `skipped=2` and `pending=22`.
 
 Full-P0 skeleton gates stay closed by default:
 `run_tier=p0_full`, `execution_mode=production` for production-complete outputs,

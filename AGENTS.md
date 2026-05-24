@@ -257,6 +257,7 @@ python3 experiments/run_p0_execution_plan.py --plan results/latest/p0_full/execu
 python3 experiments/run_p0_full_step.py --plan results/latest/p0_full/execution_plan.json --step 0 --dry-run
 python3 experiments/run_p0_full_step.py --plan results/latest/p0_full/execution_plan.json --step-id mvtec_ad:winclip:default_no_memory:none --output-root results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none --validation-mode lightweight --stream-length 20
 python3 experiments/run_p0_full_step.py --plan results/latest/p0_full/execution_plan.json --step-id mvtec_ad:winclip:default_no_memory:none --output-root results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none --stream-length 2
+python3 experiments/run_p0_full_step.py --plan results/latest/p0_full/execution_plan.json --step-id mvtec_ad:winclip:default_no_memory:temperature_scaling --output-root results/latest/p0_full/mvtec_ad/winclip/default_no_memory/temperature_scaling --stream-length 2
 make paper                        # Build paper/paper.pdf
 make p0                           # Refresh P0 placeholder outputs (no real inference)
 ```

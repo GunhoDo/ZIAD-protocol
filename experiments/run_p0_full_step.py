@@ -52,7 +52,10 @@ DEFAULT_VALIDATION_CATEGORIES = {
     "MVTec AD": "bottle",
     "VisA": "candle",
 }
-FIRST_PRODUCTION_STEP_ID = "mvtec_ad:winclip:default_no_memory:none"
+ALLOWED_PRODUCTION_STEP_IDS = {
+    "mvtec_ad:winclip:default_no_memory:none",
+    "mvtec_ad:winclip:default_no_memory:temperature_scaling",
+}
 CommandRunner = Callable[[list[str]], int]
 
 
@@ -441,10 +444,10 @@ def _execute_lightweight_step(
 
 def _ensure_first_production_step(step: dict[str, Any]) -> None:
     step_id = str(step.get("step_id", ""))
-    if step_id != FIRST_PRODUCTION_STEP_ID:
+    if step_id not in ALLOWED_PRODUCTION_STEP_IDS:
         raise FullP0StepError(
-            "Production execution is currently enabled only for "
-            f"{FIRST_PRODUCTION_STEP_ID}; selected {step_id}"
+            "Production execution is currently enabled only for: "
+            f"{', '.join(sorted(ALLOWED_PRODUCTION_STEP_IDS))}; selected {step_id}"
         )
 
 
