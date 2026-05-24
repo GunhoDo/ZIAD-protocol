@@ -1,0 +1,56 @@
+# MVTec AD all-category stream/epsilon smoke matrix for PatchCore FIFO memory policy.
+# This is still paper-ineligible: short length-20 streams, no review, no VisA.
+dataset: MVTec AD
+dataset_root: data/mvtec_ad
+categories:
+  - bottle
+  - cable
+  - capsule
+  - carpet
+  - grid
+  - hazelnut
+  - leather
+  - metal_nut
+  - pill
+  - screw
+  - tile
+  - toothbrush
+  - transistor
+  - wood
+  - zipper
+
+baselines:
+  - name: PatchCore
+    baseline_path: external/patchcore-inspection
+    provenance:
+      scoring_mode: stream_ordered_patchcore_fifo_feature_bank
+      latency_semantics: wrapper_batch_amortized
+      training_source: train/good
+      stream_source: test/*
+
+prevalence: 0.05
+stream_types:
+  - iid
+  - bursty
+contamination_epsilon:
+  - 0
+  - 0.01
+  - 0.05
+memory_policy: FIFO
+stream:
+  seed: 0
+  length: 20
+  burst_length: 5
+
+baseline_options:
+  sampler: identity
+  fifo_memory_fraction: 0.1
+  model_cache_root: results/latest/patchcore_model_cache_mvtec_fifo_smoke
+
+outputs:
+  root: results/latest/mvtec_full_category_stream_matrix_patchcore_fifo
+  aggregate_metrics: results/latest/mvtec_full_category_stream_matrix_patchcore_fifo/metrics_mvtec_full_category_stream_matrix_patchcore_fifo.csv
+  aggregate_manifest: results/latest/mvtec_full_category_stream_matrix_patchcore_fifo/manifest_mvtec_full_category_stream_matrix_patchcore_fifo.json
+  crd_lite_summary: results/latest/mvtec_full_category_stream_matrix_patchcore_fifo/crd_lite_mvtec_full_category_stream_matrix_patchcore_fifo.csv
+  status: mvtec_full_category_stream_matrix_patchcore_fifo_complete
+  notes: MVTec all-category PatchCore FIFO stream/epsilon smoke matrix only; not full P0 or paper gate.

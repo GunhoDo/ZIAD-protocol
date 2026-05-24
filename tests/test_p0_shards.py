@@ -17,7 +17,7 @@ class P0ShardsTest(unittest.TestCase):
         self.assertEqual(8, manifest["ready_shard_count"])
         self.assertEqual(8, manifest["ready_calibration_shard_count"])
         self.assertEqual([], manifest["missing_shards"])
-        self.assertEqual(3, len(manifest["missing_memory_policy_shards"]))
+        self.assertEqual(2, len(manifest["missing_memory_policy_shards"]))
         self.assertNotIn(
             "mvtec_ad_rareclip_stream_epsilon_smoke:FIFO",
             manifest["missing_memory_policy_shards"],
@@ -52,6 +52,10 @@ class P0ShardsTest(unittest.TestCase):
         )
         self.assertNotIn(
             "visa_patchcore_stream_epsilon_smoke:Reservoir",
+            manifest["missing_memory_policy_shards"],
+        )
+        self.assertNotIn(
+            "mvtec_ad_patchcore_stream_epsilon_smoke:FIFO",
             manifest["missing_memory_policy_shards"],
         )
         self.assertEqual([], manifest["missing_calibration_shards"])
@@ -117,9 +121,20 @@ class P0ShardsTest(unittest.TestCase):
             shards[("MVTec AD", "PatchCore")]["current_supported_memory_policies"],
         )
         self.assertEqual(
-            ["default/SCS"],
+            ["default/SCS", "FIFO"],
             shards[("MVTec AD", "PatchCore")]["current_implemented_memory_policies"],
         )
+        self.assertEqual(
+            ["Reservoir", "Prototype-EMA"],
+            shards[("MVTec AD", "PatchCore")]["missing_memory_policies"],
+        )
+        mvtec_patchcore_fifo = shards[("MVTec AD", "PatchCore")]["memory_policy_shards"][
+            0
+        ]
+        self.assertEqual("FIFO", mvtec_patchcore_fifo["memory_policy"])
+        self.assertTrue(mvtec_patchcore_fifo["config"].endswith("_fifo.yaml"))
+        self.assertTrue(mvtec_patchcore_fifo["runner"].endswith("_fifo.sh"))
+        self.assertEqual(90, mvtec_patchcore_fifo["current_smoke_run_count"])
         self.assertEqual([], shards[("MVTec AD", "PatchCore")]["unsupported_memory_policies"])
         self.assertEqual(
             ["default/SCS", "FIFO", "Reservoir", "Prototype-EMA"],
@@ -227,7 +242,7 @@ class P0ShardsTest(unittest.TestCase):
             self.assertFalse(payload["paper_allowed"])
             self.assertEqual(8, payload["ready_shard_count"])
             self.assertEqual(8, payload["ready_calibration_shard_count"])
-            self.assertEqual(3, len(payload["missing_memory_policy_shards"]))
+            self.assertEqual(2, len(payload["missing_memory_policy_shards"]))
 
 
 if __name__ == "__main__":

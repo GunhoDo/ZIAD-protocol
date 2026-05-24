@@ -63,7 +63,8 @@ The compact summary includes the `memory_policy` axis. Current smoke evidence
 contains `default/SCS` plus measured `MVTec AD × RareCLIP × FIFO`,
 `MVTec AD × RareCLIP × Reservoir`/`Prototype-EMA`,
 `VisA × RareCLIP × FIFO`/`Reservoir`/`Prototype-EMA`, and
-`VisA × PatchCore × FIFO`/`Reservoir`/`Prototype-EMA` memory-policy shards. The remaining MVTec PatchCore FIFO/Reservoir/Prototype-EMA
+`VisA × PatchCore × FIFO`/`Reservoir`/`Prototype-EMA` plus
+`MVTec AD × PatchCore × FIFO` memory-policy shards. The remaining MVTec PatchCore Reservoir/Prototype-EMA
 shards remain explicit P0 gaps until their own shards are run.
 
 ## Refresh placeholder P0 outputs
@@ -387,6 +388,7 @@ remain smoke evidence with `paper_allowed=false`.
 
 ```bash
 bash scripts/run_mvtec_full_category_stream_matrix_patchcore.sh
+bash scripts/run_mvtec_full_category_stream_matrix_patchcore_fifo.sh
 bash scripts/run_mvtec_full_category_stream_matrix_patchcore_temperature.sh
 ```
 
@@ -394,6 +396,8 @@ This runs PatchCore across all 15 MVTec AD categories for
 `iid/bursty × ε 0/0.01/0.05`, length-20 streams. It uses the train/good
 offline batch-amortized smoke path and an ignored local fitted-model cache to
 avoid rebuilding the same per-category support index for every stream condition.
+The FIFO runner records a separate bounded feature-bank memory-policy shard and
+remains smoke evidence with `paper_allowed=false`.
 The temperature runner adds the `calibration none/temperature_scaling` axis
 without rerunning inference. It remains smoke evidence with `paper_allowed=false`.
 
