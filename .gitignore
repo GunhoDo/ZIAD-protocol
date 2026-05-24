@@ -79,6 +79,8 @@ results/latest/mvtec_full_category_stream_matrix_rareclip/configs/**
 results/latest/mvtec_full_category_stream_matrix_rareclip/details/**
 results/latest/mvtec_full_category_stream_matrix_rareclip_fifo/configs/**
 results/latest/mvtec_full_category_stream_matrix_rareclip_fifo/details/**
+results/latest/mvtec_full_category_stream_matrix_rareclip_reservoir/configs/**
+results/latest/mvtec_full_category_stream_matrix_rareclip_reservoir/details/**
 results/latest/mvtec_full_category_stream_matrix_rareclip_temperature/configs/**
 results/latest/mvtec_full_category_stream_matrix_rareclip_temperature/details/**
 results/latest/mvtec_full_category_stream_matrix_patchcore/configs/**

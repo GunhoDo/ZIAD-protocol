@@ -17,9 +17,13 @@ class P0ShardsTest(unittest.TestCase):
         self.assertEqual(8, manifest["ready_shard_count"])
         self.assertEqual(8, manifest["ready_calibration_shard_count"])
         self.assertEqual([], manifest["missing_shards"])
-        self.assertEqual(5, len(manifest["missing_memory_policy_shards"]))
+        self.assertEqual(4, len(manifest["missing_memory_policy_shards"]))
         self.assertNotIn(
             "mvtec_ad_rareclip_stream_epsilon_smoke:FIFO",
+            manifest["missing_memory_policy_shards"],
+        )
+        self.assertNotIn(
+            "mvtec_ad_rareclip_stream_epsilon_smoke:Reservoir",
             manifest["missing_memory_policy_shards"],
         )
         self.assertNotIn(
@@ -58,19 +62,25 @@ class P0ShardsTest(unittest.TestCase):
             shards[("MVTec AD", "RareCLIP")]["current_supported_memory_policies"],
         )
         self.assertEqual(
-            ["default/SCS", "FIFO"],
+            ["default/SCS", "FIFO", "Reservoir"],
             shards[("MVTec AD", "RareCLIP")]["current_implemented_memory_policies"],
         )
         self.assertEqual(
-            ["Reservoir", "Prototype-EMA"],
+            ["Prototype-EMA"],
             shards[("MVTec AD", "RareCLIP")]["missing_memory_policies"],
         )
-        self.assertEqual(
-            90,
-            shards[("MVTec AD", "RareCLIP")]["memory_policy_shards"][0][
-                "current_smoke_run_count"
-            ],
-        )
+        mvtec_rareclip_fifo = shards[("MVTec AD", "RareCLIP")]["memory_policy_shards"][0]
+        self.assertEqual("FIFO", mvtec_rareclip_fifo["memory_policy"])
+        self.assertTrue(mvtec_rareclip_fifo["config"].endswith("_fifo.yaml"))
+        self.assertTrue(mvtec_rareclip_fifo["runner"].endswith("_fifo.sh"))
+        self.assertEqual(90, mvtec_rareclip_fifo["current_smoke_run_count"])
+        mvtec_rareclip_reservoir = shards[("MVTec AD", "RareCLIP")][
+            "memory_policy_shards"
+        ][1]
+        self.assertEqual("Reservoir", mvtec_rareclip_reservoir["memory_policy"])
+        self.assertTrue(mvtec_rareclip_reservoir["config"].endswith("_reservoir.yaml"))
+        self.assertTrue(mvtec_rareclip_reservoir["runner"].endswith("_reservoir.sh"))
+        self.assertEqual(90, mvtec_rareclip_reservoir["current_smoke_run_count"])
         self.assertEqual(
             ["default/SCS", "FIFO", "Reservoir", "Prototype-EMA"],
             shards[("VisA", "RareCLIP")]["current_implemented_memory_policies"],
@@ -209,7 +219,7 @@ class P0ShardsTest(unittest.TestCase):
             self.assertFalse(payload["paper_allowed"])
             self.assertEqual(8, payload["ready_shard_count"])
             self.assertEqual(8, payload["ready_calibration_shard_count"])
-            self.assertEqual(5, len(payload["missing_memory_policy_shards"]))
+            self.assertEqual(4, len(payload["missing_memory_policy_shards"]))
 
 
 if __name__ == "__main__":
