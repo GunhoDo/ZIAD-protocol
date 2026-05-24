@@ -45,6 +45,18 @@
   - summary: `total=24 selected=24 skipped=0 pending=24 executed=0 dry_run=24`
   - single step: `python3 experiments/run_p0_full_step.py --plan results/latest/p0_full/execution_plan.json --step 0 --dry-run`
   - single-step output: `selected_step=0 step_id=mvtec_ad:patchcore:default_scs:none run_tier=p0_full paper_allowed=false claim_allowed=false review_status=not_reviewed`
+- lightweight non-dry-run validation:
+  - selected step: `mvtec_ad:winclip:default_no_memory:none`
+  - command: `python3 experiments/run_p0_full_step.py --plan results/latest/p0_full/execution_plan.json --step-id mvtec_ad:winclip:default_no_memory:none --output-root results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none --validation-mode lightweight --stream-length 20`
+  - generated aggregate outputs:
+    - `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none/metrics.csv`
+    - `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none/manifest.json`
+    - `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none/crd_lite.csv`
+  - generated per-run outputs stay under `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none/runs/`.
+  - aggregate row count `12`, row status `measured_full_p0`, memory policy `default/no-memory`.
+  - aggregate manifest keeps `run_tier=p0_full`, `paper_allowed=false`, `claim_allowed=false`, `review_status=not_reviewed`, `validation_mode=lightweight`, category `bottle`.
+  - post-completion dry-run summary: `total=24 selected=24 skipped=1 pending=23 executed=0 dry_run=23`.
+  - `results/latest/p0_shards/` and existing smoke result roots showed no git status changes after validation.
 - gate/status:
   - `run_tier=p0_full`
   - `paper_allowed=false`
@@ -57,10 +69,11 @@
   - 모든 declared output path와 optional `--output-root`가 `results/latest/p0_full/` 아래인지 검증한다.
   - manifest/latest_run metadata envelope는 `run_tier=p0_full`, `paper_allowed=false`, `claim_allowed=false`, `review_status=not_reviewed`를 강제한다.
   - dry-run은 output을 만들지 않는다.
-  - non-dry-run은 현재 fake metric 방지를 위해 fail closed한다.
+  - non-dry-run은 `--validation-mode lightweight`에서만 허용한다. production full-P0 실행은 아직 막혀 있다.
+  - WinCLIP/AnomalyCLIP의 full-P0 `default/no-memory` semantics는 기존 wrapper compatibility를 위해 runner config에서는 `default/SCS`로 호출하지만, produced full-P0 latest_run/manifest/aggregate metadata는 `default/no-memory`로 보존한다.
 - 제한:
-  - `experiments/run_p0_full_step.py`는 step selection/validation/dry-run boundary까지만 구현됐다. 실제 measured full-P0 inference body는 아직 미구현이다.
-  - full-P0 inference와 paper review는 미실행이다.
+  - `experiments/run_p0_full_step.py`는 lightweight single-category validation body까지만 구현됐다. production full-P0 execution body는 아직 미구현이다.
+  - full reviewed P0 inference와 paper review는 미실행이다.
   - `results/latest/p0_shards/`는 smoke orchestration evidence이고, `results/latest/p0_full/`는 separate full-P0 skeleton/future-output root다.
 
 ## 최신 진행: P0 execution-plan runner

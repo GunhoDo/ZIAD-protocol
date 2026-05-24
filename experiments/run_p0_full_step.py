@@ -10,9 +10,23 @@ closed. The real full-inference body is intentionally not implemented yet; use
 from __future__ import annotations
 
 import argparse
+import csv
 import json
+import subprocess
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
+
+if __package__ in {None, ""}:  # Allow `python3 experiments/run_p0_full_step.py ...`.
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+try:
+    import yaml
+except ImportError as error:  # pragma: no cover - environment-dependent
+    raise SystemExit("PyYAML is required for full-P0 step execution") from error
+
+from experiments import mini_matrix
 
 DEFAULT_PLAN = Path("results/latest/p0_full/execution_plan.json")
 FULL_OUTPUT_ROOT = Path("results/latest/p0_full")
@@ -22,6 +36,21 @@ REQUIRED_METADATA = {
     "claim_allowed": False,
     "review_status": "not_reviewed",
 }
+DEFAULT_DATASET_ROOTS = {
+    "MVTec AD": "data/mvtec_ad",
+    "VisA": "data/visa",
+}
+DEFAULT_BASELINE_PATHS = {
+    "PatchCore": "external/patchcore-inspection",
+    "WinCLIP": "external/WinClip",
+    "AnomalyCLIP": "external/AnomalyCLIP",
+    "RareCLIP": "external/RareCLIP",
+}
+DEFAULT_VALIDATION_CATEGORIES = {
+    "MVTec AD": "bottle",
+    "VisA": "candle",
+}
+CommandRunner = Callable[[list[str]], int]
 
 
 class FullP0StepError(ValueError):
@@ -162,12 +191,243 @@ def build_latest_run_metadata(step: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _default_command_runner(command: list[str]) -> int:
+    return subprocess.run(command, check=False).returncode
+
+
+def _read_json(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        raise FullP0StepError(f"Expected JSON output was not created: {path}")
+    payload = json.loads(path.read_text())
+    if not isinstance(payload, dict):
+        raise FullP0StepError(f"JSON output must be an object: {path}")
+    return payload
+
+
+def _write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
+
+
+def _patch_json_metadata(path: Path, metadata: dict[str, Any]) -> None:
+    payload = _read_json(path)
+    payload.update(metadata)
+    _write_json(path, payload)
+
+
+def _write_yaml(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+
+
+def _run_id(stream_type: str, epsilon: str, seed: str) -> str:
+    return (
+        f"{mini_matrix.slug(stream_type)}_eps_{mini_matrix.slug(epsilon)}"
+        f"_seed_{mini_matrix.slug(seed)}"
+    )
+
+
+def _step_dataset_root(step: dict[str, Any]) -> str:
+    dataset = str(step.get("dataset", ""))
+    if dataset not in DEFAULT_DATASET_ROOTS:
+        raise FullP0StepError(f"No default dataset_root for full-P0 dataset: {dataset}")
+    return DEFAULT_DATASET_ROOTS[dataset]
+
+
+def _step_baseline_path(step: dict[str, Any]) -> str:
+    baseline = str(step.get("baseline", ""))
+    if baseline not in DEFAULT_BASELINE_PATHS:
+        raise FullP0StepError(f"No default baseline_path for full-P0 baseline: {baseline}")
+    return DEFAULT_BASELINE_PATHS[baseline]
+
+
+def _validation_category(step: dict[str, Any], category: str | None) -> str:
+    if category:
+        return category
+    dataset = str(step.get("dataset", ""))
+    if dataset not in DEFAULT_VALIDATION_CATEGORIES:
+        raise FullP0StepError(f"No default validation category for dataset: {dataset}")
+    return DEFAULT_VALIDATION_CATEGORIES[dataset]
+
+
+def _runner_memory_policy(step: dict[str, Any]) -> str:
+    """Map full-P0 no-memory semantics onto existing wrapper contract values."""
+    baseline = str(step.get("baseline", ""))
+    memory_policy = str(step.get("memory_policy", "default/SCS"))
+    if baseline in {"WinCLIP", "AnomalyCLIP"} and memory_policy == "default/no-memory":
+        return "default/SCS"
+    return memory_policy
+
+
+def _run_command(command: list[str], *, command_runner: CommandRunner) -> None:
+    return_code = command_runner(command)
+    if return_code != 0:
+        raise FullP0StepError(
+            f"Command failed with exit code {return_code}: {' '.join(command)}"
+        )
+
+
+def _read_metric_row(path: Path, *, run_dir: Path) -> dict[str, str]:
+    if not path.exists():
+        raise FullP0StepError(f"Expected metrics output was not created: {path}")
+    with path.open(newline="") as handle:
+        rows = [dict(row) for row in csv.DictReader(handle)]
+    if len(rows) != 1:
+        raise FullP0StepError(f"Expected one metric row in {path}, got {len(rows)}")
+    row = rows[0]
+    row["run_dir"] = str(run_dir)
+    row["status"] = "measured_full_p0"
+    return row
+
+
+def _write_aggregate_metrics(path: Path, rows: list[dict[str, str]]) -> None:
+    if not rows:
+        raise FullP0StepError("No full-P0 metric rows to aggregate")
+    fieldnames: list[str] = []
+    for row in rows:
+        for key in row:
+            if key not in fieldnames:
+                fieldnames.append(key)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames, lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def _execute_lightweight_step(
+    step: dict[str, Any],
+    *,
+    category: str | None,
+    stream_length: int,
+    command_runner: CommandRunner,
+) -> None:
+    output_root = Path(str(step["output_root"]))
+    metadata = build_manifest_metadata(step)
+    latest_run_metadata = build_latest_run_metadata(step)
+    dataset = str(step["dataset"])
+    baseline = str(step["baseline"])
+    selected_category = _validation_category(step, category)
+    rows: list[dict[str, str]] = []
+    run_manifests: list[dict[str, Any]] = []
+    latest_runs: list[dict[str, Any]] = []
+
+    for stream_type in [str(value) for value in step.get("stream_types", [])]:
+        for epsilon in [str(value) for value in step.get("contamination_epsilon", [])]:
+            for seed in [str(value) for value in step.get("seeds", [])]:
+                run_id = _run_id(stream_type, epsilon, seed)
+                run_dir = output_root / "runs" / run_id
+                config_path = output_root / "configs" / f"{run_id}.yaml"
+                smoke_config = {
+                    "baseline": baseline,
+                    "baseline_path": _step_baseline_path(step),
+                    "dataset": dataset,
+                    "dataset_root": _step_dataset_root(step),
+                    "category": selected_category,
+                    "stream_type": stream_type,
+                    "prevalence": 0.05,
+                    "contamination_epsilon": float(epsilon),
+                    "memory_policy": _runner_memory_policy(step),
+                    "calibration": str(step.get("calibration", "none")),
+                    "stream": {
+                        "path": str(run_dir / "stream.json"),
+                        "seed": int(seed),
+                        "length": stream_length,
+                        "burst_length": 5,
+                    },
+                    "outputs": {
+                        "scores_csv": str(run_dir / "scores.csv"),
+                        "latest_run": str(run_dir / "latest_run.json"),
+                        "manifest": str(run_dir / "manifest.json"),
+                    },
+                    "provenance": {
+                        "scoring_mode": "stream_ordered_full_p0_lightweight",
+                        "latency_semantics": "wrapper_reported",
+                        "training_source": "baseline_default",
+                        "stream_source": "test/*",
+                        "full_p0_memory_policy": str(step.get("memory_policy", "")),
+                        "runner_memory_policy": _runner_memory_policy(step),
+                    },
+                }
+                _write_yaml(config_path, smoke_config)
+
+                _run_command(
+                    ["bash", "scripts/run_smoke.sh", str(config_path)],
+                    command_runner=command_runner,
+                )
+                _patch_json_metadata(run_dir / "latest_run.json", latest_run_metadata)
+                _patch_json_metadata(run_dir / "manifest.json", metadata)
+
+                _run_command(
+                    [
+                        "python3",
+                        "experiments/evaluate.py",
+                        "--scores-csv",
+                        str(run_dir / "scores.csv"),
+                        "--latest-run",
+                        str(run_dir / "latest_run.json"),
+                        "--output",
+                        str(run_dir / "metrics.csv"),
+                        "--manifest",
+                        str(run_dir / "manifest.json"),
+                    ],
+                    command_runner=command_runner,
+                )
+                _patch_json_metadata(run_dir / "manifest.json", metadata)
+
+                rows.append(_read_metric_row(run_dir / "metrics.csv", run_dir=run_dir))
+                run_manifests.append(_read_json(run_dir / "manifest.json"))
+                latest_runs.append(_read_json(run_dir / "latest_run.json"))
+
+    expected = int(step.get("expected_full_run_count") or 0)
+    if len(rows) != expected:
+        raise FullP0StepError(f"Full-P0 row count {len(rows)} != expected {expected}")
+
+    outputs = step["outputs"]
+    aggregate_metrics = Path(str(outputs["aggregate_metrics"]))
+    aggregate_manifest = Path(str(outputs["aggregate_manifest"]))
+    crd_lite_summary = Path(str(outputs["crd_lite_summary"]))
+
+    crd_rows, crd_by_run_dir = mini_matrix.compute_crd_lite(
+        rows,
+        category=selected_category,
+    )
+    for row in rows:
+        row["crd_lite"] = crd_by_run_dir.get(row.get("run_dir", ""), "NA")
+
+    _write_aggregate_metrics(aggregate_metrics, rows)
+    mini_matrix.write_crd_lite_summary(crd_lite_summary, crd_rows)
+    manifest = {
+        **metadata,
+        "status": "measured_full_p0_lightweight_complete",
+        "validation_mode": "lightweight",
+        "category": selected_category,
+        "stream_length": stream_length,
+        "aggregate_metrics": str(aggregate_metrics),
+        "crd_lite_summary": str(crd_lite_summary),
+        "run_count": len(rows),
+        "expected_full_run_count": expected,
+        "runs": rows,
+        "latest_runs": latest_runs,
+        "run_manifests": run_manifests,
+        "notes": (
+            "Lightweight single-category full-P0 validation step. "
+            "Not a reviewed paper result."
+        ),
+    }
+    _write_json(aggregate_manifest, manifest)
+
+
 def run_step(
     plan: dict[str, Any],
     *,
     selector: str,
     output_root: Path | None = None,
     dry_run: bool = False,
+    validation_mode: str | None = None,
+    category: str | None = None,
+    stream_length: int = 20,
+    command_runner: CommandRunner = _default_command_runner,
 ) -> tuple[int, dict[str, Any]]:
     index, step = resolve_step(plan, selector)
     validate_step_contract(step, output_root=output_root)
@@ -180,10 +440,38 @@ def run_step(
         )
         return index, step
 
-    raise FullP0StepError(
-        "Full-P0 real inference is not implemented yet; rerun with --dry-run "
-        "or implement the measured full-P0 step body before executing."
+    if validation_mode != "lightweight":
+        raise FullP0StepError(
+            "Full-P0 production execution is not implemented yet; use "
+            "--validation-mode lightweight for the bounded single-category "
+            "validation path."
+        )
+    _execute_lightweight_step(
+        step,
+        category=category,
+        stream_length=stream_length,
+        command_runner=command_runner,
     )
+    print(f"[{index}] COMPLETE full-P0 step {step_id}: validation_mode=lightweight")
+    return index, step
+
+
+def verify_completed_step(step: dict[str, Any]) -> None:
+    validate_step_contract(step)
+    outputs = step["outputs"]
+    metrics_path = Path(str(outputs["aggregate_metrics"]))
+    manifest_path = Path(str(outputs["aggregate_manifest"]))
+    crd_path = Path(str(outputs["crd_lite_summary"]))
+    for path in [metrics_path, manifest_path, crd_path]:
+        if not path.exists():
+            raise FullP0StepError(f"Expected full-P0 output missing: {path}")
+    with metrics_path.open(newline="") as handle:
+        row_count = sum(1 for _ in csv.DictReader(handle))
+    expected = int(step.get("expected_full_run_count") or 0)
+    if row_count != expected:
+        raise FullP0StepError(f"Full-P0 metrics row count {row_count} != expected {expected}")
+    manifest = _read_json(manifest_path)
+    _enforce_metadata(manifest, context="aggregate manifest")
 
 
 def parse_args() -> argparse.Namespace:
@@ -195,6 +483,13 @@ def parse_args() -> argparse.Namespace:
     selector.add_argument("--index", type=int, help="Zero-based full-P0 step index")
     parser.add_argument("--output-root", type=Path)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--validation-mode",
+        choices=["lightweight"],
+        help="Run a bounded single-category validation step instead of production full P0.",
+    )
+    parser.add_argument("--category", help="Override lightweight validation category")
+    parser.add_argument("--stream-length", type=int, default=20)
     return parser.parse_args()
 
 
@@ -214,7 +509,12 @@ def main() -> None:
             selector=selector,
             output_root=args.output_root,
             dry_run=args.dry_run,
+            validation_mode=args.validation_mode,
+            category=args.category,
+            stream_length=args.stream_length,
         )
+        if not args.dry_run:
+            verify_completed_step(step)
     except (json.JSONDecodeError, OSError, FullP0StepError) as error:
         raise SystemExit(f"ERROR: {error}") from error
 

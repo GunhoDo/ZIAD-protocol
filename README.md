@@ -140,6 +140,11 @@ python3 experiments/run_p0_execution_plan.py \
   --plan results/latest/p0_full/execution_plan.json --dry-run
 python3 experiments/run_p0_full_step.py \
   --plan results/latest/p0_full/execution_plan.json --step 0 --dry-run
+python3 experiments/run_p0_full_step.py \
+  --plan results/latest/p0_full/execution_plan.json \
+  --step-id mvtec_ad:winclip:default_no_memory:none \
+  --output-root results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none \
+  --validation-mode lightweight --stream-length 20
 ```
 
 This defines a separate full-P0 planning tier without running inference. Smoke
@@ -157,8 +162,11 @@ but full step inference is intentionally not implemented or run yet.
 
 The single-step full-P0 executor resolves one step by id or index, enforces
 `results/latest/p0_full/` output paths, and dry-runs without creating outputs.
-Non-dry-run execution fails closed until the measured full-P0 step body is
-implemented, so it cannot fabricate metrics or write into smoke roots.
+Non-dry-run execution is available only through the bounded
+`--validation-mode lightweight` path, which runs one selected aggregate step as
+single-category validation and writes only under `results/latest/p0_full/`.
+Production full-P0 execution remains unimplemented, so the full 24-step plan
+must not be run yet.
 
 Full-P0 skeleton gates stay closed by default:
 `run_tier=p0_full`, `paper_allowed=false`, `claim_allowed=false`, and

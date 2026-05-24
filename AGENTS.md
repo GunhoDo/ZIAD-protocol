@@ -255,6 +255,7 @@ python3 experiments/run_p0_execution_plan.py --dry-run
 python3 experiments/p0_full.py --config experiments/configs/p0_full/compact.yaml --manifest results/latest/p0_full/manifest.json --execution-plan results/latest/p0_full/execution_plan.json
 python3 experiments/run_p0_execution_plan.py --plan results/latest/p0_full/execution_plan.json --dry-run
 python3 experiments/run_p0_full_step.py --plan results/latest/p0_full/execution_plan.json --step 0 --dry-run
+python3 experiments/run_p0_full_step.py --plan results/latest/p0_full/execution_plan.json --step-id mvtec_ad:winclip:default_no_memory:none --output-root results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none --validation-mode lightweight --stream-length 20
 make paper                        # Build paper/paper.pdf
 make p0                           # Refresh P0 placeholder outputs (no real inference)
 ```

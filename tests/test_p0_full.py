@@ -1,8 +1,11 @@
 import json
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
+
+import yaml
 
 from experiments import p0_full, run_p0_execution_plan, run_p0_full_step
 
@@ -53,6 +56,16 @@ class P0FullSkeletonTest(unittest.TestCase):
 
     def test_full_execution_plan_is_dry_run_compatible(self):
         plan = p0_full.build_execution_plan(Path("experiments/configs/p0_full/compact.yaml"))
+        plan = dict(plan)
+        plan["steps"] = [dict(step) for step in plan["steps"]]
+        for index, step in enumerate(plan["steps"]):
+            root = Path("results/latest/p0_full/unit_test_missing_all") / str(index)
+            step["output_root"] = str(root)
+            step["outputs"] = {
+                "aggregate_metrics": str(root / "metrics.csv"),
+                "aggregate_manifest": str(root / "manifest.json"),
+                "crd_lite_summary": str(root / "crd_lite.csv"),
+            }
         calls = []
 
         summary = run_p0_execution_plan.run_execution_plan(
@@ -172,6 +185,133 @@ class P0FullStepExecutorTest(unittest.TestCase):
             run_p0_full_step.resolve_step(plan, "missing:step")
         with self.assertRaisesRegex(run_p0_full_step.FullP0StepError, "out of range"):
             run_p0_full_step.resolve_step(plan, "999")
+
+    def test_non_dry_run_refuses_smoke_output_roots(self):
+        plan = self._plan()
+        _, step = run_p0_full_step.resolve_step(plan, "0")
+
+        with self.assertRaisesRegex(run_p0_full_step.FullP0StepError, "outside"):
+            run_p0_full_step.run_step(
+                plan,
+                selector=step["step_id"],
+                output_root=Path("results/latest/p0_shards/not_allowed"),
+                validation_mode="lightweight",
+                command_runner=lambda command: 0,
+            )
+
+    def test_lightweight_run_writes_metadata_and_next_dry_run_skips(self):
+        plan = self._plan()
+        _, step = run_p0_full_step.resolve_step(plan, "4")
+        output_root = Path("results/latest/p0_full/unit_test_winclip_step")
+        if output_root.exists():
+            shutil.rmtree(output_root)
+        step = dict(step)
+        step["output_root"] = str(output_root)
+        step["outputs"] = {
+            "aggregate_metrics": str(output_root / "metrics.csv"),
+            "aggregate_manifest": str(output_root / "manifest.json"),
+            "crd_lite_summary": str(output_root / "crd_lite.csv"),
+        }
+        plan = dict(plan)
+        plan["steps"] = [step]
+
+        def fake_runner(command):
+            if command[:2] == ["bash", "scripts/run_smoke.sh"]:
+                cfg = yaml.safe_load(Path(command[2]).read_text())
+                outputs = cfg["outputs"]
+                scores_path = Path(outputs["scores_csv"])
+                latest_run_path = Path(outputs["latest_run"])
+                manifest_path = Path(outputs["manifest"])
+                scores_path.parent.mkdir(parents=True, exist_ok=True)
+                scores_path.write_text(
+                    "stream_index,image_path,label,category,anomaly_score,latency_ms,peak_vram_mb,status\n"
+                    "0,a.png,0,bottle,0.1,1,0,measured\n"
+                    "1,b.png,1,bottle,0.9,1,0,measured\n"
+                )
+                latest_run_path.write_text(
+                    json.dumps(
+                        {
+                            "dataset": cfg["dataset"],
+                            "stream_type": cfg["stream_type"],
+                            "prevalence": cfg["prevalence"],
+                            "contamination_epsilon": cfg["contamination_epsilon"],
+                            "baseline": cfg["baseline"],
+                            "memory_policy": cfg["memory_policy"],
+                            "calibration": cfg["calibration"],
+                            "paper_allowed": False,
+                        }
+                    )
+                )
+                manifest_path.write_text(json.dumps({"paper_allowed": False}))
+                return 0
+            if command[:2] == ["python3", "experiments/evaluate.py"]:
+                args = {command[i]: command[i + 1] for i in range(2, len(command), 2)}
+                latest_run = json.loads(Path(args["--latest-run"]).read_text())
+                metrics_path = Path(args["--output"])
+                manifest_path = Path(args["--manifest"])
+                metrics_path.write_text(
+                    "dataset,stream_type,prevalence,contamination_epsilon,baseline,memory_policy,calibration,"
+                    "image_auroc,aupr,ece,latency_ms,crd_lite,status\n"
+                    f"{latest_run['dataset']},{latest_run['stream_type']},{latest_run['prevalence']},"
+                    f"{latest_run['contamination_epsilon']},{latest_run['baseline']},"
+                    f"{latest_run['memory_policy']},{latest_run['calibration']},"
+                    "1.000000,1.000000,0.000000,1.000000,NA,measured_smoke\n"
+                )
+                manifest_path.write_text(json.dumps({"paper_allowed": False}))
+                return 0
+            return 99
+
+        try:
+            index, selected = run_p0_full_step.run_step(
+                plan,
+                selector=step["step_id"],
+                output_root=output_root,
+                validation_mode="lightweight",
+                command_runner=fake_runner,
+            )
+            self.assertEqual(0, index)
+            self.assertEqual(step["step_id"], selected["step_id"])
+
+            manifest = json.loads(Path(step["outputs"]["aggregate_manifest"]).read_text())
+            self.assertEqual("p0_full", manifest["run_tier"])
+            self.assertFalse(manifest["paper_allowed"])
+            self.assertFalse(manifest["claim_allowed"])
+            self.assertEqual("not_reviewed", manifest["review_status"])
+            self.assertEqual(12, manifest["run_count"])
+
+            summary = run_p0_execution_plan.run_execution_plan(plan, dry_run=True)
+            self.assertEqual(1, summary.skipped_steps)
+            self.assertEqual(0, summary.pending_steps)
+        finally:
+            if output_root.exists():
+                shutil.rmtree(output_root)
+
+    def test_failed_subprocess_stops_clearly(self):
+        plan = self._plan()
+        _, step = run_p0_full_step.resolve_step(plan, "4")
+        output_root = Path("results/latest/p0_full/unit_test_failure_step")
+        step = dict(step)
+        step["output_root"] = str(output_root)
+        step["outputs"] = {
+            "aggregate_metrics": str(output_root / "metrics.csv"),
+            "aggregate_manifest": str(output_root / "manifest.json"),
+            "crd_lite_summary": str(output_root / "crd_lite.csv"),
+        }
+        plan = dict(plan)
+        plan["steps"] = [step]
+
+        try:
+            with self.assertRaisesRegex(run_p0_full_step.FullP0StepError, "Command failed"):
+                run_p0_full_step.run_step(
+                    plan,
+                    selector=step["step_id"],
+                    output_root=output_root,
+                    validation_mode="lightweight",
+                    command_runner=lambda command: 7,
+                )
+        finally:
+            if output_root.exists():
+                shutil.rmtree(output_root)
 
 
 if __name__ == "__main__":
