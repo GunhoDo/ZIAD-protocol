@@ -17,7 +17,7 @@ class P0ShardsTest(unittest.TestCase):
         self.assertEqual(8, manifest["ready_shard_count"])
         self.assertEqual(8, manifest["ready_calibration_shard_count"])
         self.assertEqual([], manifest["missing_shards"])
-        self.assertEqual(9, len(manifest["missing_memory_policy_shards"]))
+        self.assertEqual(8, len(manifest["missing_memory_policy_shards"]))
         self.assertIn(
             "mvtec_ad_rareclip_stream_epsilon_smoke:FIFO",
             manifest["missing_memory_policy_shards"],
@@ -36,6 +36,10 @@ class P0ShardsTest(unittest.TestCase):
         )
         self.assertIn(
             "visa_patchcore_stream_epsilon_smoke:Prototype-EMA",
+            manifest["missing_memory_policy_shards"],
+        )
+        self.assertNotIn(
+            "visa_patchcore_stream_epsilon_smoke:FIFO",
             manifest["missing_memory_policy_shards"],
         )
         self.assertEqual([], manifest["missing_calibration_shards"])
@@ -89,6 +93,20 @@ class P0ShardsTest(unittest.TestCase):
             shards[("MVTec AD", "PatchCore")]["current_implemented_memory_policies"],
         )
         self.assertEqual([], shards[("MVTec AD", "PatchCore")]["unsupported_memory_policies"])
+        self.assertEqual(
+            ["default/SCS", "FIFO"],
+            shards[("VisA", "PatchCore")]["current_implemented_memory_policies"],
+        )
+        self.assertEqual(
+            ["Reservoir", "Prototype-EMA"],
+            shards[("VisA", "PatchCore")]["missing_memory_policies"],
+        )
+        self.assertEqual(
+            72,
+            shards[("VisA", "PatchCore")]["memory_policy_shards"][0][
+                "current_smoke_run_count"
+            ],
+        )
         self.assertEqual(
             ["default/SCS"],
             shards[("MVTec AD", "WinCLIP")]["current_implemented_memory_policies"],
@@ -174,7 +192,7 @@ class P0ShardsTest(unittest.TestCase):
             self.assertFalse(payload["paper_allowed"])
             self.assertEqual(8, payload["ready_shard_count"])
             self.assertEqual(8, payload["ready_calibration_shard_count"])
-            self.assertEqual(9, len(payload["missing_memory_policy_shards"]))
+            self.assertEqual(8, len(payload["missing_memory_policy_shards"]))
 
 
 if __name__ == "__main__":

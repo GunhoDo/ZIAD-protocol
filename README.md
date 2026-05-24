@@ -61,10 +61,11 @@ The compact summary artifacts are:
 
 The compact summary includes the `memory_policy` axis. Current smoke evidence
 contains `default/SCS` plus measured `VisA × RareCLIP × FIFO`,
-`VisA × RareCLIP × Reservoir`, and `VisA × RareCLIP × Prototype-EMA`
-memory-policy shards. The remaining MVTec RareCLIP FIFO/Reservoir/Prototype-EMA
-and MVTec/VisA PatchCore FIFO/Reservoir/Prototype-EMA shards remain explicit P0
-gaps until their own shards are run.
+`VisA × RareCLIP × Reservoir`, `VisA × RareCLIP × Prototype-EMA`, and
+`VisA × PatchCore × FIFO` memory-policy shards. The remaining MVTec RareCLIP
+FIFO/Reservoir/Prototype-EMA, MVTec PatchCore FIFO/Reservoir/Prototype-EMA, and
+VisA PatchCore Reservoir/Prototype-EMA shards remain explicit P0 gaps until
+their own shards are run.
 
 ## Refresh placeholder P0 outputs
 
@@ -260,6 +261,7 @@ bash scripts/run_visa_full_category_stream_matrix_winclip_temperature.sh
 bash scripts/run_visa_full_category_stream_matrix_anomalyclip.sh
 bash scripts/run_visa_full_category_stream_matrix_anomalyclip_temperature.sh
 bash scripts/run_visa_full_category_stream_matrix_patchcore.sh
+bash scripts/run_visa_full_category_stream_matrix_patchcore_fifo.sh
 bash scripts/run_visa_full_category_stream_matrix_patchcore_temperature.sh
 bash scripts/run_visa_full_category_stream_matrix_rareclip.sh
 bash scripts/run_visa_full_category_stream_matrix_rareclip_fifo.sh
@@ -278,10 +280,11 @@ roots. They materialize from the corresponding measured non-temperature stream
 matrix and apply deterministic calibration postprocessing, so they do not rerun
 baseline inference for calibration variants.
 
-The RareCLIP FIFO, Reservoir, and Prototype-EMA runners are memory-policy shards
-over the same all-category VisA stream/epsilon smoke shape. They write to separate
-`results/latest/visa_full_category_stream_matrix_rareclip_<policy>/` roots and
-are tracked separately from the default/SCS and calibration shards.
+The RareCLIP FIFO, Reservoir, and Prototype-EMA runners plus the PatchCore FIFO
+runner are memory-policy shards over the same all-category VisA stream/epsilon
+smoke shape. They write to separate
+`results/latest/visa_full_category_stream_matrix_<baseline>_<policy>/` roots
+and are tracked separately from the default/SCS and calibration shards.
 
 ## Run a category quick sweep
 
