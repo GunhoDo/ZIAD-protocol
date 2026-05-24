@@ -33,3 +33,5 @@ for dataset in mvtec visa; do
     --label "tab:${dataset}-${baseline}-temperature-smoke"
   done
 done
+
+python3 experiments/render_paper_tables.py --write-input-contract

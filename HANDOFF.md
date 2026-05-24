@@ -11,6 +11,24 @@
 - 논문 게이트는 아직 닫힘: 모든 현재 산출물은 `paper_allowed=false` 유지.
 - `.omx/`는 planning history이며 소스 오브 트루스가 아니다.
 
+## 최신 진행: paper table/figure input contract
+
+- 목표: full P0 장시간 실행 전, 현재 paper-facing smoke tables가 어떤 source CSV/manifest를 소비하는지 명시하는 입력 contract를 고정.
+- 주요 수정:
+  - `experiments/render_paper_tables.py`에 `write_paper_input_contract()`와 CLI 옵션 `--write-input-contract` 추가.
+  - `scripts/render_paper_tables.sh`가 table refresh 후 `results/latest/tables/paper_input_contract.json`을 생성하도록 연결.
+  - `tests/test_render_paper_tables.py`에 source row count, manifest gate, `claim_allowed=false` 검증 추가.
+  - `README.md`/`AGENTS.md`에 새 paper input contract artifact를 기록.
+- 생성 output:
+  - `results/latest/tables/paper_input_contract.json`
+- contract 의미:
+  - generated table별 `tex`, `source_csv`, `manifest`, `row_count`, `included_in_paper_tex`, `source_paper_allowed`, `eligible_for_claims`를 기록한다.
+  - 현재 status는 smoke-only readiness이며 `paper_allowed=false`, `claim_allowed=false`다.
+  - figures는 아직 빈 배열이다. full P0 figure input은 별도 구현 대상이다.
+- 제한:
+  - 새 metric이나 paper result를 만들지 않는다.
+  - 현재 table contract는 smoke evidence input contract다. full reviewed P0 결과로 해석하지 않는다.
+
 ## 최신 진행: MVTec PatchCore Prototype-EMA memory-policy shard
 
 - 목표: 마지막 P0 memory-policy gap인 `MVTec AD × PatchCore × Prototype-EMA`를 all-15-category `iid/bursty × ε 0/0.01/0.05`, length-20 smoke matrix로 실행하고 planner/table에 반영.

@@ -157,7 +157,7 @@ ZIAD-protocol/
     metrics.csv               # Metric contract (currently placeholder)
     latest_run.json           # Run provenance (status, baseline, dataset, paper_allowed)
     manifest.json             # Paper eligibility (paper_allowed: false until real results)
-    tables/                   # Paper-facing LaTeX tables
+    tables/                   # Paper-facing LaTeX tables and input contract
     figures/                  # Paper-facing figures
 
   paper/

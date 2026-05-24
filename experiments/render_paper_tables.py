@@ -21,6 +21,7 @@ DEFAULT_MANIFEST = Path(
     "results/latest/category_quick_sweep/manifest_mvtec_category_quick_sweep.json"
 )
 DEFAULT_OUTPUT = Path("results/latest/tables/smoke_evidence_summary.tex")
+DEFAULT_INPUT_CONTRACT = Path("results/latest/tables/paper_input_contract.json")
 DEFAULT_CAPTION = "MVTec AD category quick-sweep metrics"
 DEFAULT_LABEL = "tab:mvtec-category-quick-sweep"
 DEFAULT_TABLE_COLUMNS = [
@@ -48,6 +49,13 @@ def _read_csv(path: Path) -> list[dict[str, str]]:
         raise SystemExit(f"Missing metrics CSV: {path}")
     with path.open(newline="") as handle:
         return [dict(row) for row in csv.DictReader(handle)]
+
+
+def _csv_row_count(path: Path) -> int | None:
+    if not path.exists():
+        return None
+    with path.open(newline="") as handle:
+        return sum(1 for _ in csv.DictReader(handle))
 
 
 def _latex_escape(value: Any) -> str:
@@ -149,6 +157,129 @@ def render_smoke_evidence_table(
     return body
 
 
+def _known_table_inputs() -> list[dict[str, Any]]:
+    inputs: list[dict[str, Any]] = [
+        {
+            "name": "p0_smoke_summary",
+            "kind": "summary_table",
+            "tex": "results/latest/tables/p0_smoke_summary.tex",
+            "source_csv": "results/latest/tables/p0_smoke_summary.csv",
+            "manifest": "results/latest/tables/p0_smoke_summary_manifest.json",
+            "included_in_paper_tex": True,
+            "paper_label": "tab:p0-smoke-summary",
+            "interpretation": "compact smoke evidence summary; not a reviewed P0 result",
+        },
+        {
+            "name": "mvtec_category_quick_sweep",
+            "kind": "smoke_table",
+            "tex": "results/latest/tables/smoke_evidence_summary.tex",
+            "source_csv": str(DEFAULT_METRICS),
+            "manifest": str(DEFAULT_MANIFEST),
+            "included_in_paper_tex": True,
+            "paper_label": DEFAULT_LABEL,
+            "interpretation": "MVTec quick-sweep smoke evidence; not a reviewed P0 result",
+        },
+    ]
+    pretty = {
+        "winclip": "WinCLIP",
+        "anomalyclip": "AnomalyCLIP",
+        "rareclip": "RareCLIP",
+        "patchcore": "PatchCore",
+    }
+    for dataset in ["mvtec", "visa"]:
+        dataset_title = "MVTec AD" if dataset == "mvtec" else "VisA"
+        for baseline in ["winclip", "anomalyclip", "rareclip", "patchcore"]:
+            stem = f"{dataset}_full_category_stream_matrix_{baseline}_temperature"
+            inputs.append(
+                {
+                    "name": f"{dataset}_{baseline}_temperature_smoke",
+                    "kind": "calibration_axis_smoke_table",
+                    "tex": f"results/latest/tables/{dataset}_{baseline}_temperature_smoke.tex",
+                    "source_csv": f"results/latest/{stem}/metrics_{stem}.csv",
+                    "manifest": f"results/latest/{stem}/manifest_{stem}.json",
+                    "included_in_paper_tex": False,
+                    "paper_label": f"tab:{dataset}-{baseline}-temperature-smoke",
+                    "interpretation": (
+                        f"{dataset_title} {pretty[baseline]} stream/epsilon/calibration "
+                        "smoke evidence; not a reviewed P0 result"
+                    ),
+                }
+            )
+    return inputs
+
+
+def write_paper_input_contract(
+    output_path: Path = DEFAULT_INPUT_CONTRACT,
+    *,
+    table_inputs: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    """Write the current paper table/figure input contract.
+
+    The contract is metadata only. It records generated table inputs and keeps
+    every current artifact paper-ineligible until full reviewed P0 results are
+    explicitly promoted.
+    """
+    inputs = table_inputs or _known_table_inputs()
+    normalized: list[dict[str, Any]] = []
+    any_missing = False
+    any_paper_allowed = False
+    for entry in inputs:
+        manifest_path = Path(entry["manifest"])
+        source_csv = Path(entry["source_csv"])
+        tex_path = Path(entry["tex"])
+        manifest = _read_json(manifest_path)
+        paper_allowed = bool(manifest.get("paper_allowed"))
+        any_paper_allowed = any_paper_allowed or paper_allowed
+        missing = [
+            str(path)
+            for path in [tex_path, source_csv, manifest_path]
+            if not path.exists()
+        ]
+        any_missing = any_missing or bool(missing)
+        normalized.append(
+            {
+                **entry,
+                "exists": not missing,
+                "missing": missing,
+                "row_count": _csv_row_count(source_csv),
+                "source_manifest_status": manifest.get("status", "unknown"),
+                "source_paper_allowed": paper_allowed,
+                "eligible_for_claims": False,
+            }
+        )
+
+    contract = {
+        "status": (
+            "paper_input_contract_incomplete"
+            if any_missing
+            else "paper_input_contract_ready_smoke_only"
+        ),
+        "paper_allowed": False,
+        "claim_allowed": False,
+        "table_count": len(normalized),
+        "included_table_count": sum(
+            1 for entry in normalized if entry["included_in_paper_tex"]
+        ),
+        "missing_input_count": sum(len(entry["missing"]) for entry in normalized),
+        "source_paper_allowed_count": sum(
+            1 for entry in normalized if entry["source_paper_allowed"]
+        ),
+        "tables": normalized,
+        "figures": [],
+        "notes": (
+            "This contract enumerates current generated paper inputs. They are "
+            "smoke evidence only; do not treat them as reviewed paper results or "
+            "promote paper_allowed without a separate review step."
+        ),
+    }
+    if any_paper_allowed:
+        contract["notes"] += " One or more source manifests is paper_allowed=true."
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(contract, indent=2, ensure_ascii=False) + "\n")
+    return contract
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--metrics-csv", type=Path, default=DEFAULT_METRICS)
@@ -156,11 +287,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--caption", default=DEFAULT_CAPTION)
     parser.add_argument("--label", default=DEFAULT_LABEL)
+    parser.add_argument(
+        "--write-input-contract",
+        action="store_true",
+        help="Write the current paper table/figure input contract instead of rendering one table.",
+    )
+    parser.add_argument("--input-contract-output", type=Path, default=DEFAULT_INPUT_CONTRACT)
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    if args.write_input_contract:
+        write_paper_input_contract(args.input_contract_output)
+        print(args.input_contract_output)
+        return
     render_smoke_evidence_table(
         args.metrics_csv,
         args.manifest,

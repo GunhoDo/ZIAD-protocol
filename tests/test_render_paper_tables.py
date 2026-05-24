@@ -75,6 +75,47 @@ class RenderPaperTablesTest(unittest.TestCase):
                     Path(tmp) / "table.tex",
                 )
 
+    def test_write_paper_input_contract_records_sources_and_claim_gate(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            tex = root / "table.tex"
+            metrics = root / "metrics.csv"
+            manifest = root / "manifest.json"
+            output = root / "paper_input_contract.json"
+            tex.write_text("\\begin{table}\\end{table}\n")
+            metrics.write_text("dataset,baseline,status\nMVTec AD,WinCLIP,measured_smoke\n")
+            manifest.write_text(
+                json.dumps({"status": "measured_smoke_complete", "paper_allowed": False})
+            )
+
+            contract = render_paper_tables.write_paper_input_contract(
+                output,
+                table_inputs=[
+                    {
+                        "name": "unit_table",
+                        "kind": "smoke_table",
+                        "tex": str(tex),
+                        "source_csv": str(metrics),
+                        "manifest": str(manifest),
+                        "included_in_paper_tex": True,
+                        "paper_label": "tab:unit",
+                        "interpretation": "unit smoke evidence",
+                    }
+                ],
+            )
+
+            written = json.loads(output.read_text())
+            self.assertEqual(contract, written)
+            self.assertEqual("paper_input_contract_ready_smoke_only", contract["status"])
+            self.assertFalse(contract["paper_allowed"])
+            self.assertFalse(contract["claim_allowed"])
+            self.assertEqual(1, contract["table_count"])
+            self.assertEqual(1, contract["included_table_count"])
+            self.assertEqual(0, contract["missing_input_count"])
+            self.assertEqual(1, contract["tables"][0]["row_count"])
+            self.assertFalse(contract["tables"][0]["eligible_for_claims"])
+            self.assertFalse(contract["tables"][0]["source_paper_allowed"])
+
 
 if __name__ == "__main__":
     unittest.main()

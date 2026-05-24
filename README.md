@@ -58,6 +58,7 @@ The compact summary artifacts are:
 - `results/latest/tables/p0_smoke_summary.csv`
 - `results/latest/tables/p0_smoke_summary_manifest.json`
 - `results/latest/tables/p0_smoke_summary.tex`
+- `results/latest/tables/paper_input_contract.json`
 
 The compact summary includes the `memory_policy` axis. Current smoke evidence
 contains `default/SCS` plus measured `MVTec AD × RareCLIP × FIFO`,
@@ -67,6 +68,11 @@ contains `default/SCS` plus measured `MVTec AD × RareCLIP × FIFO`,
 `MVTec AD × PatchCore × FIFO`/`Reservoir`/`Prototype-EMA`
 memory-policy shards. Memory-policy smoke shard coverage is complete, but
 these remain paper-ineligible until reviewed full P0 runs exist.
+
+`paper_input_contract.json` is the current paper table/figure input contract:
+it lists generated table sources, row counts, source manifests, whether a table
+is included by `paper/paper.tex`, and keeps `claim_allowed=false` while the
+results are smoke-only.
 
 ## Refresh placeholder P0 outputs
 
