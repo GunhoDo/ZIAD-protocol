@@ -11,6 +11,31 @@
 - 논문 게이트는 아직 닫힘: 모든 현재 산출물은 `paper_allowed=false` 유지.
 - `.omx/`는 planning history이며 소스 오브 트루스가 아니다.
 
+## 최신 진행: P0 execution-plan runner
+
+- 목표: `results/latest/p0_shards/execution_plan.json`을 소비해서 long-running P0 shard 실행을 skip/resume 가능하게 만드는 runner 구현. 이번 단계에서는 full plan을 실제 실행하지 않고 dry-run과 mocked unit tests만 수행.
+- 주요 수정:
+  - `experiments/run_p0_execution_plan.py` 추가.
+  - `scripts/run_p0_execution_plan.sh` 추가.
+  - `tests/test_p0_execution_plan.py` 추가.
+  - `README.md`/`AGENTS.md`에 dry-run, single-step/range, resume/skip 규칙 기록.
+- 사용 명령:
+  - plan 생성: `python3 experiments/p0_shards.py execution-plan experiments/configs/p0.yaml --output results/latest/p0_shards/execution_plan.json`
+  - dry-run: `python3 experiments/run_p0_execution_plan.py --dry-run`
+  - shell wrapper: `bash scripts/run_p0_execution_plan.sh --dry-run`
+  - single step: `python3 experiments/run_p0_execution_plan.py --dry-run --step 0`
+  - step id: `python3 experiments/run_p0_execution_plan.py --dry-run --step mvtec_ad_rareclip_stream_epsilon_smoke:base`
+  - range: `python3 experiments/run_p0_execution_plan.py --dry-run --start-index 0 --end-index 2`
+- runner 동작:
+  - plan의 order대로 step을 처리한다.
+  - aggregate outputs가 모두 있고, manifest `paper_allowed=false`, manifest `claim_allowed`가 true가 아니며, aggregate metrics row count가 expected와 맞으면 skip한다.
+  - output 누락은 pending으로 보고 dry-run에서는 실행하지 않는다.
+  - dry-run이 아니면 pending step command를 실행하고 post-run validation을 다시 수행한다.
+  - validation gate 실패나 command 실패는 첫 실패에서 즉시 중단한다.
+- 제한:
+  - full 28-step plan은 실행하지 않았다. 현재 검증은 existing outputs dry-run과 mocked command-runner unit tests다.
+  - runner는 smoke outputs를 paper result로 승격하지 않는다. `paper_allowed=false`, `claim_allowed=false` 계약을 보존한다.
+
 ## 최신 진행: P0 shard execution/restart plan
 
 - 목표: full P0 장시간 실행 전, 현재 shard들을 어떤 순서로 실행하고 interruption 후 어디서 재개할지 JSON manifest로 고정.

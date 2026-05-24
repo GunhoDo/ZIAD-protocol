@@ -90,6 +90,7 @@ ZIAD-protocol/
     p0_shards.py              # Paper-ineligible P0 shard planner over current smoke runners
     make_streams.py           # Deterministic MVTec/VisA stream generator (iid/bursty)
     render_paper_tables.py    # Renders paper-ineligible smoke evidence tables
+    run_p0_execution_plan.py  # Dry-run/execute restartable P0 shard execution plans
     summarize_p0_smoke.py     # Builds compact paper-ineligible P0 smoke summary CSV/LaTeX
     prepare_data.py           # Placeholder data prep
     run_baselines.py          # Placeholder baseline runner
@@ -136,6 +137,7 @@ ZIAD-protocol/
     run_mvtec_full_category_stream_matrix_winclip_temperature.sh # WinCLIP all-category stream/epsilon/calibration smoke matrix runner
     run_patchcore_mini_matrix.sh # Compatibility wrapper around generic mini-matrix runner
     render_paper_tables.sh    # Refreshes generated LaTeX tables from result CSVs
+    run_p0_execution_plan.sh  # Wrapper around execution-plan runner
     setup_baselines.sh        # Checks clone slots and prints pinned clone commands if missing
     run_p0.sh                 # Refreshes P0 placeholder outputs (no real inference)
     build_paper.sh            # Builds paper/paper.pdf (or placeholder if no LaTeX)
@@ -245,6 +247,7 @@ bash scripts/render_paper_tables.sh # Refresh paper-facing non-final smoke evide
 python3 experiments/p0_shards.py plan experiments/configs/p0.yaml --output results/latest/p0_shards/manifest.json
 python3 experiments/p0_shards.py execution-plan experiments/configs/p0.yaml --output results/latest/p0_shards/execution_plan.json
 python3 experiments/p0_shards.py verify results/latest/p0_shards/manifest.json --require-outputs
+python3 experiments/run_p0_execution_plan.py --dry-run
 make paper                        # Build paper/paper.pdf
 make p0                           # Refresh P0 placeholder outputs (no real inference)
 ```

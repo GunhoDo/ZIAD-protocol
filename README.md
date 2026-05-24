@@ -93,6 +93,9 @@ python3 experiments/p0_shards.py execution-plan experiments/configs/p0.yaml \
   --output results/latest/p0_shards/execution_plan.json
 python3 experiments/p0_shards.py verify results/latest/p0_shards/manifest.json \
   --require-outputs
+python3 experiments/run_p0_execution_plan.py --dry-run
+# or
+bash scripts/run_p0_execution_plan.sh --dry-run
 ```
 
 This writes an orchestration manifest that maps the intended P0 matrix onto the
@@ -105,6 +108,26 @@ records unsupported or missing dimensions explicitly.
 shards. It fixes the order as base stream/epsilon shards, then memory-policy
 shards, then calibration shards, records aggregate outputs for skip/resume, and
 keeps `claim_allowed=false`.
+
+The execution-plan runner consumes that manifest. It skips a step when all
+declared aggregate outputs exist, the aggregate manifest keeps
+`paper_allowed=false`, `claim_allowed` is not true, and the aggregate metrics row
+count matches the step's expected smoke run count. Missing outputs make a step
+pending; without `--dry-run`, the runner executes the step command and validates
+again. Validation failures stop immediately.
+
+Useful scoped runs:
+
+```bash
+python3 experiments/run_p0_execution_plan.py --dry-run --step 0
+python3 experiments/run_p0_execution_plan.py --dry-run \
+  --step mvtec_ad_rareclip_stream_epsilon_smoke:base
+python3 experiments/run_p0_execution_plan.py --dry-run --start-index 0 --end-index 2
+```
+
+Do not run the full execution plan as paper evidence. All current outputs remain
+smoke evidence with `paper_allowed=false` until reviewed full P0 results are
+explicitly promoted in a separate step.
 
 ## Run a measured mini-matrix smoke
 
