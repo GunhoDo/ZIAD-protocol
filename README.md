@@ -152,19 +152,25 @@ orchestration remains under `results/latest/p0_shards/`; reviewed full-P0
 skeleton artifacts and future full outputs live under `results/latest/p0_full/`.
 Smoke outputs must not satisfy full-P0 outputs.
 
-The current compact full-P0 skeleton has deterministic matrix count `288`:
+The current compact full-P0 skeleton has deterministic aggregate matrix count `288`:
 MVTec AD/VisA, PatchCore/WinCLIP/AnomalyCLIP/RareCLIP, iid/bursty, epsilon
 `0/0.05`, calibration `none/temperature_scaling`, explicit seeds `0/1/2`,
 and memory policies `default/SCS,Reservoir` for PatchCore/RareCLIP plus
 `default/no-memory` for WinCLIP/AnomalyCLIP. It groups those runs into 24
-pending aggregate steps. The execution-plan runner can dry-run this skeleton,
-but full step inference is intentionally not implemented or run yet.
+pending aggregate steps. Production validation is category-aware: MVTec steps
+expect 15 categories and 180 rows, VisA steps expect 12 categories and 144
+rows, for production matrix count `3888`. The execution-plan runner can dry-run
+this skeleton, but full step inference is intentionally not implemented or run
+yet.
 
 The single-step full-P0 executor resolves one step by id or index, enforces
 `results/latest/p0_full/` output paths, and dry-runs without creating outputs.
 Non-dry-run execution is available only through the bounded
 `--validation-mode lightweight` path, which runs one selected aggregate step as
 single-category validation and writes only under `results/latest/p0_full/`.
+Lightweight outputs are not accepted as completed production outputs; a
+completed production aggregate manifest must declare `execution_mode=production`
+and match the production row count.
 Production full-P0 execution remains unimplemented, so the full 24-step plan
 must not be run yet.
 

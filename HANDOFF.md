@@ -37,9 +37,12 @@
   - `results/latest/p0_full/manifest.json`
   - `results/latest/p0_full/execution_plan.json`
 - deterministic count:
-  - matrix count `288`
+  - aggregate matrix count `288`
+  - production matrix count `3888`
   - aggregate execution-plan steps `24`
-  - each step has expected full run count `12`
+  - each step keeps expected lightweight run count `12`
+  - MVTec AD production steps expect `15` categories and `180` metric rows.
+  - VisA production steps expect `12` categories and `144` metric rows.
 - dry-run:
   - `python3 experiments/run_p0_execution_plan.py --plan results/latest/p0_full/execution_plan.json --dry-run`
   - summary: `total=24 selected=24 skipped=0 pending=24 executed=0 dry_run=24`
@@ -55,7 +58,8 @@
   - generated per-run outputs stay under `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none/runs/`.
   - aggregate row count `12`, row status `measured_full_p0`, memory policy `default/no-memory`.
   - aggregate manifest keeps `run_tier=p0_full`, `paper_allowed=false`, `claim_allowed=false`, `review_status=not_reviewed`, `validation_mode=lightweight`, category `bottle`.
-  - post-completion dry-run summary: `total=24 selected=24 skipped=1 pending=23 executed=0 dry_run=23`.
+  - after production contract hardening, this lightweight output no longer satisfies full-P0 production skip validation.
+  - current full-P0 dry-run summary: `total=24 selected=24 skipped=0 pending=24 executed=0 dry_run=24`.
   - `results/latest/p0_shards/` and existing smoke result roots showed no git status changes after validation.
 - gate/status:
   - `run_tier=p0_full`
@@ -70,6 +74,8 @@
   - manifest/latest_run metadata envelope는 `run_tier=p0_full`, `paper_allowed=false`, `claim_allowed=false`, `review_status=not_reviewed`를 강제한다.
   - dry-run은 output을 만들지 않는다.
   - non-dry-run은 `--validation-mode lightweight`에서만 허용한다. production full-P0 실행은 아직 막혀 있다.
+  - full-P0 execution-plan validation now requires aggregate manifest `execution_mode=production` and the category-aware production row count before a step can be skipped as complete.
+  - lightweight aggregate manifests remain validation evidence only and are treated as pending for production full-P0 execution.
   - WinCLIP/AnomalyCLIP의 full-P0 `default/no-memory` semantics는 기존 wrapper compatibility를 위해 runner config에서는 `default/SCS`로 호출하지만, produced full-P0 latest_run/manifest/aggregate metadata는 `default/no-memory`로 보존한다.
 - 제한:
   - `experiments/run_p0_full_step.py`는 lightweight single-category validation body까지만 구현됐다. production full-P0 execution body는 아직 미구현이다.

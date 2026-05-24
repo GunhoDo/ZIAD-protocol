@@ -379,7 +379,11 @@ def _execute_lightweight_step(
                 run_manifests.append(_read_json(run_dir / "manifest.json"))
                 latest_runs.append(_read_json(run_dir / "latest_run.json"))
 
-    expected = int(step.get("expected_full_run_count") or 0)
+    expected = int(
+        step.get("expected_lightweight_run_count")
+        or step.get("expected_full_run_count")
+        or 0
+    )
     if len(rows) != expected:
         raise FullP0StepError(f"Full-P0 row count {len(rows)} != expected {expected}")
 
@@ -400,6 +404,7 @@ def _execute_lightweight_step(
     manifest = {
         **metadata,
         "status": "measured_full_p0_lightweight_complete",
+        "execution_mode": "lightweight",
         "validation_mode": "lightweight",
         "category": selected_category,
         "stream_length": stream_length,
@@ -456,7 +461,7 @@ def run_step(
     return index, step
 
 
-def verify_completed_step(step: dict[str, Any]) -> None:
+def verify_completed_step(step: dict[str, Any], *, completion_mode: str = "production") -> None:
     validate_step_contract(step)
     outputs = step["outputs"]
     metrics_path = Path(str(outputs["aggregate_metrics"]))
@@ -467,11 +472,20 @@ def verify_completed_step(step: dict[str, Any]) -> None:
             raise FullP0StepError(f"Expected full-P0 output missing: {path}")
     with metrics_path.open(newline="") as handle:
         row_count = sum(1 for _ in csv.DictReader(handle))
-    expected = int(step.get("expected_full_run_count") or 0)
+    expected_field = (
+        "expected_lightweight_run_count"
+        if completion_mode == "lightweight"
+        else "expected_full_run_count"
+    )
+    expected = int(step.get(expected_field) or 0)
     if row_count != expected:
         raise FullP0StepError(f"Full-P0 metrics row count {row_count} != expected {expected}")
     manifest = _read_json(manifest_path)
     _enforce_metadata(manifest, context="aggregate manifest")
+    if manifest.get("execution_mode") != completion_mode:
+        raise FullP0StepError(
+            f"aggregate manifest execution_mode must be {completion_mode!r}"
+        )
 
 
 def parse_args() -> argparse.Namespace:
@@ -514,7 +528,12 @@ def main() -> None:
             stream_length=args.stream_length,
         )
         if not args.dry_run:
-            verify_completed_step(step)
+            verify_completed_step(
+                step,
+                completion_mode=(
+                    "lightweight" if args.validation_mode == "lightweight" else "production"
+                ),
+            )
     except (json.JSONDecodeError, OSError, FullP0StepError) as error:
         raise SystemExit(f"ERROR: {error}") from error
 

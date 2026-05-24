@@ -100,6 +100,7 @@ def validate_step_outputs(step: dict[str, Any]) -> StepValidation:
             missing.append(f"{output_key}: {output_path}")
 
     manifest_path_value = outputs.get("aggregate_manifest")
+    manifest: dict[str, Any] | None = None
     if not manifest_path_value:
         errors.append("aggregate_manifest output is required for validation")
     elif Path(str(manifest_path_value)).exists():
@@ -112,14 +113,33 @@ def validate_step_outputs(step: dict[str, Any]) -> StepValidation:
                 errors.append(f"aggregate_manifest paper_allowed must be false: {manifest_path_value}")
             if manifest.get("claim_allowed", False) is not False:
                 errors.append(f"aggregate_manifest claim_allowed must be false: {manifest_path_value}")
+            expected_mode = validation.get("expected_execution_mode")
+            mode_matches = not expected_mode or manifest.get("execution_mode") == expected_mode
+            if expected_mode and not mode_matches:
+                missing.append(
+                    "aggregate_manifest execution_mode "
+                    f"{manifest.get('execution_mode')!r} != expected {expected_mode!r}: "
+                    f"{manifest_path_value}"
+                )
+            expected_category_count = validation.get("expected_category_count")
+            if mode_matches and expected_category_count is not None:
+                if manifest.get("category_count") != expected_category_count:
+                    errors.append(
+                        "aggregate_manifest category_count "
+                        f"{manifest.get('category_count')!r} != expected "
+                        f"{expected_category_count!r}: {manifest_path_value}"
+                    )
 
-    expected_count = int(step.get("expected_smoke_run_count") or 0)
+    expected_count_field = str(
+        validation.get("expected_row_count_field") or "expected_smoke_run_count"
+    )
+    expected_count = int(step.get(expected_count_field) or 0)
     metrics_path_value = outputs.get("aggregate_metrics")
     if expected_count <= 0:
-        errors.append("expected_smoke_run_count must be positive")
+        errors.append(f"{expected_count_field} must be positive")
     elif not metrics_path_value:
         errors.append("aggregate_metrics output is required for row-count validation")
-    elif Path(str(metrics_path_value)).exists():
+    elif Path(str(metrics_path_value)).exists() and not missing:
         try:
             actual_count = _csv_row_count(Path(str(metrics_path_value)))
         except (OSError, ValueError) as error:

@@ -25,6 +25,39 @@ except ImportError as error:  # pragma: no cover - environment-dependent
 DEFAULT_CONFIG = Path("experiments/configs/p0_full/compact.yaml")
 DEFAULT_MANIFEST = Path("results/latest/p0_full/manifest.json")
 DEFAULT_EXECUTION_PLAN = Path("results/latest/p0_full/execution_plan.json")
+FULL_P0_CATEGORIES = {
+    "MVTec AD": [
+        "bottle",
+        "cable",
+        "capsule",
+        "carpet",
+        "grid",
+        "hazelnut",
+        "leather",
+        "metal_nut",
+        "pill",
+        "screw",
+        "tile",
+        "toothbrush",
+        "transistor",
+        "wood",
+        "zipper",
+    ],
+    "VisA": [
+        "candle",
+        "capsules",
+        "cashew",
+        "chewinggum",
+        "fryum",
+        "macaroni1",
+        "macaroni2",
+        "pcb1",
+        "pcb2",
+        "pcb3",
+        "pcb4",
+        "pipe_fryum",
+    ],
+}
 
 
 def _load_config(path: Path) -> dict[str, Any]:
@@ -103,6 +136,28 @@ def matrix_count(config: dict[str, Any]) -> int:
     )
 
 
+def production_run_count(config: dict[str, Any]) -> int:
+    axes = _matrix_axes(config)
+    baseline_policy_count = sum(
+        len(_memory_policies(config, baseline)) for baseline in axes["baselines"]
+    )
+    category_count = sum(len(_full_categories(dataset)) for dataset in axes["datasets"])
+    return (
+        category_count
+        * baseline_policy_count
+        * len(axes["stream_types"])
+        * len(axes["contamination_epsilon"])
+        * len(axes["calibration"])
+        * len(axes["seeds"])
+    )
+
+
+def _full_categories(dataset: str) -> list[str]:
+    if dataset not in FULL_P0_CATEGORIES:
+        raise SystemExit(f"Missing full-P0 category list for dataset: {dataset}")
+    return list(FULL_P0_CATEGORIES[dataset])
+
+
 def _step_output_root(
     config: dict[str, Any],
     dataset: str,
@@ -134,6 +189,7 @@ def build_manifest(config_path: Path = DEFAULT_CONFIG) -> dict[str, Any]:
     axes = _matrix_axes(config)
     steps = []
     for dataset in axes["datasets"]:
+        categories = _full_categories(dataset)
         for baseline in axes["baselines"]:
             for memory_policy in _memory_policies(config, baseline):
                 for calibration in axes["calibration"]:
@@ -157,11 +213,19 @@ def build_manifest(config_path: Path = DEFAULT_CONFIG) -> dict[str, Any]:
                             "baseline": baseline,
                             "memory_policy": memory_policy,
                             "calibration": calibration,
+                            "categories": categories,
+                            "category_count": len(categories),
                             "stream_types": axes["stream_types"],
                             "contamination_epsilon": axes["contamination_epsilon"],
                             "seeds": axes["seeds"],
-                            "expected_full_run_count": (
+                            "expected_lightweight_run_count": (
                                 len(axes["stream_types"])
+                                * len(axes["contamination_epsilon"])
+                                * len(axes["seeds"])
+                            ),
+                            "expected_full_run_count": (
+                                len(categories)
+                                * len(axes["stream_types"])
                                 * len(axes["contamination_epsilon"])
                                 * len(axes["seeds"])
                             ),
@@ -187,6 +251,7 @@ def build_manifest(config_path: Path = DEFAULT_CONFIG) -> dict[str, Any]:
             },
         },
         "matrix_count": matrix_count(config),
+        "production_matrix_count": production_run_count(config),
         "step_count": len(steps),
         "steps": steps,
         "notes": (
@@ -215,10 +280,13 @@ def build_execution_plan(config_path: Path = DEFAULT_CONFIG) -> dict[str, Any]:
                 "baseline": step["baseline"],
                 "memory_policy": step["memory_policy"],
                 "calibration": step["calibration"],
+                "categories": step["categories"],
+                "category_count": step["category_count"],
                 "stream_types": step["stream_types"],
                 "contamination_epsilon": step["contamination_epsilon"],
                 "seeds": step["seeds"],
-                "expected_smoke_run_count": step["expected_full_run_count"],
+                "expected_smoke_run_count": step["expected_lightweight_run_count"],
+                "expected_lightweight_run_count": step["expected_lightweight_run_count"],
                 "expected_full_run_count": step["expected_full_run_count"],
                 "output_root": step["output_root"],
                 "command": (
@@ -238,6 +306,9 @@ def build_execution_plan(config_path: Path = DEFAULT_CONFIG) -> dict[str, Any]:
                 "validation": {
                     "required_outputs": sorted(step["outputs"]),
                     "required_status": "measured_full_p0",
+                    "expected_execution_mode": "production",
+                    "expected_category_count": step["category_count"],
+                    "expected_row_count_field": "expected_full_run_count",
                     "paper_allowed": False,
                     "claim_allowed": False,
                     "review_status": step["review_status"],

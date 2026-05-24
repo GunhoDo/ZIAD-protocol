@@ -21,6 +21,7 @@ class P0FullSkeletonTest(unittest.TestCase):
         self.assertEqual("not_reviewed", manifest["review_status"])
         self.assertEqual("p0_full", manifest["source_tier"])
         self.assertEqual(288, manifest["matrix_count"])
+        self.assertEqual(3888, manifest["production_matrix_count"])
         self.assertEqual(24, manifest["step_count"])
         self.assertEqual(["0", "1", "2"], manifest["matrix_axes"]["seeds"])
         self.assertEqual(
@@ -37,7 +38,13 @@ class P0FullSkeletonTest(unittest.TestCase):
             self.assertEqual("p0_full", step["source_tier"])
             self.assertFalse(step["paper_allowed"])
             self.assertFalse(step["claim_allowed"])
-            self.assertEqual(12, step["expected_full_run_count"])
+            self.assertEqual(12, step["expected_lightweight_run_count"])
+            if step["dataset"] == "MVTec AD":
+                self.assertEqual(15, step["category_count"])
+                self.assertEqual(180, step["expected_full_run_count"])
+            if step["dataset"] == "VisA":
+                self.assertEqual(12, step["category_count"])
+                self.assertEqual(144, step["expected_full_run_count"])
             for output in step["outputs"].values():
                 self.assertTrue(output.startswith("results/latest/p0_full/"))
                 self.assertNotIn("results/latest/p0_shards", output)
@@ -199,7 +206,7 @@ class P0FullStepExecutorTest(unittest.TestCase):
                 command_runner=lambda command: 0,
             )
 
-    def test_lightweight_run_writes_metadata_and_next_dry_run_skips(self):
+    def test_lightweight_run_writes_metadata_but_production_dry_run_stays_pending(self):
         plan = self._plan()
         _, step = run_p0_full_step.resolve_step(plan, "4")
         output_root = Path("results/latest/p0_full/unit_test_winclip_step")
@@ -280,8 +287,86 @@ class P0FullStepExecutorTest(unittest.TestCase):
             self.assertEqual(12, manifest["run_count"])
 
             summary = run_p0_execution_plan.run_execution_plan(plan, dry_run=True)
+            self.assertEqual(0, summary.skipped_steps)
+            self.assertEqual(1, summary.pending_steps)
+            self.assertEqual(1, summary.dry_run_steps)
+        finally:
+            if output_root.exists():
+                shutil.rmtree(output_root)
+
+    def test_production_manifest_is_required_for_execution_plan_skip(self):
+        plan = self._plan()
+        _, step = run_p0_full_step.resolve_step(plan, "4")
+        output_root = Path("results/latest/p0_full/unit_test_production_step")
+        if output_root.exists():
+            shutil.rmtree(output_root)
+        step = dict(step)
+        step["output_root"] = str(output_root)
+        step["outputs"] = {
+            "aggregate_metrics": str(output_root / "metrics.csv"),
+            "aggregate_manifest": str(output_root / "manifest.json"),
+            "crd_lite_summary": str(output_root / "crd_lite.csv"),
+        }
+        plan = dict(plan)
+        plan["steps"] = [step]
+        try:
+            output_root.mkdir(parents=True)
+            Path(step["outputs"]["aggregate_manifest"]).write_text(
+                json.dumps(
+                    {
+                        "run_tier": "p0_full",
+                        "paper_allowed": False,
+                        "claim_allowed": False,
+                        "review_status": "not_reviewed",
+                        "execution_mode": "production",
+                        "category_count": step["category_count"],
+                    }
+                )
+            )
+            Path(step["outputs"]["crd_lite_summary"]).write_text("status\nmeasured_full_p0\n")
+            with Path(step["outputs"]["aggregate_metrics"]).open("w") as handle:
+                handle.write("dataset,status\n")
+                for _ in range(step["expected_full_run_count"]):
+                    handle.write("MVTec AD,measured_full_p0\n")
+
+            summary = run_p0_execution_plan.run_execution_plan(plan, dry_run=True)
             self.assertEqual(1, summary.skipped_steps)
             self.assertEqual(0, summary.pending_steps)
+        finally:
+            if output_root.exists():
+                shutil.rmtree(output_root)
+
+    def test_production_manifest_category_count_mismatch_fails_validation(self):
+        plan = self._plan()
+        _, step = run_p0_full_step.resolve_step(plan, "4")
+        output_root = Path("results/latest/p0_full/unit_test_bad_category_count")
+        if output_root.exists():
+            shutil.rmtree(output_root)
+        step = dict(step)
+        step["output_root"] = str(output_root)
+        step["outputs"] = {
+            "aggregate_metrics": str(output_root / "metrics.csv"),
+            "aggregate_manifest": str(output_root / "manifest.json"),
+            "crd_lite_summary": str(output_root / "crd_lite.csv"),
+        }
+        try:
+            output_root.mkdir(parents=True)
+            Path(step["outputs"]["aggregate_manifest"]).write_text(
+                json.dumps(
+                    {
+                        "paper_allowed": False,
+                        "claim_allowed": False,
+                        "execution_mode": "production",
+                        "category_count": step["category_count"] - 1,
+                    }
+                )
+            )
+            Path(step["outputs"]["crd_lite_summary"]).write_text("status\nmeasured_full_p0\n")
+            Path(step["outputs"]["aggregate_metrics"]).write_text("dataset,status\n")
+
+            validation = run_p0_execution_plan.validate_step_outputs(step)
+            self.assertFalse(validation.valid)
+            self.assertTrue(any("category_count" in error for error in validation.errors))
         finally:
             if output_root.exists():
                 shutil.rmtree(output_root)
