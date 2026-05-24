@@ -17,8 +17,8 @@ class P0ShardsTest(unittest.TestCase):
         self.assertEqual(8, manifest["ready_shard_count"])
         self.assertEqual(8, manifest["ready_calibration_shard_count"])
         self.assertEqual([], manifest["missing_shards"])
-        self.assertEqual(6, len(manifest["missing_memory_policy_shards"]))
-        self.assertIn(
+        self.assertEqual(5, len(manifest["missing_memory_policy_shards"]))
+        self.assertNotIn(
             "mvtec_ad_rareclip_stream_epsilon_smoke:FIFO",
             manifest["missing_memory_policy_shards"],
         )
@@ -58,12 +58,18 @@ class P0ShardsTest(unittest.TestCase):
             shards[("MVTec AD", "RareCLIP")]["current_supported_memory_policies"],
         )
         self.assertEqual(
-            ["default/SCS"],
+            ["default/SCS", "FIFO"],
             shards[("MVTec AD", "RareCLIP")]["current_implemented_memory_policies"],
         )
         self.assertEqual(
-            ["FIFO", "Reservoir", "Prototype-EMA"],
+            ["Reservoir", "Prototype-EMA"],
             shards[("MVTec AD", "RareCLIP")]["missing_memory_policies"],
+        )
+        self.assertEqual(
+            90,
+            shards[("MVTec AD", "RareCLIP")]["memory_policy_shards"][0][
+                "current_smoke_run_count"
+            ],
         )
         self.assertEqual(
             ["default/SCS", "FIFO", "Reservoir", "Prototype-EMA"],
@@ -203,7 +209,7 @@ class P0ShardsTest(unittest.TestCase):
             self.assertFalse(payload["paper_allowed"])
             self.assertEqual(8, payload["ready_shard_count"])
             self.assertEqual(8, payload["ready_calibration_shard_count"])
-            self.assertEqual(6, len(payload["missing_memory_policy_shards"]))
+            self.assertEqual(5, len(payload["missing_memory_policy_shards"]))
 
 
 if __name__ == "__main__":
