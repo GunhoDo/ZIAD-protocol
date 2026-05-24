@@ -11,6 +11,40 @@
 - 논문 게이트는 아직 닫힘: 모든 현재 산출물은 `paper_allowed=false` 유지.
 - `.omx/`는 planning history이며 소스 오브 트루스가 아니다.
 
+## 최신 진행: MVTec PatchCore Prototype-EMA memory-policy shard
+
+- 목표: 마지막 P0 memory-policy gap인 `MVTec AD × PatchCore × Prototype-EMA`를 all-15-category `iid/bursty × ε 0/0.01/0.05`, length-20 smoke matrix로 실행하고 planner/table에 반영.
+- 주요 수정:
+  - `experiments/configs/mvtec_full_category_stream_matrix_patchcore_prototype_ema.yaml` 추가.
+  - `scripts/run_mvtec_full_category_stream_matrix_patchcore_prototype_ema.sh` 추가.
+  - `tests/test_p0_shards.py` 기대값을 ready memory-policy shard 12개, missing memory-policy shard 0개로 갱신.
+  - `README.md`/`AGENTS.md`에 MVTec PatchCore Prototype-EMA shard runner와 완료 상태를 기록.
+  - `.gitignore`에 generated per-category configs/details ignore rule 추가. Aggregate metrics/manifest/CRD-lite summary만 추적 대상으로 둔다.
+- 실행 명령:
+  - `bash scripts/run_mvtec_full_category_stream_matrix_patchcore_prototype_ema.sh`
+  - aggregate sanity check: rows/categories/memory policy/status/`paper_allowed=false`
+  - `python3 experiments/p0_shards.py plan experiments/configs/p0.yaml --output results/latest/p0_shards/manifest.json`
+  - `bash scripts/render_paper_tables.sh`
+  - P0 summary sanity check: ready/missing memory-policy counts, summary rows, `paper_allowed=false`
+- 생성 outputs:
+  - `results/latest/mvtec_full_category_stream_matrix_patchcore_prototype_ema/metrics_mvtec_full_category_stream_matrix_patchcore_prototype_ema.csv`
+  - `results/latest/mvtec_full_category_stream_matrix_patchcore_prototype_ema/manifest_mvtec_full_category_stream_matrix_patchcore_prototype_ema.json`
+  - `results/latest/mvtec_full_category_stream_matrix_patchcore_prototype_ema/crd_lite_mvtec_full_category_stream_matrix_patchcore_prototype_ema.csv`
+  - ignored details/configs under `results/latest/mvtec_full_category_stream_matrix_patchcore_prototype_ema/details/` and `.../configs/`
+  - updated `results/latest/p0_shards/manifest.json`
+  - updated compact summary under `results/latest/tables/p0_smoke_summary.*`
+- 검증 결과:
+  - Aggregate metrics rows `90`, categories `15`, stream types `iid/bursty`, contamination epsilons `0/0.01/0.05`.
+  - all aggregate rows `memory_policy=Prototype-EMA`, `status=measured_smoke`.
+  - aggregate manifest keeps `paper_allowed=false`, status `mvtec_full_category_stream_matrix_patchcore_prototype_ema_complete`.
+  - P0 shard manifest keeps `status=p0_shard_plan_ready`, `ready_memory_policy_shard_count=12`, `missing_memory_policy_shards=0`, `ready_calibration_shard_count=8`.
+  - compact P0 smoke summary rows `28`, memory policies `default/SCS`, `FIFO`, `Reservoir`, and `Prototype-EMA`, summary manifest `paper_allowed=false`.
+- 제한:
+  - 이 단계는 paper-ineligible smoke shard evidence다. full P0 또는 paper result가 아니다.
+  - PatchCore Prototype-EMA는 train/good feature-bank compression policy다. true online PatchCore update latency로 해석하지 않는다.
+  - 이 작업으로 memory-policy smoke shard coverage는 닫혔다. full reviewed P0 matrix와 paper table/figure contract는 아직 별도 목표다.
+  - ε=0.01 stream 생성의 target-fraction warning과 sample-count-constrained category warning은 중복 샘플 금지 계약에 따른 expected adjustment다.
+
 ## 최신 진행: MVTec PatchCore Reservoir memory-policy shard
 
 - 목표: P0 memory-policy gap 중 두 번째 MVTec PatchCore shard로 `MVTec AD × PatchCore × Reservoir`를 all-15-category `iid/bursty × ε 0/0.01/0.05`, length-20 smoke matrix로 실행하고 planner/table에 반영.
@@ -42,7 +76,7 @@
 - 제한:
   - 이 단계는 paper-ineligible smoke shard evidence다. full P0 또는 paper result가 아니다.
   - PatchCore Reservoir는 train/good feature-bank selection policy다. true online PatchCore update latency로 해석하지 않는다.
-  - 남은 memory-policy shard는 MVTec PatchCore Prototype-EMA이다.
+  - 이후 MVTec PatchCore Prototype-EMA도 완료되어 memory-policy smoke shard coverage는 닫혔다.
   - ε=0.01 stream 생성의 target-fraction warning과 sample-count-constrained category warning은 중복 샘플 금지 계약에 따른 expected adjustment다.
 
 ## 최신 진행: MVTec PatchCore FIFO memory-policy shard
@@ -1559,13 +1593,14 @@ git diff --check
 - MVTec RareCLIP Prototype-EMA memory-policy shard: 90 rows, all 15 MVTec AD categories × `iid/bursty` × ε `0/0.01/0.05`, all `memory_policy=Prototype-EMA`, all `measured_smoke`, aggregate manifest `paper_allowed=false`
 - MVTec PatchCore FIFO memory-policy shard: 90 rows, all 15 MVTec AD categories × `iid/bursty` × ε `0/0.01/0.05`, all `memory_policy=FIFO`, all `measured_smoke`, aggregate manifest `paper_allowed=false`
 - MVTec PatchCore Reservoir memory-policy shard: 90 rows, all 15 MVTec AD categories × `iid/bursty` × ε `0/0.01/0.05`, all `memory_policy=Reservoir`, all `measured_smoke`, aggregate manifest `paper_allowed=false`
+- MVTec PatchCore Prototype-EMA memory-policy shard: 90 rows, all 15 MVTec AD categories × `iid/bursty` × ε `0/0.01/0.05`, all `memory_policy=Prototype-EMA`, all `measured_smoke`, aggregate manifest `paper_allowed=false`
 - VisA PatchCore FIFO memory-policy shard: 72 rows, all 12 local VisA categories × `iid/bursty` × ε `0/0.01/0.05`, all `memory_policy=FIFO`, all `measured_smoke`, aggregate manifest `paper_allowed=false`
 - VisA PatchCore Reservoir memory-policy shard: 72 rows, all 12 local VisA categories × `iid/bursty` × ε `0/0.01/0.05`, all `memory_policy=Reservoir`, all `measured_smoke`, aggregate manifest `paper_allowed=false`
 - VisA PatchCore Prototype-EMA memory-policy shard: 72 rows, all 12 local VisA categories × `iid/bursty` × ε `0/0.01/0.05`, all `memory_policy=Prototype-EMA`, all `measured_smoke`, aggregate manifest `paper_allowed=false`
 - P0 shard manifest cleanup: `results/latest/p0_shards/manifest.json` now reports base stream/epsilon shards `8/8` ready, temperature calibration shards `8/8` ready across MVTec/VisA, no missing calibration shards, and `paper_allowed=false`
 - Paper table cleanup: `bash scripts/render_paper_tables.sh` now refreshes the MVTec quick-sweep smoke table plus MVTec/VisA PatchCore/WinCLIP/AnomalyCLIP/RareCLIP stream/epsilon/calibration smoke tables under `results/latest/tables/`; all captions/comments remain non-final and paper-ineligible
-- P0 compact smoke summary: `experiments/summarize_p0_smoke.py` writes `results/latest/tables/p0_smoke_summary.csv`, `p0_smoke_summary_manifest.json`, and `p0_smoke_summary.tex`; output has 27 rows, memory policies `default/SCS`, `FIFO`, `Reservoir`, and `Prototype-EMA`, all `measured_smoke_summary`, `paper_allowed=false`
-- P0 memory readiness cleanup: `results/latest/p0_shards/manifest.json` now reports status `p0_shard_plan_ready_memory_partial`, calibration shards `8/8` ready, ready memory-policy shards `11`, and 1 missing memory-policy shard
+- P0 compact smoke summary: `experiments/summarize_p0_smoke.py` writes `results/latest/tables/p0_smoke_summary.csv`, `p0_smoke_summary_manifest.json`, and `p0_smoke_summary.tex`; output has 28 rows, memory policies `default/SCS`, `FIFO`, `Reservoir`, and `Prototype-EMA`, all `measured_smoke_summary`, `paper_allowed=false`
+- P0 memory readiness cleanup: `results/latest/p0_shards/manifest.json` now reports status `p0_shard_plan_ready`, calibration shards `8/8` ready, ready memory-policy shards `12`, and 0 missing memory-policy shards
 
 ## 3. 지금 논문 관점에서 어디까지 왔나
 
@@ -1590,27 +1625,27 @@ git diff --check
 15. VisA candle `iid/bursty × ε 0/0.01/0.05` length=20은 PatchCore에서도 실제 image-level score를 생성했다.
 16. `temperature_scaling`은 smoke runner 공통 score postprocessor로 구현됐고, VisA candle WinCLIP iid ε=0 length=20에서 실제 measured score 20개를 보정했다.
 17. mini/full-category matrix 생성기는 calibration 축을 전달할 수 있으며, VisA candle WinCLIP `iid/bursty × ε 0/0.01/0.05 × calibration none/temperature_scaling` 12-run matrix가 실제 measured smoke로 통과했다.
-18. MVTec/VisA full-category calibration-axis smoke matrices는 8/8 ready이고, MVTec RareCLIP FIFO/Reservoir/Prototype-EMA, MVTec PatchCore FIFO/Reservoir, VisA RareCLIP FIFO/Reservoir/Prototype-EMA 및 VisA PatchCore FIFO/Reservoir/Prototype-EMA full-category memory-policy shards가 paper-ineligible measured smoke로 존재한다.
+18. MVTec/VisA full-category calibration-axis smoke matrices는 8/8 ready이고, MVTec/VisA RareCLIP/PatchCore FIFO/Reservoir/Prototype-EMA full-category memory-policy shards가 paper-ineligible measured smoke로 존재한다.
 
 하지만 아직 **논문 결과 단계는 아니다**.
 
 부족한 것:
 
 - full P0 matrix 미실행
-- P0 shard manifest는 생성됐고 `temperature_scaling` smoke postprocessor 및 MVTec/VisA full-category calibration-axis smoke matrices는 구현됐지만, MVTec PatchCore Prototype-EMA full-category shard와 full reviewed P0 matrix는 아직 미실행
+- P0 shard manifest는 생성됐고 `temperature_scaling` smoke postprocessor, MVTec/VisA full-category calibration-axis smoke matrices, memory-policy smoke shards는 구현됐지만, full reviewed P0 matrix는 아직 미실행
 - CRD-lite는 smoke aggregate summary로 구현됨; full P0/VisA 검증과 paper 해석은 미완
 - paper table pipeline은 compact smoke summary와 smoke evidence tables를 생성함; full reviewed P0 figure/table은 아직 아님
 - review 전이므로 `paper_allowed=true` 금지
 
 ## 4. 다음 에이전트가 빠르게 해야 할 일
 
-### 1순위 — 남은 memory-policy shards를 shard 단위로 실행
+### 1순위 — full P0 실행 contract와 paper table/figure 입력 고정
 
-Calibration-axis smoke coverage는 8/8 ready다. 다음은 마지막 남은 memory-policy shard인 MVTec PatchCore Prototype-EMA를 `paper_allowed=false`로 실행하고, aggregate metrics/manifest/CRD-lite와 P0 compact summary를 갱신한다.
+Calibration-axis smoke coverage와 memory-policy smoke shard coverage는 모두 ready다. 다음은 full P0를 바로 오래 돌리기 전에 shard aggregate를 paper table/figure 입력으로 묶는 contract를 고정하고, 어떤 산출물이 `paper_allowed=true` 승격 대상인지 리뷰 절차를 분리하는 것이다.
 
-### 2순위 — paper table/figure pipeline 확장
+### 2순위 — full P0 shard 실행
 
-현재 table renderer는 smoke evidence만 다룬다. P0 shard aggregate가 생기면 full matrix 기반 table/figure 입력 contract를 먼저 고정하고, `paper_allowed=true` 승격은 리뷰 후 별도 커밋으로만 한다.
+입력 contract가 고정되면 full P0 shard를 dataset/baseline/memory-policy/calibration 단위로 실행한다. 모든 중간 산출물은 리뷰 전까지 계속 `paper_allowed=false`로 유지한다.
 
 ## 5. 주의할 점
 

@@ -10,7 +10,7 @@ Canonical experiment reference: [`docs/experiment-prd.md`](docs/experiment-prd.m
 ## Current Status
 
 **Setup smoke gate: PASSED** — docs, configs, scripts, and wrapper stubs exist.
-**First success gate A: PASSED for PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP smoke paths** — real stream files, measured score rows, iid/bursty × ε artifacts, CRD-lite smoke summaries, bottle/capsule/hazelnut PatchCore/WinCLIP quick-sweep artifacts, all-baseline all-15-category iid ε=0 smoke artifacts, CLIP bottle mini-matrix artifacts, PatchCore/WinCLIP/AnomalyCLIP/RareCLIP all-category MVTec stream/epsilon matrix artifacts, VisA candle CLIP/PatchCore smoke artifacts, VisA all-12-category PatchCore/WinCLIP/AnomalyCLIP/RareCLIP iid ε=0 smoke artifacts, MVTec/VisA PatchCore/WinCLIP/AnomalyCLIP/RareCLIP all-category stream/epsilon/calibration matrix artifacts, MVTec RareCLIP FIFO/Reservoir/Prototype-EMA, MVTec PatchCore FIFO/Reservoir, VisA RareCLIP FIFO/Reservoir/Prototype-EMA, and VisA PatchCore FIFO/Reservoir/Prototype-EMA memory-policy shards, and a paper-ineligible P0 shard manifest exist; not full P0.
+**First success gate A: PASSED for PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP smoke paths** — real stream files, measured score rows, iid/bursty × ε artifacts, CRD-lite smoke summaries, bottle/capsule/hazelnut PatchCore/WinCLIP quick-sweep artifacts, all-baseline all-15-category iid ε=0 smoke artifacts, CLIP bottle mini-matrix artifacts, PatchCore/WinCLIP/AnomalyCLIP/RareCLIP all-category MVTec stream/epsilon matrix artifacts, VisA candle CLIP/PatchCore smoke artifacts, VisA all-12-category PatchCore/WinCLIP/AnomalyCLIP/RareCLIP iid ε=0 smoke artifacts, MVTec/VisA PatchCore/WinCLIP/AnomalyCLIP/RareCLIP all-category stream/epsilon/calibration matrix artifacts, MVTec/VisA RareCLIP/PatchCore FIFO/Reservoir/Prototype-EMA memory-policy shards, and a paper-ineligible P0 shard manifest exist; not full P0.
 **Paper gate: NOT YET** — current outputs remain smoke/mini-matrix evidence with `paper_allowed: false`; generated paper-facing tables are non-final smoke evidence only; full reviewed P0 results are still required.
 
 Baseline repo URLs and commit hashes are pinned in `experiments/configs/baselines.yaml`
@@ -57,6 +57,7 @@ ZIAD-protocol/
       mvtec_full_category_stream_matrix_anomalyclip_temperature.yaml # AnomalyCLIP all-category iid/bursty × epsilon × calibration smoke matrix
       mvtec_full_category_stream_matrix_patchcore.yaml # PatchCore all-category iid/bursty × epsilon smoke matrix
       mvtec_full_category_stream_matrix_patchcore_fifo.yaml # PatchCore all-category iid/bursty × epsilon FIFO memory-policy smoke matrix
+      mvtec_full_category_stream_matrix_patchcore_prototype_ema.yaml # PatchCore all-category iid/bursty × epsilon Prototype-EMA memory-policy smoke matrix
       mvtec_full_category_stream_matrix_patchcore_reservoir.yaml # PatchCore all-category iid/bursty × epsilon Reservoir memory-policy smoke matrix
       mvtec_full_category_stream_matrix_patchcore_temperature.yaml # PatchCore all-category iid/bursty × epsilon × calibration smoke matrix
       mvtec_full_category_stream_matrix_rareclip.yaml # RareCLIP all-category iid/bursty × epsilon smoke matrix
@@ -123,6 +124,7 @@ ZIAD-protocol/
     run_mvtec_full_category_stream_matrix_anomalyclip_temperature.sh # AnomalyCLIP all-category stream/epsilon/calibration smoke matrix runner
     run_mvtec_full_category_stream_matrix_patchcore.sh # PatchCore all-category stream/epsilon smoke matrix runner
     run_mvtec_full_category_stream_matrix_patchcore_fifo.sh # PatchCore all-category stream/epsilon FIFO memory-policy smoke matrix runner
+    run_mvtec_full_category_stream_matrix_patchcore_prototype_ema.sh # PatchCore all-category stream/epsilon Prototype-EMA memory-policy smoke matrix runner
     run_mvtec_full_category_stream_matrix_patchcore_reservoir.sh # PatchCore all-category stream/epsilon Reservoir memory-policy smoke matrix runner
     run_mvtec_full_category_stream_matrix_patchcore_temperature.sh # PatchCore all-category stream/epsilon/calibration smoke matrix runner
     run_mvtec_full_category_stream_matrix_rareclip.sh # RareCLIP all-category stream/epsilon smoke matrix runner
@@ -228,6 +230,7 @@ bash scripts/run_mvtec_full_category_stream_matrix_anomalyclip.sh
 bash scripts/run_mvtec_full_category_stream_matrix_anomalyclip_temperature.sh
 bash scripts/run_mvtec_full_category_stream_matrix_patchcore.sh
 bash scripts/run_mvtec_full_category_stream_matrix_patchcore_fifo.sh
+bash scripts/run_mvtec_full_category_stream_matrix_patchcore_prototype_ema.sh
 bash scripts/run_mvtec_full_category_stream_matrix_patchcore_reservoir.sh
 bash scripts/run_mvtec_full_category_stream_matrix_patchcore_temperature.sh
 bash scripts/run_mvtec_full_category_stream_matrix_rareclip.sh

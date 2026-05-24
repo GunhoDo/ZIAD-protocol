@@ -91,6 +91,8 @@ results/latest/mvtec_full_category_stream_matrix_patchcore_fifo/configs/**
 results/latest/mvtec_full_category_stream_matrix_patchcore_fifo/details/**
 results/latest/mvtec_full_category_stream_matrix_patchcore_reservoir/configs/**
 results/latest/mvtec_full_category_stream_matrix_patchcore_reservoir/details/**
+results/latest/mvtec_full_category_stream_matrix_patchcore_prototype_ema/configs/**
+results/latest/mvtec_full_category_stream_matrix_patchcore_prototype_ema/details/**
 results/latest/mvtec_full_category_stream_matrix_patchcore_temperature/configs/**
 results/latest/mvtec_full_category_stream_matrix_patchcore_temperature/details/**
 results/latest/visa_full_category_sweep_winclip/configs/**
