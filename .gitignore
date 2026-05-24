@@ -113,6 +113,8 @@ results/latest/visa_full_category_stream_matrix_patchcore/configs/**
 results/latest/visa_full_category_stream_matrix_patchcore/details/**
 results/latest/visa_full_category_stream_matrix_patchcore_fifo/configs/**
 results/latest/visa_full_category_stream_matrix_patchcore_fifo/details/**
+results/latest/visa_full_category_stream_matrix_patchcore_prototype_ema/configs/**
+results/latest/visa_full_category_stream_matrix_patchcore_prototype_ema/details/**
 results/latest/visa_full_category_stream_matrix_patchcore_reservoir/configs/**
 results/latest/visa_full_category_stream_matrix_patchcore_reservoir/details/**
 results/latest/visa_full_category_stream_matrix_patchcore_temperature/configs/**

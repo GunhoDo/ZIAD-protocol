@@ -17,7 +17,7 @@ class P0ShardsTest(unittest.TestCase):
         self.assertEqual(8, manifest["ready_shard_count"])
         self.assertEqual(8, manifest["ready_calibration_shard_count"])
         self.assertEqual([], manifest["missing_shards"])
-        self.assertEqual(7, len(manifest["missing_memory_policy_shards"]))
+        self.assertEqual(6, len(manifest["missing_memory_policy_shards"]))
         self.assertIn(
             "mvtec_ad_rareclip_stream_epsilon_smoke:FIFO",
             manifest["missing_memory_policy_shards"],
@@ -34,7 +34,7 @@ class P0ShardsTest(unittest.TestCase):
             "visa_rareclip_stream_epsilon_smoke:Prototype-EMA",
             manifest["missing_memory_policy_shards"],
         )
-        self.assertIn(
+        self.assertNotIn(
             "visa_patchcore_stream_epsilon_smoke:Prototype-EMA",
             manifest["missing_memory_policy_shards"],
         )
@@ -98,13 +98,10 @@ class P0ShardsTest(unittest.TestCase):
         )
         self.assertEqual([], shards[("MVTec AD", "PatchCore")]["unsupported_memory_policies"])
         self.assertEqual(
-            ["default/SCS", "FIFO", "Reservoir"],
+            ["default/SCS", "FIFO", "Reservoir", "Prototype-EMA"],
             shards[("VisA", "PatchCore")]["current_implemented_memory_policies"],
         )
-        self.assertEqual(
-            ["Prototype-EMA"],
-            shards[("VisA", "PatchCore")]["missing_memory_policies"],
-        )
+        self.assertEqual([], shards[("VisA", "PatchCore")]["missing_memory_policies"])
         self.assertEqual(
             72,
             shards[("VisA", "PatchCore")]["memory_policy_shards"][0][
@@ -116,6 +113,11 @@ class P0ShardsTest(unittest.TestCase):
         self.assertTrue(reservoir_shard["config"].endswith("_reservoir.yaml"))
         self.assertTrue(reservoir_shard["runner"].endswith("_reservoir.sh"))
         self.assertEqual(72, reservoir_shard["current_smoke_run_count"])
+        prototype_shard = shards[("VisA", "PatchCore")]["memory_policy_shards"][2]
+        self.assertEqual("Prototype-EMA", prototype_shard["memory_policy"])
+        self.assertTrue(prototype_shard["config"].endswith("_prototype_ema.yaml"))
+        self.assertTrue(prototype_shard["runner"].endswith("_prototype_ema.sh"))
+        self.assertEqual(72, prototype_shard["current_smoke_run_count"])
         self.assertEqual(
             ["default/SCS"],
             shards[("MVTec AD", "WinCLIP")]["current_implemented_memory_policies"],
@@ -201,7 +203,7 @@ class P0ShardsTest(unittest.TestCase):
             self.assertFalse(payload["paper_allowed"])
             self.assertEqual(8, payload["ready_shard_count"])
             self.assertEqual(8, payload["ready_calibration_shard_count"])
-            self.assertEqual(7, len(payload["missing_memory_policy_shards"]))
+            self.assertEqual(6, len(payload["missing_memory_policy_shards"]))
 
 
 if __name__ == "__main__":
