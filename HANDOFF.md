@@ -11,12 +11,13 @@
 - 논문 게이트는 아직 닫힘: 모든 현재 산출물은 `paper_allowed=false` 유지.
 - `.omx/`는 planning history이며 소스 오브 트루스가 아니다.
 
-## 최신 진행: compact full-P0 skeleton 분리
+## 최신 진행: compact full-P0 single-step executor
 
-- 목표: smoke shard evidence와 reviewed full-P0 실행 계획을 혼동하지 않도록 full-P0 skeleton을 `results/latest/p0_full/` 아래 별도 tier로 정의. full inference는 실행하지 않음.
+- 목표: smoke shard evidence와 reviewed full-P0 실행 계획을 혼동하지 않도록 full-P0 skeleton을 `results/latest/p0_full/` 아래 별도 tier로 정의하고, 단일 aggregate step을 id/index로 선택하는 executor를 추가. full inference는 실행하지 않음.
 - 주요 수정:
   - `experiments/configs/p0_full/compact.yaml` 추가.
   - `experiments/p0_full.py` 추가.
+  - `experiments/run_p0_full_step.py` 추가.
   - `tests/test_p0_full.py` 추가.
   - `results/latest/p0_full/manifest.json` 생성.
   - `results/latest/p0_full/execution_plan.json` 생성.
@@ -42,14 +43,23 @@
 - dry-run:
   - `python3 experiments/run_p0_execution_plan.py --plan results/latest/p0_full/execution_plan.json --dry-run`
   - summary: `total=24 selected=24 skipped=0 pending=24 executed=0 dry_run=24`
+  - single step: `python3 experiments/run_p0_full_step.py --plan results/latest/p0_full/execution_plan.json --step 0 --dry-run`
+  - single-step output: `selected_step=0 step_id=mvtec_ad:patchcore:default_scs:none run_tier=p0_full paper_allowed=false claim_allowed=false review_status=not_reviewed`
 - gate/status:
   - `run_tier=p0_full`
   - `paper_allowed=false`
   - `claim_allowed=false`
   - `review_status=not_reviewed`
   - `source_tier=p0_full`; smoke may be initialization context only and must not satisfy full outputs.
+- executor 동작:
+  - plan default는 `results/latest/p0_full/execution_plan.json`.
+  - `--step`, `--step-id`, `--index`로 정확히 한 step만 선택한다.
+  - 모든 declared output path와 optional `--output-root`가 `results/latest/p0_full/` 아래인지 검증한다.
+  - manifest/latest_run metadata envelope는 `run_tier=p0_full`, `paper_allowed=false`, `claim_allowed=false`, `review_status=not_reviewed`를 강제한다.
+  - dry-run은 output을 만들지 않는다.
+  - non-dry-run은 현재 fake metric 방지를 위해 fail closed한다.
 - 제한:
-  - `experiments/run_p0_full_step.py`는 아직 구현되지 않았다. skeleton command placeholder만 존재한다.
+  - `experiments/run_p0_full_step.py`는 step selection/validation/dry-run boundary까지만 구현됐다. 실제 measured full-P0 inference body는 아직 미구현이다.
   - full-P0 inference와 paper review는 미실행이다.
   - `results/latest/p0_shards/`는 smoke orchestration evidence이고, `results/latest/p0_full/`는 separate full-P0 skeleton/future-output root다.
 

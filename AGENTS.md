@@ -93,6 +93,7 @@ ZIAD-protocol/
     make_streams.py           # Deterministic MVTec/VisA stream generator (iid/bursty)
     render_paper_tables.py    # Renders paper-ineligible smoke evidence tables
     run_p0_execution_plan.py  # Dry-run/execute restartable P0 shard execution plans
+    run_p0_full_step.py       # Dry-run one compact full-P0 aggregate step; real inference not implemented
     summarize_p0_smoke.py     # Builds compact paper-ineligible P0 smoke summary CSV/LaTeX
     prepare_data.py           # Placeholder data prep
     run_baselines.py          # Placeholder baseline runner
@@ -253,6 +254,7 @@ python3 experiments/p0_shards.py verify results/latest/p0_shards/manifest.json -
 python3 experiments/run_p0_execution_plan.py --dry-run
 python3 experiments/p0_full.py --config experiments/configs/p0_full/compact.yaml --manifest results/latest/p0_full/manifest.json --execution-plan results/latest/p0_full/execution_plan.json
 python3 experiments/run_p0_execution_plan.py --plan results/latest/p0_full/execution_plan.json --dry-run
+python3 experiments/run_p0_full_step.py --plan results/latest/p0_full/execution_plan.json --step 0 --dry-run
 make paper                        # Build paper/paper.pdf
 make p0                           # Refresh P0 placeholder outputs (no real inference)
 ```

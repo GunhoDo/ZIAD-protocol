@@ -220,8 +220,10 @@ def build_execution_plan(config_path: Path = DEFAULT_CONFIG) -> dict[str, Any]:
                 "seeds": step["seeds"],
                 "expected_smoke_run_count": step["expected_full_run_count"],
                 "expected_full_run_count": step["expected_full_run_count"],
+                "output_root": step["output_root"],
                 "command": (
                     "python3 experiments/run_p0_full_step.py "
+                    "--plan results/latest/p0_full/execution_plan.json "
                     f"--step-id {step['step_id']} "
                     f"--output-root {step['output_root']}"
                 ),

@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from experiments import p0_full, run_p0_execution_plan
+from experiments import p0_full, run_p0_execution_plan, run_p0_full_step
 
 
 class P0FullSkeletonTest(unittest.TestCase):
@@ -95,6 +95,83 @@ class P0FullSkeletonTest(unittest.TestCase):
             self.assertEqual(24, plan["step_count"])
             self.assertFalse(plan["paper_allowed"])
             self.assertFalse(plan["claim_allowed"])
+
+
+class P0FullStepExecutorTest(unittest.TestCase):
+    def _plan(self):
+        return p0_full.build_execution_plan(Path("experiments/configs/p0_full/compact.yaml"))
+
+    def test_selected_step_is_resolved_by_id_and_index(self):
+        plan = self._plan()
+
+        index, by_index = run_p0_full_step.resolve_step(plan, "0")
+        by_id_index, by_id = run_p0_full_step.resolve_step(plan, by_index["step_id"])
+
+        self.assertEqual(0, index)
+        self.assertEqual(0, by_id_index)
+        self.assertEqual(by_index["step_id"], by_id["step_id"])
+
+    def test_output_root_is_under_p0_full(self):
+        plan = self._plan()
+        _, step = run_p0_full_step.resolve_step(plan, "0")
+
+        run_p0_full_step.validate_step_contract(
+            step,
+            output_root=Path(step["output_root"]),
+        )
+
+        for output in step["outputs"].values():
+            self.assertTrue(output.startswith("results/latest/p0_full/"))
+
+    def test_smoke_output_paths_are_rejected(self):
+        plan = self._plan()
+        _, step = run_p0_full_step.resolve_step(plan, "0")
+        step = dict(step)
+        step["outputs"] = dict(step["outputs"])
+        step["outputs"]["aggregate_metrics"] = "results/latest/p0_shards/metrics.csv"
+
+        with self.assertRaisesRegex(run_p0_full_step.FullP0StepError, "outside"):
+            run_p0_full_step.validate_step_contract(step)
+
+    def test_metadata_fields_are_enforced(self):
+        plan = self._plan()
+        _, step = run_p0_full_step.resolve_step(plan, "0")
+
+        manifest = run_p0_full_step.build_manifest_metadata(step)
+        latest_run = run_p0_full_step.build_latest_run_metadata(step)
+
+        for payload in [manifest, latest_run]:
+            self.assertEqual("p0_full", payload["run_tier"])
+            self.assertFalse(payload["paper_allowed"])
+            self.assertFalse(payload["claim_allowed"])
+            self.assertEqual("not_reviewed", payload["review_status"])
+
+        bad_step = dict(step)
+        bad_step["paper_allowed"] = True
+        with self.assertRaisesRegex(run_p0_full_step.FullP0StepError, "paper_allowed"):
+            run_p0_full_step.validate_step_contract(bad_step)
+
+    def test_dry_run_creates_no_outputs(self):
+        plan = self._plan()
+        _, step = run_p0_full_step.resolve_step(plan, "0")
+        output_paths = [Path(value) for value in step["outputs"].values()]
+        for path in output_paths:
+            self.assertFalse(path.exists())
+
+        index, selected = run_p0_full_step.run_step(plan, selector="0", dry_run=True)
+
+        self.assertEqual(0, index)
+        self.assertEqual(step["step_id"], selected["step_id"])
+        for path in output_paths:
+            self.assertFalse(path.exists())
+
+    def test_missing_unknown_step_fails_clearly(self):
+        plan = self._plan()
+
+        with self.assertRaisesRegex(run_p0_full_step.FullP0StepError, "Unknown"):
+            run_p0_full_step.resolve_step(plan, "missing:step")
+        with self.assertRaisesRegex(run_p0_full_step.FullP0StepError, "out of range"):
+            run_p0_full_step.resolve_step(plan, "999")
 
 
 if __name__ == "__main__":
