@@ -77,6 +77,7 @@ ZIAD-protocol/
       visa_winclip_mini_matrix.yaml # WinCLIP VisA candle iid/bursty × epsilon smoke matrix
       winclip_mini_matrix.yaml # WinCLIP bottle iid/bursty × epsilon smoke matrix
       p0.yaml                 # Full P0 matrix (future path, not required for first success)
+      p0_full/compact.yaml    # Separate compact full-P0 skeleton config; no inference
     baselines/
       base.py                 # BaselineWrapper ABC + _setup_error() helper
       patchcore.py            # Implemented PatchCore wrapper for stream-ordered MVTec smoke with fitted-model cache
@@ -87,6 +88,7 @@ ZIAD-protocol/
     category_sweep.py         # Multi-category quick-sweep config/aggregate helper
     mini_matrix.py            # Baseline-parametric mini-matrix config/aggregate helper
     materialize_calibration_matrix.py # Reuses measured matrix scores to materialize calibration-axis smoke matrices
+    p0_full.py                # Separate compact full-P0 skeleton manifest/execution-plan builder
     p0_shards.py              # Paper-ineligible P0 shard planner over current smoke runners
     make_streams.py           # Deterministic MVTec/VisA stream generator (iid/bursty)
     render_paper_tables.py    # Renders paper-ineligible smoke evidence tables
@@ -162,6 +164,7 @@ ZIAD-protocol/
     tables/                   # Paper-facing LaTeX tables and input contract
     figures/                  # Paper-facing figures
     p0_shards/                # Paper-ineligible shard plan and execution plan manifests
+    p0_full/                  # Separate full-P0 skeleton artifacts and future full outputs
 
   paper/
     paper.tex                 # Main LaTeX source
@@ -248,6 +251,8 @@ python3 experiments/p0_shards.py plan experiments/configs/p0.yaml --output resul
 python3 experiments/p0_shards.py execution-plan experiments/configs/p0.yaml --output results/latest/p0_shards/execution_plan.json
 python3 experiments/p0_shards.py verify results/latest/p0_shards/manifest.json --require-outputs
 python3 experiments/run_p0_execution_plan.py --dry-run
+python3 experiments/p0_full.py --config experiments/configs/p0_full/compact.yaml --manifest results/latest/p0_full/manifest.json --execution-plan results/latest/p0_full/execution_plan.json
+python3 experiments/run_p0_execution_plan.py --plan results/latest/p0_full/execution_plan.json --dry-run
 make paper                        # Build paper/paper.pdf
 make p0                           # Refresh P0 placeholder outputs (no real inference)
 ```

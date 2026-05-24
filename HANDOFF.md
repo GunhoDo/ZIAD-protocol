@@ -1,6 +1,6 @@
 # HANDOFF — ZIAD 논문 구현 현재 상태
 
-최종 갱신: 2026-05-24
+최종 갱신: 2026-05-25
 프로젝트: Streaming Zero-Shot Industrial Anomaly Detection with CLIP / ZIAD Protocol
 
 ## 0. 절대 규칙
@@ -10,6 +10,48 @@
 - fake metric 금지. placeholder는 `placeholder_not_measured`, 실제 측정은 `measured`/`measured_smoke`만 사용한다.
 - 논문 게이트는 아직 닫힘: 모든 현재 산출물은 `paper_allowed=false` 유지.
 - `.omx/`는 planning history이며 소스 오브 트루스가 아니다.
+
+## 최신 진행: compact full-P0 skeleton 분리
+
+- 목표: smoke shard evidence와 reviewed full-P0 실행 계획을 혼동하지 않도록 full-P0 skeleton을 `results/latest/p0_full/` 아래 별도 tier로 정의. full inference는 실행하지 않음.
+- 주요 수정:
+  - `experiments/configs/p0_full/compact.yaml` 추가.
+  - `experiments/p0_full.py` 추가.
+  - `tests/test_p0_full.py` 추가.
+  - `results/latest/p0_full/manifest.json` 생성.
+  - `results/latest/p0_full/execution_plan.json` 생성.
+  - `README.md`/`AGENTS.md`에 `p0_shards`와 `p0_full` output separation 기록.
+  - `.gitignore`에 future full-P0 nested outputs ignore rule 추가. Root skeleton JSON은 추적한다.
+- compact full-P0 matrix:
+  - datasets: `MVTec AD`, `VisA`
+  - baselines: `PatchCore`, `WinCLIP`, `AnomalyCLIP`, `RareCLIP`
+  - streams: `iid`, `bursty`
+  - epsilons: `0`, `0.05`
+  - calibration: `none`, `temperature_scaling`
+  - seeds: `0`, `1`, `2`
+  - memory policies: PatchCore/RareCLIP `default/SCS,Reservoir`; WinCLIP/AnomalyCLIP `default/no-memory`
+- 생성 명령:
+  - `python3 experiments/p0_full.py --config experiments/configs/p0_full/compact.yaml --manifest results/latest/p0_full/manifest.json --execution-plan results/latest/p0_full/execution_plan.json`
+- 생성 output:
+  - `results/latest/p0_full/manifest.json`
+  - `results/latest/p0_full/execution_plan.json`
+- deterministic count:
+  - matrix count `288`
+  - aggregate execution-plan steps `24`
+  - each step has expected full run count `12`
+- dry-run:
+  - `python3 experiments/run_p0_execution_plan.py --plan results/latest/p0_full/execution_plan.json --dry-run`
+  - summary: `total=24 selected=24 skipped=0 pending=24 executed=0 dry_run=24`
+- gate/status:
+  - `run_tier=p0_full`
+  - `paper_allowed=false`
+  - `claim_allowed=false`
+  - `review_status=not_reviewed`
+  - `source_tier=p0_full`; smoke may be initialization context only and must not satisfy full outputs.
+- 제한:
+  - `experiments/run_p0_full_step.py`는 아직 구현되지 않았다. skeleton command placeholder만 존재한다.
+  - full-P0 inference와 paper review는 미실행이다.
+  - `results/latest/p0_shards/`는 smoke orchestration evidence이고, `results/latest/p0_full/`는 separate full-P0 skeleton/future-output root다.
 
 ## 최신 진행: P0 execution-plan runner
 

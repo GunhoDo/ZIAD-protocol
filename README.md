@@ -129,6 +129,34 @@ Do not run the full execution plan as paper evidence. All current outputs remain
 smoke evidence with `paper_allowed=false` until reviewed full P0 results are
 explicitly promoted in a separate step.
 
+## Plan compact full P0 skeleton
+
+```bash
+python3 experiments/p0_full.py \
+  --config experiments/configs/p0_full/compact.yaml \
+  --manifest results/latest/p0_full/manifest.json \
+  --execution-plan results/latest/p0_full/execution_plan.json
+python3 experiments/run_p0_execution_plan.py \
+  --plan results/latest/p0_full/execution_plan.json --dry-run
+```
+
+This defines a separate full-P0 planning tier without running inference. Smoke
+orchestration remains under `results/latest/p0_shards/`; reviewed full-P0
+skeleton artifacts and future full outputs live under `results/latest/p0_full/`.
+Smoke outputs must not satisfy full-P0 outputs.
+
+The current compact full-P0 skeleton has deterministic matrix count `288`:
+MVTec AD/VisA, PatchCore/WinCLIP/AnomalyCLIP/RareCLIP, iid/bursty, epsilon
+`0/0.05`, calibration `none/temperature_scaling`, explicit seeds `0/1/2`,
+and memory policies `default/SCS,Reservoir` for PatchCore/RareCLIP plus
+`default/no-memory` for WinCLIP/AnomalyCLIP. It groups those runs into 24
+pending aggregate steps. The execution-plan runner can dry-run this skeleton,
+but full step inference is intentionally not implemented or run yet.
+
+Full-P0 skeleton gates stay closed by default:
+`run_tier=p0_full`, `paper_allowed=false`, `claim_allowed=false`, and
+`review_status=not_reviewed`.
+
 ## Run a measured mini-matrix smoke
 
 ```bash

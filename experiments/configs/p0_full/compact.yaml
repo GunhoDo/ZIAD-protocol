@@ -1,0 +1,42 @@
+# Compact reviewed-P0 skeleton.
+# This defines the future full-P0 execution shape only. It does not run
+# inference and does not reuse smoke outputs as full outputs.
+run_tier: p0_full
+paper_allowed: false
+claim_allowed: false
+review_status: not_reviewed
+output_root: results/latest/p0_full
+datasets:
+  - MVTec AD
+  - VisA
+baselines:
+  - PatchCore
+  - WinCLIP
+  - AnomalyCLIP
+  - RareCLIP
+stream_types:
+  - iid
+  - bursty
+contamination_epsilon:
+  - 0
+  - 0.05
+calibration:
+  - none
+  - temperature_scaling
+seeds:
+  - 0
+  - 1
+  - 2
+memory_policies:
+  PatchCore:
+    - default/SCS
+    - Reservoir
+  RareCLIP:
+    - default/SCS
+    - Reservoir
+  WinCLIP:
+    - default/no-memory
+  AnomalyCLIP:
+    - default/no-memory
+source_tier: p0_full
+source_tier_notes: Smoke outputs may be inspected for initialization context only; they must not satisfy full-P0 outputs.
