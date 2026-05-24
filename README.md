@@ -61,10 +61,9 @@ The compact summary artifacts are:
 
 The compact summary includes the `memory_policy` axis. Current smoke evidence
 contains `default/SCS` plus measured `MVTec AD × RareCLIP × FIFO`,
-`MVTec AD × RareCLIP × Reservoir`,
+`MVTec AD × RareCLIP × Reservoir`/`Prototype-EMA`,
 `VisA × RareCLIP × FIFO`/`Reservoir`/`Prototype-EMA`, and
-`VisA × PatchCore × FIFO`/`Reservoir`/`Prototype-EMA` memory-policy shards. The remaining MVTec RareCLIP
-Prototype-EMA and MVTec PatchCore FIFO/Reservoir/Prototype-EMA
+`VisA × PatchCore × FIFO`/`Reservoir`/`Prototype-EMA` memory-policy shards. The remaining MVTec PatchCore FIFO/Reservoir/Prototype-EMA
 shards remain explicit P0 gaps until their own shards are run.
 
 ## Refresh placeholder P0 outputs
@@ -370,6 +369,7 @@ is CPU single-image inference and remains smoke evidence with
 bash scripts/run_mvtec_full_category_stream_matrix_rareclip.sh
 bash scripts/run_mvtec_full_category_stream_matrix_rareclip_fifo.sh
 bash scripts/run_mvtec_full_category_stream_matrix_rareclip_reservoir.sh
+bash scripts/run_mvtec_full_category_stream_matrix_rareclip_prototype_ema.sh
 bash scripts/run_mvtec_full_category_stream_matrix_rareclip_temperature.sh
 ```
 
@@ -379,6 +379,7 @@ the `calibration none/temperature_scaling` axis without rerunning inference. It
 exercises the online memory update path. The FIFO runner is the separate
 RareCLIP memory-policy shard over the same stream/epsilon shape, and the
 Reservoir runner records the corresponding bounded reservoir memory-policy
+shard. The Prototype-EMA runner records the bounded prototype memory-policy
 shard. All outputs
 remain smoke evidence with `paper_allowed=false`.
 

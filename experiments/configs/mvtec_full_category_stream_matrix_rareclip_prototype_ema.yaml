@@ -1,0 +1,55 @@
+# MVTec AD all-category stream/epsilon smoke matrix for RareCLIP Prototype-EMA memory policy.
+# This is still paper-ineligible: short length-20 streams, no review, no VisA.
+dataset: MVTec AD
+dataset_root: data/mvtec_ad
+categories:
+  - bottle
+  - cable
+  - capsule
+  - carpet
+  - grid
+  - hazelnut
+  - leather
+  - metal_nut
+  - pill
+  - screw
+  - tile
+  - toothbrush
+  - transistor
+  - wood
+  - zipper
+
+baselines:
+  - name: RareCLIP
+    baseline_path: external/RareCLIP
+    provenance:
+      scoring_mode: stream_ordered_online_zero_shot_prototype_ema
+      latency_semantics: wrapper_single_image_online
+      training_source: rareclip_mvtec_text_projection_checkpoint
+      stream_source: test/*
+
+prevalence: 0.05
+stream_types:
+  - iid
+  - bursty
+contamination_epsilon:
+  - 0
+  - 0.01
+  - 0.05
+memory_policy: Prototype-EMA
+stream:
+  seed: 0
+  length: 20
+  burst_length: 5
+
+baseline_options:
+  prototype_ema_memory_size: 8
+  prototype_ema_alpha: 0.1
+
+outputs:
+  root: results/latest/mvtec_full_category_stream_matrix_rareclip_prototype_ema
+  aggregate_metrics: results/latest/mvtec_full_category_stream_matrix_rareclip_prototype_ema/metrics_mvtec_full_category_stream_matrix_rareclip_prototype_ema.csv
+  aggregate_manifest: results/latest/mvtec_full_category_stream_matrix_rareclip_prototype_ema/manifest_mvtec_full_category_stream_matrix_rareclip_prototype_ema.json
+  crd_lite_summary: results/latest/mvtec_full_category_stream_matrix_rareclip_prototype_ema/crd_lite_mvtec_full_category_stream_matrix_rareclip_prototype_ema.csv
+  status: mvtec_full_category_stream_matrix_rareclip_prototype_ema_complete
+  notes: MVTec all-category RareCLIP Prototype-EMA stream/epsilon smoke matrix only; not full P0 or paper gate.
