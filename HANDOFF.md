@@ -7,18 +7,18 @@
 
 - `AGENTS.md`와 `docs/experiment-prd.md`가 canonical reference다.
 - baseline URL/commit hash를 새로 지어내지 말 것. `experiments/configs/baselines.yaml`의 local clone 기준을 사용한다.
-- fake metric 금지. placeholder는 `placeholder_not_measured`, 실제 측정은 `measured`/`measured_smoke`만 사용한다.
+- fake metric 금지. placeholder는 `placeholder_not_measured`, 실제 측정은 `measured`/`measured_smoke`, full-P0 aggregate는 `measured_full_p0`만 사용한다.
 - 논문 게이트는 아직 닫힘: 모든 현재 산출물은 `paper_allowed=false` 유지.
 - `.omx/`는 planning history이며 소스 오브 트루스가 아니다.
 
-## 최신 진행: compact full-P0 single-step executor
+## 최신 진행: full-P0 single-step production validation
 
-- 목표: smoke shard evidence와 reviewed full-P0 실행 계획을 혼동하지 않도록 full-P0 skeleton을 `results/latest/p0_full/` 아래 별도 tier로 정의하고, 단일 aggregate step을 id/index로 선택하는 executor를 추가. full inference는 실행하지 않음.
+- 목표: smoke shard evidence와 reviewed full-P0 실행 계획을 혼동하지 않도록 full-P0 skeleton을 `results/latest/p0_full/` 아래 별도 tier로 유지하고, 선택된 한 production step만 실제 실행해 category-aware completion gate를 검증.
 - 주요 수정:
   - `experiments/configs/p0_full/compact.yaml` 추가.
   - `experiments/p0_full.py` 추가.
-  - `experiments/run_p0_full_step.py` 추가.
-  - `tests/test_p0_full.py` 추가.
+  - `experiments/run_p0_full_step.py`에 single-step production body 추가.
+  - `tests/test_p0_full.py`에 production guard/skip tests 추가.
   - `results/latest/p0_full/manifest.json` 생성.
   - `results/latest/p0_full/execution_plan.json` 생성.
   - `README.md`/`AGENTS.md`에 `p0_shards`와 `p0_full` output separation 기록.
@@ -59,10 +59,22 @@
   - aggregate row count `12`, row status `measured_full_p0`, memory policy `default/no-memory`.
   - aggregate manifest keeps `run_tier=p0_full`, `paper_allowed=false`, `claim_allowed=false`, `review_status=not_reviewed`, `validation_mode=lightweight`, category `bottle`.
   - after production contract hardening, this lightweight output no longer satisfies full-P0 production skip validation.
-  - current full-P0 dry-run summary: `total=24 selected=24 skipped=0 pending=24 executed=0 dry_run=24`.
   - `results/latest/p0_shards/` and existing smoke result roots showed no git status changes after validation.
+- production non-dry-run validation:
+  - selected step: `mvtec_ad:winclip:default_no_memory:none`
+  - command: `python3 experiments/run_p0_full_step.py --plan results/latest/p0_full/execution_plan.json --step-id mvtec_ad:winclip:default_no_memory:none --output-root results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none --stream-length 2`
+  - generated aggregate outputs:
+    - `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none/metrics.csv`
+    - `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none/manifest.json`
+    - `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none/crd_lite.csv`
+  - generated per-run outputs stay under `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none/production_runs/`.
+  - aggregate row count `180`, category count `15`, row status `measured_full_p0`.
+  - aggregate manifest keeps `run_tier=p0_full`, `execution_mode=production`, `paper_allowed=false`, `claim_allowed=false`, `review_status=not_reviewed`, `expected_full_run_count=180`, `stream_length=2`.
+  - full-P0 dry-run after completion: `summary: total=24 selected=24 skipped=1 pending=23 executed=0 dry_run=23`.
+  - full 24-step production plan was not executed.
 - gate/status:
   - `run_tier=p0_full`
+  - `execution_mode=production` is required for production skip validation.
   - `paper_allowed=false`
   - `claim_allowed=false`
   - `review_status=not_reviewed`
@@ -73,12 +85,13 @@
   - 모든 declared output path와 optional `--output-root`가 `results/latest/p0_full/` 아래인지 검증한다.
   - manifest/latest_run metadata envelope는 `run_tier=p0_full`, `paper_allowed=false`, `claim_allowed=false`, `review_status=not_reviewed`를 강제한다.
   - dry-run은 output을 만들지 않는다.
-  - non-dry-run은 `--validation-mode lightweight`에서만 허용한다. production full-P0 실행은 아직 막혀 있다.
+  - non-dry-run production은 현재 `mvtec_ad:winclip:default_no_memory:none` 한 step으로만 guard되어 있다.
   - full-P0 execution-plan validation now requires aggregate manifest `execution_mode=production` and the category-aware production row count before a step can be skipped as complete.
   - lightweight aggregate manifests remain validation evidence only and are treated as pending for production full-P0 execution.
   - WinCLIP/AnomalyCLIP의 full-P0 `default/no-memory` semantics는 기존 wrapper compatibility를 위해 runner config에서는 `default/SCS`로 호출하지만, produced full-P0 latest_run/manifest/aggregate metadata는 `default/no-memory`로 보존한다.
 - 제한:
-  - `experiments/run_p0_full_step.py`는 lightweight single-category validation body까지만 구현됐다. production full-P0 execution body는 아직 미구현이다.
+  - `experiments/run_p0_full_step.py` production body는 `mvtec_ad:winclip:default_no_memory:none`에만 열려 있다.
+  - 이번 production validation은 cheapest step validation을 위해 `--stream-length 2`로 실행됐다. full reviewed P0/paper result가 아니다.
   - full reviewed P0 inference와 paper review는 미실행이다.
   - `results/latest/p0_shards/`는 smoke orchestration evidence이고, `results/latest/p0_full/`는 separate full-P0 skeleton/future-output root다.
 
