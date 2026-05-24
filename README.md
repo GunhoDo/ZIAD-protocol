@@ -89,6 +89,8 @@ This refreshes placeholder files under `results/latest/`; it does not run real m
 ```bash
 python3 experiments/p0_shards.py plan experiments/configs/p0.yaml \
   --output results/latest/p0_shards/manifest.json
+python3 experiments/p0_shards.py execution-plan experiments/configs/p0.yaml \
+  --output results/latest/p0_shards/execution_plan.json
 python3 experiments/p0_shards.py verify results/latest/p0_shards/manifest.json \
   --require-outputs
 ```
@@ -98,6 +100,11 @@ currently implemented all-category smoke matrix runners. It also records which
 temperature-scaling calibration shards are implemented separately from the base
 stream/epsilon shards. It creates no metrics, keeps `paper_allowed=false`, and
 records unsupported or missing dimensions explicitly.
+
+`execution_plan.json` is a restartable local execution manifest over those
+shards. It fixes the order as base stream/epsilon shards, then memory-policy
+shards, then calibration shards, records aggregate outputs for skip/resume, and
+keeps `claim_allowed=false`.
 
 ## Run a measured mini-matrix smoke
 

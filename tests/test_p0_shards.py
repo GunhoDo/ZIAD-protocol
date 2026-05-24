@@ -263,6 +263,86 @@ class P0ShardsTest(unittest.TestCase):
             self.assertEqual(8, payload["ready_calibration_shard_count"])
             self.assertEqual(0, len(payload["missing_memory_policy_shards"]))
 
+    def test_build_execution_plan_orders_restartable_smoke_steps(self):
+        plan = p0_shards.build_execution_plan(Path("experiments/configs/p0.yaml"))
+
+        self.assertEqual("p0_execution_plan_ready", plan["status"])
+        self.assertFalse(plan["paper_allowed"])
+        self.assertFalse(plan["claim_allowed"])
+        self.assertEqual("p0_shard_plan_ready", plan["source_manifest_status"])
+        self.assertEqual(28, plan["step_count"])
+        self.assertEqual(28, plan["ready_step_count"])
+        self.assertEqual(0, plan["pending_step_count"])
+        self.assertEqual(
+            {
+                "base_stream_epsilon": 8,
+                "memory_policy": 12,
+                "calibration": 8,
+            },
+            plan["phase_counts"],
+        )
+        self.assertEqual(plan["step_count"], len(plan["execution_order"]))
+        self.assertEqual(plan["execution_order"], [step["step_id"] for step in plan["steps"]])
+
+        first_step = plan["steps"][0]
+        self.assertEqual("base_stream_epsilon", first_step["phase"])
+        self.assertEqual("MVTec AD", first_step["dataset"])
+        self.assertEqual("RareCLIP", first_step["baseline"])
+        self.assertEqual("default/SCS", first_step["memory_policy"])
+        self.assertEqual("none", first_step["calibration"])
+        self.assertEqual([], first_step["depends_on"])
+        self.assertEqual("outputs_present_smoke", first_step["current_status"])
+        self.assertFalse(first_step["paper_allowed"])
+        self.assertFalse(first_step["claim_allowed"])
+        self.assertIn("aggregate_metrics", first_step["outputs"])
+
+        memory_step = next(
+            step
+            for step in plan["steps"]
+            if step["step_id"]
+            == "mvtec_ad_rareclip_stream_epsilon_smoke:memory:fifo"
+        )
+        self.assertEqual("memory_policy", memory_step["phase"])
+        self.assertEqual("FIFO", memory_step["memory_policy"])
+        self.assertEqual(["mvtec_ad_rareclip_stream_epsilon_smoke:base"], memory_step["depends_on"])
+        self.assertIn("Skip this step", memory_step["resume_policy"])
+
+        calibration_step = next(
+            step
+            for step in plan["steps"]
+            if step["step_id"]
+            == "mvtec_ad_rareclip_stream_epsilon_smoke:calibration:temperature_scaling"
+        )
+        self.assertEqual("calibration", calibration_step["phase"])
+        self.assertEqual("temperature_scaling", calibration_step["calibration"])
+        self.assertEqual(
+            ["mvtec_ad_rareclip_stream_epsilon_smoke:base"],
+            calibration_step["depends_on"],
+        )
+        self.assertEqual("measured_smoke", calibration_step["validation"]["required_status"])
+        self.assertFalse(calibration_step["validation"]["paper_allowed"])
+
+    def test_execution_plan_command_writes_manifest(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output = Path(tmpdir) / "execution_plan.json"
+            with mock.patch(
+                "sys.argv",
+                [
+                    "p0_shards.py",
+                    "execution-plan",
+                    "experiments/configs/p0.yaml",
+                    "--output",
+                    str(output),
+                ],
+            ):
+                p0_shards.main()
+
+            payload = json.loads(output.read_text())
+            self.assertEqual("p0_execution_plan_ready", payload["status"])
+            self.assertFalse(payload["paper_allowed"])
+            self.assertFalse(payload["claim_allowed"])
+            self.assertEqual(28, payload["step_count"])
+
 
 if __name__ == "__main__":
     unittest.main()

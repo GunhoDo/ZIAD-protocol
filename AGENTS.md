@@ -159,6 +159,7 @@ ZIAD-protocol/
     manifest.json             # Paper eligibility (paper_allowed: false until real results)
     tables/                   # Paper-facing LaTeX tables and input contract
     figures/                  # Paper-facing figures
+    p0_shards/                # Paper-ineligible shard plan and execution plan manifests
 
   paper/
     paper.tex                 # Main LaTeX source
@@ -242,6 +243,7 @@ bash scripts/run_mvtec_full_category_stream_matrix_winclip.sh
 bash scripts/run_mvtec_full_category_stream_matrix_winclip_temperature.sh
 bash scripts/render_paper_tables.sh # Refresh paper-facing non-final smoke evidence tables
 python3 experiments/p0_shards.py plan experiments/configs/p0.yaml --output results/latest/p0_shards/manifest.json
+python3 experiments/p0_shards.py execution-plan experiments/configs/p0.yaml --output results/latest/p0_shards/execution_plan.json
 python3 experiments/p0_shards.py verify results/latest/p0_shards/manifest.json --require-outputs
 make paper                        # Build paper/paper.pdf
 make p0                           # Refresh P0 placeholder outputs (no real inference)

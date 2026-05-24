@@ -26,6 +26,7 @@ except ImportError as error:  # pragma: no cover - environment-dependent
 from experiments import category_sweep, mini_matrix
 
 DEFAULT_OUTPUT = Path("results/latest/p0_shards/manifest.json")
+DEFAULT_EXECUTION_PLAN_OUTPUT = Path("results/latest/p0_shards/execution_plan.json")
 CONFIG_ROOT = Path("experiments/configs")
 SCRIPT_ROOT = Path("scripts")
 DATASET_PREFIX = {
@@ -390,6 +391,141 @@ def build_manifest(p0_config: Path) -> dict[str, Any]:
     }
 
 
+def _outputs_exist(outputs: dict[str, str]) -> bool:
+    return bool(outputs) and all(Path(value).exists() for value in outputs.values())
+
+
+def _execution_step(
+    *,
+    step_id: str,
+    phase: str,
+    shard: dict[str, Any],
+    command: str,
+    config: str,
+    runner: str,
+    outputs: dict[str, str],
+    expected_smoke_run_count: int,
+    depends_on: list[str],
+    memory_policy: str | None = None,
+    calibration: str | None = None,
+) -> dict[str, Any]:
+    outputs_present = _outputs_exist(outputs)
+    return {
+        "step_id": step_id,
+        "phase": phase,
+        "dataset": shard["dataset"],
+        "baseline": shard["baseline"],
+        "memory_policy": memory_policy or "default/SCS",
+        "calibration": calibration or "none",
+        "paper_allowed": False,
+        "claim_allowed": False,
+        "current_status": "outputs_present_smoke" if outputs_present else "pending_local_execution",
+        "command": command,
+        "config": config,
+        "runner": runner,
+        "outputs": outputs,
+        "expected_smoke_run_count": expected_smoke_run_count,
+        "depends_on": depends_on,
+        "resume_policy": (
+            "Skip this step when all listed aggregate outputs exist and the "
+            "source manifest remains paper_allowed=false; rerun the command "
+            "when any output is missing or stale."
+        ),
+        "validation": {
+            "required_outputs": sorted(outputs),
+            "required_status": "measured_smoke",
+            "paper_allowed": False,
+            "notes": (
+                "Validate aggregate row count and manifest paper_allowed=false "
+                "before treating this smoke step as complete."
+            ),
+        },
+    }
+
+
+def build_execution_plan(p0_config: Path) -> dict[str, Any]:
+    """Build a deterministic local execution/restart plan for P0 smoke shards."""
+    manifest = build_manifest(p0_config)
+    steps: list[dict[str, Any]] = []
+    for shard in manifest["shards"]:
+        base_step_id = f"{shard['shard_id']}:base"
+        steps.append(
+            _execution_step(
+                step_id=base_step_id,
+                phase="base_stream_epsilon",
+                shard=shard,
+                command=shard["command"],
+                config=shard["config"],
+                runner=shard["runner"],
+                outputs=shard.get("outputs", {}),
+                expected_smoke_run_count=shard["current_smoke_run_count"],
+                depends_on=[],
+            )
+        )
+        for memory_shard in shard.get("memory_policy_shards", []):
+            memory_policy = memory_shard["memory_policy"]
+            steps.append(
+                _execution_step(
+                    step_id=f"{shard['shard_id']}:memory:{_memory_policy_slug(memory_policy)}",
+                    phase="memory_policy",
+                    shard=shard,
+                    command=memory_shard["command"],
+                    config=memory_shard["config"],
+                    runner=memory_shard["runner"],
+                    outputs=memory_shard.get("outputs", {}),
+                    expected_smoke_run_count=memory_shard["current_smoke_run_count"],
+                    depends_on=[base_step_id],
+                    memory_policy=memory_policy,
+                )
+            )
+        for calibration_shard in shard.get("calibration_shards", []):
+            calibration = calibration_shard["calibration"]
+            steps.append(
+                _execution_step(
+                    step_id=f"{shard['shard_id']}:calibration:{calibration}",
+                    phase="calibration",
+                    shard=shard,
+                    command=calibration_shard["command"],
+                    config=calibration_shard["config"],
+                    runner=calibration_shard["runner"],
+                    outputs=calibration_shard.get("outputs", {}),
+                    expected_smoke_run_count=calibration_shard["current_smoke_run_count"],
+                    depends_on=[base_step_id],
+                    calibration=calibration,
+                )
+            )
+    pending = [step for step in steps if step["current_status"] != "outputs_present_smoke"]
+    return {
+        "status": "p0_execution_plan_ready" if not pending else "p0_execution_plan_pending_outputs",
+        "paper_allowed": False,
+        "claim_allowed": False,
+        "p0_config": str(p0_config),
+        "source_manifest_status": manifest["status"],
+        "step_count": len(steps),
+        "ready_step_count": len(steps) - len(pending),
+        "pending_step_count": len(pending),
+        "phase_counts": {
+            phase: sum(1 for step in steps if step["phase"] == phase)
+            for phase in ["base_stream_epsilon", "memory_policy", "calibration"]
+        },
+        "execution_order": [step["step_id"] for step in steps],
+        "steps": steps,
+        "global_resume_policy": (
+            "Run steps in execution_order. On interruption, reload this plan, "
+            "skip steps with current_status=outputs_present_smoke after verifying "
+            "their aggregate outputs, and resume at the first pending step."
+        ),
+        "global_verify_command": (
+            "python3 experiments/p0_shards.py verify results/latest/p0_shards/manifest.json "
+            "--require-outputs"
+        ),
+        "notes": (
+            "Execution plan only. It records local smoke-shard commands and restart "
+            "rules; it is not a paper result and does not promote paper_allowed."
+        ),
+    }
+
+
 def write_manifest(path: Path, manifest: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
@@ -467,6 +603,14 @@ def parse_args() -> argparse.Namespace:
     plan.add_argument("p0_config", type=Path, nargs="?", default=Path("experiments/configs/p0.yaml"))
     plan.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
 
+    execution_plan = subparsers.add_parser(
+        "execution-plan", help="write a local P0 shard execution/restart manifest"
+    )
+    execution_plan.add_argument(
+        "p0_config", type=Path, nargs="?", default=Path("experiments/configs/p0.yaml")
+    )
+    execution_plan.add_argument("--output", type=Path, default=DEFAULT_EXECUTION_PLAN_OUTPUT)
+
     verify = subparsers.add_parser("verify", help="verify a P0 shard plan manifest")
     verify.add_argument("manifest", type=Path, nargs="?", default=DEFAULT_OUTPUT)
     verify.add_argument("--require-outputs", action="store_true")
@@ -484,6 +628,15 @@ def main() -> None:
             f"{manifest['status']} ready={manifest['ready_shard_count']}/{manifest['shard_count']} "
             f"calibration_ready={manifest['ready_calibration_shard_count']} "
             "paper_allowed=false"
+        )
+    elif args.command == "execution-plan":
+        plan = build_execution_plan(args.p0_config)
+        write_manifest(args.output, plan)
+        print(args.output)
+        print(
+            "status="
+            f"{plan['status']} ready={plan['ready_step_count']}/{plan['step_count']} "
+            f"pending={plan['pending_step_count']} paper_allowed=false"
         )
     elif args.command == "verify":
         manifest = json.loads(args.manifest.read_text())

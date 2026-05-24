@@ -11,6 +11,28 @@
 - 논문 게이트는 아직 닫힘: 모든 현재 산출물은 `paper_allowed=false` 유지.
 - `.omx/`는 planning history이며 소스 오브 트루스가 아니다.
 
+## 최신 진행: P0 shard execution/restart plan
+
+- 목표: full P0 장시간 실행 전, 현재 shard들을 어떤 순서로 실행하고 interruption 후 어디서 재개할지 JSON manifest로 고정.
+- 주요 수정:
+  - `experiments/p0_shards.py`에 `execution-plan` subcommand와 `build_execution_plan()` 추가.
+  - `tests/test_p0_shards.py`에 단계 수, phase count, dependency, resume policy, claim gate 검증 추가.
+  - `README.md`/`AGENTS.md`에 `execution-plan` 명령과 산출물을 기록.
+- 실행 명령:
+  - `python3 experiments/p0_shards.py execution-plan experiments/configs/p0.yaml --output results/latest/p0_shards/execution_plan.json`
+- 생성 output:
+  - `results/latest/p0_shards/execution_plan.json`
+- 검증 결과:
+  - status `p0_execution_plan_ready`
+  - `paper_allowed=false`, `claim_allowed=false`
+  - source shard manifest status `p0_shard_plan_ready`
+  - steps `28`: base stream/epsilon `8`, memory-policy `12`, calibration `8`
+  - ready steps `28`, pending steps `0`
+  - 각 step은 command/config/runner/aggregate outputs/expected row count/dependencies/resume policy를 가진다.
+- 제한:
+  - 이 manifest는 실행/재시작 계획이다. 새 metric을 만들지 않고 paper result도 아니다.
+  - 현재 모든 step은 기존 smoke outputs 기준 `outputs_present_smoke`다. full reviewed P0 실행은 여전히 별도 목표다.
+
 ## 최신 진행: paper table/figure input contract
 
 - 목표: full P0 장시간 실행 전, 현재 paper-facing smoke tables가 어떤 source CSV/manifest를 소비하는지 명시하는 입력 contract를 고정.
