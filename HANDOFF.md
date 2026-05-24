@@ -84,6 +84,18 @@
   - aggregate manifest keeps `run_tier=p0_full`, `execution_mode=production`, `paper_allowed=false`, `claim_allowed=false`, `review_status=not_reviewed`, `expected_full_run_count=180`, `stream_length=2`.
   - full-P0 dry-run after completion: `summary: total=24 selected=24 skipped=2 pending=22 executed=0 dry_run=22`.
   - full 24-step production plan was not executed.
+- production non-dry-run validation (`VisA none`):
+  - selected step: `visa:winclip:default_no_memory:none`
+  - command: `python3 experiments/run_p0_full_step.py --plan results/latest/p0_full/execution_plan.json --step-id visa:winclip:default_no_memory:none --output-root results/latest/p0_full/visa/winclip/default_no_memory/none --stream-length 2`
+  - generated aggregate outputs:
+    - `results/latest/p0_full/visa/winclip/default_no_memory/none/metrics.csv`
+    - `results/latest/p0_full/visa/winclip/default_no_memory/none/manifest.json`
+    - `results/latest/p0_full/visa/winclip/default_no_memory/none/crd_lite.csv`
+  - generated per-run outputs stay under `results/latest/p0_full/visa/winclip/default_no_memory/none/production_runs/`.
+  - aggregate row count `144`, category count `12`, row status `measured_full_p0`, calibration `none`.
+  - aggregate manifest keeps `run_tier=p0_full`, `execution_mode=production`, `paper_allowed=false`, `claim_allowed=false`, `review_status=not_reviewed`, `expected_full_run_count=144`, `stream_length=2`.
+  - full-P0 dry-run after completion: `summary: total=24 selected=24 skipped=3 pending=21 executed=0 dry_run=21`.
+  - full 24-step production plan was not executed.
 - gate/status:
   - `run_tier=p0_full`
   - `execution_mode=production` is required for production skip validation.
@@ -97,12 +109,12 @@
   - 모든 declared output path와 optional `--output-root`가 `results/latest/p0_full/` 아래인지 검증한다.
   - manifest/latest_run metadata envelope는 `run_tier=p0_full`, `paper_allowed=false`, `claim_allowed=false`, `review_status=not_reviewed`를 강제한다.
   - dry-run은 output을 만들지 않는다.
-  - non-dry-run production은 현재 `mvtec_ad:winclip:default_no_memory:none`와 `mvtec_ad:winclip:default_no_memory:temperature_scaling` 두 step으로만 guard되어 있다.
+  - non-dry-run production은 현재 `mvtec_ad:winclip:default_no_memory:none`, `mvtec_ad:winclip:default_no_memory:temperature_scaling`, `visa:winclip:default_no_memory:none` 세 step으로만 guard되어 있다.
   - full-P0 execution-plan validation now requires aggregate manifest `execution_mode=production` and the category-aware production row count before a step can be skipped as complete.
   - lightweight aggregate manifests remain validation evidence only and are treated as pending for production full-P0 execution.
   - WinCLIP/AnomalyCLIP의 full-P0 `default/no-memory` semantics는 기존 wrapper compatibility를 위해 runner config에서는 `default/SCS`로 호출하지만, produced full-P0 latest_run/manifest/aggregate metadata는 `default/no-memory`로 보존한다.
 - 제한:
-  - `experiments/run_p0_full_step.py` production body는 MVTec WinCLIP `none`/`temperature_scaling` 두 step에만 열려 있다.
+  - `experiments/run_p0_full_step.py` production body는 MVTec WinCLIP `none`/`temperature_scaling`과 VisA WinCLIP `none` 세 step에만 열려 있다.
   - 이번 production validations는 cheapest step validation을 위해 `--stream-length 2`로 실행됐다. full reviewed P0/paper result가 아니다.
   - full reviewed P0 inference와 paper review는 미실행이다.
   - `results/latest/p0_shards/`는 smoke orchestration evidence이고, `results/latest/p0_full/`는 separate full-P0 skeleton/future-output root다.

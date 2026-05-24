@@ -155,6 +155,11 @@ python3 experiments/run_p0_full_step.py \
   --step-id mvtec_ad:winclip:default_no_memory:temperature_scaling \
   --output-root results/latest/p0_full/mvtec_ad/winclip/default_no_memory/temperature_scaling \
   --stream-length 2
+python3 experiments/run_p0_full_step.py \
+  --plan results/latest/p0_full/execution_plan.json \
+  --step-id visa:winclip:default_no_memory:none \
+  --output-root results/latest/p0_full/visa/winclip/default_no_memory/none \
+  --stream-length 2
 ```
 
 This defines a separate full-P0 planning tier without running inference. Smoke
@@ -171,8 +176,8 @@ pending aggregate steps. Production validation is category-aware: MVTec steps
 expect 15 categories and 180 rows, VisA steps expect 12 categories and 144
 rows, for production matrix count `3888`. The execution-plan runner can dry-run
 this skeleton. Production non-dry-run execution is guarded to the two selected
-MVTec WinCLIP validation steps for `none` and `temperature_scaling`; do not run
-the full 24-step plan.
+MVTec WinCLIP validation steps for `none` and `temperature_scaling`, plus the
+VisA WinCLIP `none` validation step; do not run the full 24-step plan.
 
 The single-step full-P0 executor resolves one step by id or index, enforces
 `results/latest/p0_full/` output paths, and dry-runs without creating outputs.
@@ -190,12 +195,16 @@ The current production validation outputs are:
 - `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/temperature_scaling/metrics.csv`
 - `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/temperature_scaling/manifest.json`
 - `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/temperature_scaling/crd_lite.csv`
+- `results/latest/p0_full/visa/winclip/default_no_memory/none/metrics.csv`
+- `results/latest/p0_full/visa/winclip/default_no_memory/none/manifest.json`
+- `results/latest/p0_full/visa/winclip/default_no_memory/none/crd_lite.csv`
 
 Each completed MVTec WinCLIP production aggregate has 180 rows across 15 MVTec
-categories, status `measured_full_p0`, `execution_mode=production`, and keeps
-`paper_allowed=false`/`claim_allowed=false`. These used `--stream-length 2` as
-the cheapest production validation setting and are not reviewed paper results.
-After these runs, full-P0 dry-run reports `skipped=2` and `pending=22`.
+categories; the completed VisA WinCLIP aggregate has 144 rows across 12 VisA
+categories. All use status `measured_full_p0`, `execution_mode=production`, and
+keep `paper_allowed=false`/`claim_allowed=false`. These used `--stream-length 2`
+as the cheapest production validation setting and are not reviewed paper
+results. After these runs, full-P0 dry-run reports `skipped=3` and `pending=21`.
 
 Full-P0 skeleton gates stay closed by default:
 `run_tier=p0_full`, `execution_mode=production` for production-complete outputs,

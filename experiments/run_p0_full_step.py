@@ -55,6 +55,7 @@ DEFAULT_VALIDATION_CATEGORIES = {
 ALLOWED_PRODUCTION_STEP_IDS = {
     "mvtec_ad:winclip:default_no_memory:none",
     "mvtec_ad:winclip:default_no_memory:temperature_scaling",
+    "visa:winclip:default_no_memory:none",
 }
 CommandRunner = Callable[[list[str]], int]
 
@@ -297,6 +298,15 @@ def _run_categories(step: dict[str, Any], *, execution_mode: str, category: str 
     if not isinstance(categories, list) or not categories:
         raise FullP0StepError("production full-P0 step must declare categories")
     return [str(value) for value in categories]
+
+
+def _category_root_for_dataset(dataset_root: str | Path, dataset: str, category: str) -> Path:
+    root = Path(dataset_root)
+    if dataset == "VisA":
+        one_class_root = root / "1cls" / category
+        if one_class_root.is_dir():
+            return one_class_root
+    return root / category
 
 
 def _write_aggregate_metrics(path: Path, rows: list[dict[str, str]]) -> None:
@@ -708,9 +718,10 @@ def _execute_winclip_production_step(step: dict[str, Any], *, stream_length: int
     model.eval_mode()
 
     for selected_category in categories:
-        if not (Path(dataset_root) / selected_category).is_dir():
+        category_root = _category_root_for_dataset(dataset_root, dataset, selected_category)
+        if not category_root.is_dir():
             raise FullP0StepError(
-                f"MVTec category not found: {Path(dataset_root) / selected_category}"
+                f"{dataset} category not found: {category_root}"
             )
         model.build_text_feature_gallery(selected_category)
         for stream_type in [str(value) for value in step.get("stream_types", [])]:
