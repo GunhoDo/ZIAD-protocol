@@ -121,6 +121,28 @@
   - full-P0 dry-run before this step was `summary: total=24 selected=24 skipped=4 pending=20 executed=0 dry_run=20`.
   - full-P0 dry-run after completion: `summary: total=24 selected=24 skipped=5 pending=19 executed=0 dry_run=19`.
   - full 24-step production plan was not executed.
+- full pending execution (`stream_length=2`, production-validation):
+  - command: `python3 experiments/run_p0_execution_plan.py --plan results/latest/p0_full/execution_plan.json`
+  - resumed/skipped already complete MVTec/VisA WinCLIP and MVTec AnomalyCLIP steps, then executed the remaining 10 pending aggregate steps:
+    - `visa:patchcore:default_scs:none`
+    - `visa:patchcore:default_scs:temperature_scaling`
+    - `visa:patchcore:reservoir:none`
+    - `visa:patchcore:reservoir:temperature_scaling`
+    - `visa:anomalyclip:default_no_memory:none`
+    - `visa:anomalyclip:default_no_memory:temperature_scaling`
+    - `visa:rareclip:default_scs:none`
+    - `visa:rareclip:default_scs:temperature_scaling`
+    - `visa:rareclip:reservoir:none`
+    - `visa:rareclip:reservoir:temperature_scaling`
+  - execution summary from the run: `summary: total=24 selected=24 skipped=14 pending=10 executed=10 dry_run=0`.
+  - follow-up dry-run: `python3 experiments/run_p0_execution_plan.py --plan results/latest/p0_full/execution_plan.json --dry-run`
+  - follow-up dry-run summary: `summary: total=24 selected=24 skipped=24 pending=0 executed=0 dry_run=0`.
+  - direct aggregate gate scan: 24/24 steps checked, errors `0`.
+  - MVTec AD aggregate row count: `180` rows per step, status `measured_full_p0`.
+  - VisA aggregate row count: `144` rows per step, status `measured_full_p0`.
+  - all aggregate manifests keep `run_tier=p0_full`, `execution_mode=production`, `paper_allowed=false`, `claim_allowed=false`, `review_status=not_reviewed`.
+  - generated aggregate output roots are under `results/latest/p0_full/{dataset}/{baseline}/{memory_policy}/{calibration}/`.
+  - PatchCore production-validation uses `sampler_percentage=0.001`, `reservoir_memory_fraction=0.001`, and model cache root `results/latest/p0_full/patchcore_model_cache` to keep local validation bounded. This is still real scoring, but it is not reviewed paper evidence.
 - gate/status:
   - `run_tier=p0_full`
   - `execution_mode=production` is required for production skip validation.
@@ -134,14 +156,14 @@
   - 모든 declared output path와 optional `--output-root`가 `results/latest/p0_full/` 아래인지 검증한다.
   - manifest/latest_run metadata envelope는 `run_tier=p0_full`, `paper_allowed=false`, `claim_allowed=false`, `review_status=not_reviewed`를 강제한다.
   - dry-run은 output을 만들지 않는다.
-  - non-dry-run production은 현재 WinCLIP의 MVTec/VisA × `none`/`temperature_scaling` 네 step과 `mvtec_ad:anomalyclip:default_no_memory:none` 한 step으로만 guard되어 있다.
+  - non-dry-run production-validation은 compact full-P0 24개 aggregate step 모두에 열려 있다.
   - full-P0 execution-plan validation now requires aggregate manifest `execution_mode=production` and the category-aware production row count before a step can be skipped as complete.
   - lightweight aggregate manifests remain validation evidence only and are treated as pending for production full-P0 execution.
   - WinCLIP/AnomalyCLIP의 full-P0 `default/no-memory` semantics는 기존 wrapper compatibility를 위해 runner config에서는 `default/SCS`로 호출하지만, produced full-P0 latest_run/manifest/aggregate metadata는 `default/no-memory`로 보존한다.
 - 제한:
-  - `experiments/run_p0_full_step.py` production body는 WinCLIP MVTec/VisA × `none`/`temperature_scaling` 네 step과 MVTec AnomalyCLIP `none` 한 step에만 열려 있다.
-  - 이번 production validations는 cheapest step validation을 위해 `--stream-length 2`로 실행됐다. full reviewed P0/paper result가 아니다.
-  - full reviewed P0 inference와 paper review는 미실행이다.
+  - 이번 production validations는 bounded local validation을 위해 `--stream-length 2`로 실행됐다. full reviewed P0/paper result가 아니다.
+  - PatchCore는 bounded validation sampler `0.001`을 사용했다. full reviewed P0 전에 sampling/memory budget을 별도로 리뷰해야 한다.
+  - full reviewed P0 inference와 paper review는 미실행이며, current `p0_full` outputs remain claim-ineligible.
   - `results/latest/p0_shards/`는 smoke orchestration evidence이고, `results/latest/p0_full/`는 separate full-P0 skeleton/future-output root다.
 
 ## 최신 진행: P0 execution-plan runner
@@ -1802,7 +1824,7 @@ git diff --check
 
 ## 3. 지금 논문 관점에서 어디까지 왔나
 
-현재는 **MVTec AD와 VisA 모두에서 4개 baseline(PatchCore/WinCLIP/AnomalyCLIP/RareCLIP)의 all-category stream/epsilon smoke matrix가 동작함을 입증한 단계**다.
+현재는 **MVTec AD와 VisA 모두에서 4개 baseline(PatchCore/WinCLIP/AnomalyCLIP/RareCLIP)의 all-category stream/epsilon smoke matrix가 동작하고, 별도 `p0_full` production-validation aggregate 24/24 step이 완료된 단계**다.
 
 구체적으로:
 
@@ -1824,26 +1846,27 @@ git diff --check
 16. `temperature_scaling`은 smoke runner 공통 score postprocessor로 구현됐고, VisA candle WinCLIP iid ε=0 length=20에서 실제 measured score 20개를 보정했다.
 17. mini/full-category matrix 생성기는 calibration 축을 전달할 수 있으며, VisA candle WinCLIP `iid/bursty × ε 0/0.01/0.05 × calibration none/temperature_scaling` 12-run matrix가 실제 measured smoke로 통과했다.
 18. MVTec/VisA full-category calibration-axis smoke matrices는 8/8 ready이고, MVTec/VisA RareCLIP/PatchCore FIFO/Reservoir/Prototype-EMA full-category memory-policy shards가 paper-ineligible measured smoke로 존재한다.
+19. `results/latest/p0_full/execution_plan.json`의 compact full-P0 production-validation aggregate steps는 24/24 complete이며, dry-run이 `skipped=24 pending=0`을 보고한다.
 
 하지만 아직 **논문 결과 단계는 아니다**.
 
 부족한 것:
 
-- full P0 matrix 미실행
-- P0 shard manifest는 생성됐고 `temperature_scaling` smoke postprocessor, MVTec/VisA full-category calibration-axis smoke matrices, memory-policy smoke shards는 구현됐지만, full reviewed P0 matrix는 아직 미실행
+- full reviewed P0 matrix 미실행. 현재 `p0_full`은 `stream_length=2` 및 bounded PatchCore sampler로 닫힌-gate production-validation을 완료한 상태다.
+- P0 shard manifest는 생성됐고 `temperature_scaling` smoke postprocessor, MVTec/VisA full-category calibration-axis smoke matrices, memory-policy smoke shards는 구현됐지만, review-approved paper matrix는 아직 미실행
 - CRD-lite는 smoke aggregate summary로 구현됨; full P0/VisA 검증과 paper 해석은 미완
 - paper table pipeline은 compact smoke summary와 smoke evidence tables를 생성함; full reviewed P0 figure/table은 아직 아님
 - review 전이므로 `paper_allowed=true` 금지
 
 ## 4. 다음 에이전트가 빠르게 해야 할 일
 
-### 1순위 — full P0 실행 contract와 paper table/figure 입력 고정
+### 1순위 — full P0 validation outputs 리뷰와 paper 승격 기준 고정
 
-Calibration-axis smoke coverage와 memory-policy smoke shard coverage는 모두 ready다. 다음은 full P0를 바로 오래 돌리기 전에 shard aggregate를 paper table/figure 입력으로 묶는 contract를 고정하고, 어떤 산출물이 `paper_allowed=true` 승격 대상인지 리뷰 절차를 분리하는 것이다.
+Calibration-axis smoke coverage, memory-policy smoke shard coverage, compact `p0_full` production-validation aggregate는 모두 ready다. 다음은 current validation settings(`stream_length=2`, PatchCore sampler `0.001`)를 paper 결과로 쓸 수 없음을 명확히 둔 상태에서, full reviewed P0의 stream length/sampling/memory budget과 `paper_allowed=true` 승격 리뷰 절차를 고정하는 것이다.
 
-### 2순위 — full P0 shard 실행
+### 2순위 — reviewed full P0 실행
 
-입력 contract가 고정되면 full P0 shard를 dataset/baseline/memory-policy/calibration 단위로 실행한다. 모든 중간 산출물은 리뷰 전까지 계속 `paper_allowed=false`로 유지한다.
+입력 contract가 고정되면 reviewed settings로 full P0 shard를 dataset/baseline/memory-policy/calibration 단위로 실행한다. 모든 중간 산출물은 리뷰 전까지 계속 `paper_allowed=false`로 유지한다.
 
 ## 5. 주의할 점
 

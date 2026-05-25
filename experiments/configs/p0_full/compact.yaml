@@ -6,6 +6,7 @@ paper_allowed: false
 claim_allowed: false
 review_status: not_reviewed
 output_root: results/latest/p0_full
+production_validation_stream_length: 2
 datasets:
   - MVTec AD
   - VisA

@@ -263,6 +263,11 @@ def build_manifest(config_path: Path = DEFAULT_CONFIG) -> dict[str, Any]:
 
 def build_execution_plan(config_path: Path = DEFAULT_CONFIG) -> dict[str, Any]:
     manifest = build_manifest(config_path)
+    config = _load_config(config_path)
+    stream_length = config.get("production_validation_stream_length")
+    stream_length_arg = (
+        f" --stream-length {int(stream_length)}" if stream_length is not None else ""
+    )
     steps = []
     for step in manifest["steps"]:
         steps.append(
@@ -294,7 +299,9 @@ def build_execution_plan(config_path: Path = DEFAULT_CONFIG) -> dict[str, Any]:
                     "--plan results/latest/p0_full/execution_plan.json "
                     f"--step-id {step['step_id']} "
                     f"--output-root {step['output_root']}"
+                    f"{stream_length_arg}"
                 ),
+                "production_validation_stream_length": stream_length,
                 "config": str(config_path),
                 "runner": "experiments/run_p0_full_step.py",
                 "outputs": step["outputs"],

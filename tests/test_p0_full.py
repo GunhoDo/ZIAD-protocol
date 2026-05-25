@@ -52,7 +52,16 @@ class P0FullSkeletonTest(unittest.TestCase):
 
     def test_smoke_outputs_do_not_satisfy_full_execution_plan(self):
         plan = p0_full.build_execution_plan(Path("experiments/configs/p0_full/compact.yaml"))
-        first_step = plan["steps"][0]
+        first_step = dict(plan["steps"][0])
+        output_root = Path("results/latest/p0_full/unit_test_missing_smoke_separation")
+        if output_root.exists():
+            shutil.rmtree(output_root)
+        first_step["output_root"] = str(output_root)
+        first_step["outputs"] = {
+            "aggregate_metrics": str(output_root / "metrics.csv"),
+            "aggregate_manifest": str(output_root / "manifest.json"),
+            "crd_lite_summary": str(output_root / "crd_lite.csv"),
+        }
 
         validation = run_p0_execution_plan.validate_step_outputs(first_step)
 
@@ -221,16 +230,37 @@ class P0FullStepExecutorTest(unittest.TestCase):
     def test_dry_run_creates_no_outputs(self):
         plan = self._plan()
         _, step = run_p0_full_step.resolve_step(plan, "0")
+        output_root = Path("results/latest/p0_full/unit_test_dry_run_no_outputs")
+        if output_root.exists():
+            shutil.rmtree(output_root)
+        step = dict(step)
+        step["output_root"] = str(output_root)
+        step["outputs"] = {
+            "aggregate_metrics": str(output_root / "metrics.csv"),
+            "aggregate_manifest": str(output_root / "manifest.json"),
+            "crd_lite_summary": str(output_root / "crd_lite.csv"),
+        }
+        plan = dict(plan)
+        plan["steps"] = [step]
         output_paths = [Path(value) for value in step["outputs"].values()]
         for path in output_paths:
             self.assertFalse(path.exists())
 
-        index, selected = run_p0_full_step.run_step(plan, selector="0", dry_run=True)
+        try:
+            index, selected = run_p0_full_step.run_step(
+                plan,
+                selector=step["step_id"],
+                output_root=output_root,
+                dry_run=True,
+            )
 
-        self.assertEqual(0, index)
-        self.assertEqual(step["step_id"], selected["step_id"])
-        for path in output_paths:
-            self.assertFalse(path.exists())
+            self.assertEqual(0, index)
+            self.assertEqual(step["step_id"], selected["step_id"])
+            for path in output_paths:
+                self.assertFalse(path.exists())
+        finally:
+            if output_root.exists():
+                shutil.rmtree(output_root)
 
     def test_missing_unknown_step_fails_clearly(self):
         plan = self._plan()
@@ -515,6 +545,17 @@ class P0FullStepExecutorTest(unittest.TestCase):
     def test_production_run_is_guarded_to_selected_step(self):
         plan = self._plan()
         _, step = run_p0_full_step.resolve_step(plan, "0")
+        step = dict(step)
+        step["step_id"] = "mvtec_ad:unsupported:default:none"
+        step["baseline"] = "Unsupported"
+        step["output_root"] = "results/latest/p0_full/unit_test_unsupported"
+        step["outputs"] = {
+            "aggregate_metrics": "results/latest/p0_full/unit_test_unsupported/metrics.csv",
+            "aggregate_manifest": "results/latest/p0_full/unit_test_unsupported/manifest.json",
+            "crd_lite_summary": "results/latest/p0_full/unit_test_unsupported/crd_lite.csv",
+        }
+        plan = dict(plan)
+        plan["steps"] = [step]
 
         with self.assertRaisesRegex(run_p0_full_step.FullP0StepError, "enabled only"):
             run_p0_full_step.run_step(

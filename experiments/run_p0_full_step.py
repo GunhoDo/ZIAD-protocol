@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import shutil
 import subprocess
 import time
 from pathlib import Path
@@ -29,6 +30,7 @@ except ImportError as error:  # pragma: no cover - environment-dependent
     raise SystemExit("PyYAML is required for full-P0 step execution") from error
 
 from experiments import evaluate, make_streams, mini_matrix
+from experiments.calibration import apply_calibration_from_config
 
 DEFAULT_PLAN = Path("results/latest/p0_full/execution_plan.json")
 FULL_OUTPUT_ROOT = Path("results/latest/p0_full")
@@ -52,10 +54,30 @@ DEFAULT_VALIDATION_CATEGORIES = {
     "MVTec AD": "bottle",
     "VisA": "candle",
 }
+PATCHCORE_PRODUCTION_VALIDATION_SAMPLER_PERCENTAGE = 0.001
 ALLOWED_PRODUCTION_STEP_IDS = {
+    "mvtec_ad:patchcore:default_scs:none",
+    "mvtec_ad:patchcore:default_scs:temperature_scaling",
+    "mvtec_ad:patchcore:reservoir:none",
+    "mvtec_ad:patchcore:reservoir:temperature_scaling",
     "mvtec_ad:anomalyclip:default_no_memory:none",
+    "mvtec_ad:anomalyclip:default_no_memory:temperature_scaling",
+    "mvtec_ad:rareclip:default_scs:none",
+    "mvtec_ad:rareclip:default_scs:temperature_scaling",
+    "mvtec_ad:rareclip:reservoir:none",
+    "mvtec_ad:rareclip:reservoir:temperature_scaling",
     "mvtec_ad:winclip:default_no_memory:none",
     "mvtec_ad:winclip:default_no_memory:temperature_scaling",
+    "visa:anomalyclip:default_no_memory:none",
+    "visa:anomalyclip:default_no_memory:temperature_scaling",
+    "visa:patchcore:default_scs:none",
+    "visa:patchcore:default_scs:temperature_scaling",
+    "visa:patchcore:reservoir:none",
+    "visa:patchcore:reservoir:temperature_scaling",
+    "visa:rareclip:default_scs:none",
+    "visa:rareclip:default_scs:temperature_scaling",
+    "visa:rareclip:reservoir:none",
+    "visa:rareclip:reservoir:temperature_scaling",
     "visa:winclip:default_no_memory:none",
     "visa:winclip:default_no_memory:temperature_scaling",
 }
@@ -252,6 +274,14 @@ def _step_dataset_root(step: dict[str, Any]) -> str:
     if dataset not in DEFAULT_DATASET_ROOTS:
         raise FullP0StepError(f"No default dataset_root for full-P0 dataset: {dataset}")
     return DEFAULT_DATASET_ROOTS[dataset]
+
+
+def _step_runner_dataset_root(step: dict[str, Any]) -> str:
+    dataset = str(step.get("dataset", ""))
+    baseline = str(step.get("baseline", ""))
+    if dataset == "VisA" and baseline in {"PatchCore", "RareCLIP"}:
+        return "data/visa/1cls"
+    return _step_dataset_root(step)
 
 
 def _step_baseline_path(step: dict[str, Any]) -> str:
@@ -486,11 +516,24 @@ def _execute_production_step(
         return
 
     baseline = str(step.get("baseline", ""))
+    if str(step.get("calibration", "")) == "temperature_scaling":
+        _execute_temperature_materialized_step(step, stream_length=stream_length)
+        return
     if baseline == "WinCLIP":
         _execute_winclip_production_step(step, stream_length=stream_length)
         return
     if baseline == "AnomalyCLIP":
         _execute_anomalyclip_production_step(step, stream_length=stream_length)
+        return
+    if baseline == "RareCLIP":
+        _execute_rareclip_production_step(step, stream_length=stream_length)
+        return
+    if baseline in {"PatchCore", "RareCLIP"}:
+        _execute_production_step_with_commands(
+            step,
+            stream_length=stream_length,
+            command_runner=command_runner,
+        )
         return
     raise FullP0StepError(f"Production execution is not implemented for {baseline}")
 
@@ -511,6 +554,7 @@ def _execute_production_step_with_commands(
         "execution_mode": "production",
     }
     dataset = str(step["dataset"])
+    dataset_root = _step_runner_dataset_root(step)
     baseline = str(step["baseline"])
     categories = _run_categories(step, execution_mode="production", category=None)
     rows: list[dict[str, str]] = []
@@ -528,7 +572,7 @@ def _execute_production_step_with_commands(
                         "baseline": baseline,
                         "baseline_path": _step_baseline_path(step),
                         "dataset": dataset,
-                        "dataset_root": _step_dataset_root(step),
+                        "dataset_root": dataset_root,
                         "category": selected_category,
                         "stream_type": stream_type,
                         "prevalence": 0.05,
@@ -555,6 +599,26 @@ def _execute_production_step_with_commands(
                             "runner_memory_policy": _runner_memory_policy(step),
                         },
                     }
+                    if baseline == "PatchCore":
+                        smoke_config.update(
+                            {
+                                "sampler_percentage": PATCHCORE_PRODUCTION_VALIDATION_SAMPLER_PERCENTAGE,
+                                "reservoir_memory_fraction": PATCHCORE_PRODUCTION_VALIDATION_SAMPLER_PERCENTAGE,
+                                "model_cache_root": str(
+                                    FULL_OUTPUT_ROOT / "patchcore_model_cache"
+                                ),
+                            }
+                        )
+                        smoke_config["provenance"].update(
+                            {
+                                "production_validation_sampler_percentage": (
+                                    PATCHCORE_PRODUCTION_VALIDATION_SAMPLER_PERCENTAGE
+                                ),
+                                "model_cache_root": str(
+                                    FULL_OUTPUT_ROOT / "patchcore_model_cache"
+                                ),
+                            }
+                        )
                     _write_yaml(config_path, smoke_config)
 
                     _run_command(
@@ -627,6 +691,449 @@ def _execute_production_step_with_commands(
         "notes": (
             "Single production full-P0 validation step. "
             "Not a reviewed paper result."
+        ),
+    }
+    if baseline == "PatchCore":
+        manifest["production_validation_sampler_percentage"] = (
+            PATCHCORE_PRODUCTION_VALIDATION_SAMPLER_PERCENTAGE
+        )
+        manifest["model_cache_root"] = str(FULL_OUTPUT_ROOT / "patchcore_model_cache")
+    _write_json(aggregate_manifest, manifest)
+
+
+def _execute_rareclip_production_step(step: dict[str, Any], *, stream_length: int) -> None:
+    from experiments.baselines import rareclip
+
+    output_root = _repo_path(str(step["output_root"]))
+    metadata = {
+        **build_manifest_metadata(step),
+        "execution_mode": "production",
+    }
+    dataset = str(step["dataset"])
+    dataset_root = _step_runner_dataset_root(step)
+    dataset_root_path = rareclip._resolve_repo_path(dataset_root)
+    categories = _run_categories(step, execution_mode="production", category=None)
+    rows: list[dict[str, str]] = []
+    run_manifests: list[dict[str, Any]] = []
+    latest_runs: list[dict[str, Any]] = []
+    timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+    rareclip._ensure_rareclip_importable()
+    try:
+        import torch
+        from rareclip import RareCLIP
+        from rareclip_d import RareCLIP_d
+    except ImportError as error:  # pragma: no cover - environment-dependent
+        raise rareclip._dependency_error(error) from error
+
+    config = {
+        "baseline": str(step["baseline"]),
+        "dataset": dataset,
+        "dataset_root": dataset_root,
+        "memory_policy": _runner_memory_policy(step),
+        "calibration": str(step.get("calibration", "none")),
+        "scoring_mode": "stream_ordered_full_p0_production",
+        "latency_semantics": "wrapper_reported",
+    }
+    memory_policy, _ = rareclip.validate_execution_contract(
+        config,
+        baseline_name="RareCLIP",
+        supported_memory_policies={
+            "default/SCS",
+            "FIFO",
+            "Reservoir",
+            "Prototype-EMA",
+        },
+        supported_calibrations={"none", "temperature_scaling"},
+    )
+    checkpoint_path = rareclip._resolve_repo_path(
+        str(rareclip._cfg(config, "checkpoint_path", rareclip.DEFAULT_CHECKPOINT))
+    )
+    if not checkpoint_path.is_file():
+        raise FullP0StepError(f"RareCLIP checkpoint is required but missing: {checkpoint_path}")
+
+    update_memory = rareclip._cfg(config, "online", True, bool)
+    direct = rareclip._cfg(config, "direct", False, bool)
+    args = rareclip._rareclip_args(config, checkpoint_path)
+    fifo_memory_size = rareclip._cfg(config, "fifo_memory_size", args.keep_inum, int)
+    reservoir_memory_size = rareclip._cfg(config, "reservoir_memory_size", args.keep_inum, int)
+    reservoir_seed = rareclip._cfg(
+        config,
+        "reservoir_seed",
+        rareclip._cfg(config, "seed", 0, int),
+        int,
+    )
+    prototype_ema_memory_size = rareclip._cfg(
+        config,
+        "prototype_ema_memory_size",
+        args.keep_inum,
+        int,
+    )
+    prototype_ema_alpha = rareclip._cfg(config, "prototype_ema_alpha", 0.1, float)
+    cache_dir = rareclip._resolve_repo_path(
+        str(rareclip._cfg(config, "clip_cache_dir", rareclip.DEFAULT_CLIP_CACHE))
+    )
+    rareclip._prepare_openai_clip_cache(cache_dir)
+
+    with rareclip._temporary_cwd(Path(rareclip.LOCAL_PATH).resolve()):
+        model = RareCLIP_d(args) if direct else RareCLIP(args)
+        if memory_policy == "FIFO":
+            rareclip._install_fifo_sampler(model)
+        elif memory_policy == "Reservoir":
+            rareclip._install_reservoir_sampler(model, reservoir_seed)
+        elif memory_policy == "Prototype-EMA":
+            rareclip._install_prototype_ema_sampler(model, prototype_ema_alpha)
+        if hasattr(model.clip_model, "eval"):
+            model.clip_model.eval()
+
+        for selected_category in categories:
+            category_root = _category_root_for_dataset(
+                dataset_root_path,
+                dataset,
+                selected_category,
+            )
+            if not category_root.is_dir():
+                raise FullP0StepError(f"{dataset} category not found: {category_root}")
+            for stream_type in [str(value) for value in step.get("stream_types", [])]:
+                for epsilon in [str(value) for value in step.get("contamination_epsilon", [])]:
+                    for seed in [str(value) for value in step.get("seeds", [])]:
+                        model.renew_memory()
+                        run_id = _category_run_id(
+                            selected_category,
+                            stream_type,
+                            epsilon,
+                            seed,
+                        )
+                        run_dir = output_root / "production_runs" / run_id
+                        stream_path = run_dir / "stream.json"
+                        scores_path = run_dir / "scores.csv"
+                        latest_run_path = run_dir / "latest_run.json"
+                        manifest_path = run_dir / "manifest.json"
+                        metrics_path = run_dir / "metrics.csv"
+
+                        stream_payload = make_streams.build_stream(
+                            dataset_root=str(dataset_root_path),
+                            dataset=dataset,
+                            category=selected_category,
+                            stream_type=stream_type,
+                            prevalence=0.05,
+                            contamination_epsilon=float(epsilon),
+                            seed=int(seed),
+                            length=stream_length,
+                            burst_length=5,
+                        )
+                        stream_payload["metadata"].update(
+                            {
+                                "scoring_mode": "stream_ordered_full_p0_production",
+                                "latency_semantics": "wrapper_reported",
+                                "training_source": "baseline_default",
+                                "stream_source": "test/*",
+                            }
+                        )
+                        make_streams.write_stream(stream_payload, stream_path)
+                        stream_items = rareclip._load_stream_items(str(stream_path))
+                        score_rows = rareclip.RareCLIPWrapper._predict_rows(
+                            model=model,
+                            stream_items=stream_items,
+                            dataset_root=dataset_root_path,
+                            category=selected_category,
+                            update_memory=update_memory,
+                            device=model.device,
+                            torch=torch,
+                            memory_policy=memory_policy,
+                            memory_limit=(
+                                reservoir_memory_size
+                                if memory_policy == "Reservoir"
+                                else prototype_ema_memory_size
+                                if memory_policy == "Prototype-EMA"
+                                else fifo_memory_size
+                            ),
+                            memory_seed=reservoir_seed,
+                            memory_alpha=prototype_ema_alpha,
+                        )
+                        _write_score_rows(scores_path, score_rows, rareclip.SCORE_FIELDS)
+
+                        latest_run = _run_provenance(
+                            step,
+                            category=selected_category,
+                            stream_type=stream_type,
+                            epsilon=epsilon,
+                            seed=seed,
+                            stream_path=stream_path,
+                            stream_payload=stream_payload,
+                            scores_csv=scores_path,
+                            timestamp=timestamp,
+                        )
+                        latest_run["memory_policy"] = str(step.get("memory_policy", ""))
+                        _write_json(latest_run_path, latest_run)
+                        _write_json(manifest_path, {**metadata, "status": "measured"})
+                        evaluate.evaluate(
+                            scores_path,
+                            latest_run_path,
+                            metrics_path,
+                            manifest_path,
+                        )
+                        _patch_json_metadata(manifest_path, metadata)
+
+                        row = _read_metric_row(metrics_path, run_dir=run_dir)
+                        row["category"] = selected_category
+                        rows.append(row)
+                        run_manifests.append(_read_json(manifest_path))
+                        latest_runs.append(_read_json(latest_run_path))
+
+    expected = int(step.get("expected_full_run_count") or 0)
+    if len(rows) != expected:
+        raise FullP0StepError(f"Full-P0 row count {len(rows)} != expected {expected}")
+
+    outputs = step["outputs"]
+    aggregate_metrics = _repo_path(str(outputs["aggregate_metrics"]))
+    aggregate_manifest = _repo_path(str(outputs["aggregate_manifest"]))
+    crd_lite_summary = _repo_path(str(outputs["crd_lite_summary"]))
+
+    crd_rows: list[dict[str, str]] = []
+    crd_by_run_dir: dict[str, str] = {}
+    for selected_category in categories:
+        category_rows = [row for row in rows if row.get("category") == selected_category]
+        category_crd_rows, category_crd_by_run_dir = mini_matrix.compute_crd_lite(
+            category_rows,
+            category=selected_category,
+        )
+        crd_rows.extend(category_crd_rows)
+        crd_by_run_dir.update(category_crd_by_run_dir)
+    for row in rows:
+        row["crd_lite"] = crd_by_run_dir.get(row.get("run_dir", ""), "NA")
+
+    _write_aggregate_metrics(aggregate_metrics, rows)
+    mini_matrix.write_crd_lite_summary(crd_lite_summary, crd_rows)
+    manifest = {
+        **metadata,
+        "status": "measured_full_p0_production_complete",
+        "category_count": len(categories),
+        "categories": categories,
+        "stream_length": stream_length,
+        "aggregate_metrics": str(aggregate_metrics),
+        "crd_lite_summary": str(crd_lite_summary),
+        "run_count": len(rows),
+        "expected_full_run_count": expected,
+        "runs": rows,
+        "latest_runs": latest_runs,
+        "run_manifests": run_manifests,
+        "notes": (
+            "Production full-P0 RareCLIP step with one model load per aggregate. "
+            "Not a reviewed paper result."
+        ),
+    }
+    _write_json(aggregate_manifest, manifest)
+
+
+def _read_csv_rows(path: Path) -> list[dict[str, str]]:
+    if not path.exists():
+        raise FullP0StepError(f"Expected CSV output was not created: {path}")
+    with path.open(newline="") as handle:
+        return [dict(row) for row in csv.DictReader(handle)]
+
+
+def _source_none_output_root(step: dict[str, Any]) -> Path:
+    output_root = _repo_path(str(step["output_root"]))
+    if output_root.name != "temperature_scaling":
+        raise FullP0StepError(
+            "temperature materialization requires a temperature_scaling output root"
+        )
+    return output_root.parent / "none"
+
+
+def _require_source_none_manifest(source_manifest: dict[str, Any], step: dict[str, Any]) -> None:
+    if source_manifest.get("execution_mode") != "production":
+        raise FullP0StepError("source none manifest must be a production full-P0 output")
+    if source_manifest.get("status") != "measured_full_p0_production_complete":
+        raise FullP0StepError("source none manifest is not production-complete")
+    if source_manifest.get("calibration") != "none":
+        raise FullP0StepError("source manifest calibration must be none")
+    if source_manifest.get("paper_allowed") is not False:
+        raise FullP0StepError("source manifest paper_allowed must be false")
+    if source_manifest.get("claim_allowed") is not False:
+        raise FullP0StepError("source manifest claim_allowed must be false")
+    if source_manifest.get("review_status") != "not_reviewed":
+        raise FullP0StepError("source manifest review_status must be not_reviewed")
+    for key in ["dataset", "baseline", "memory_policy"]:
+        if source_manifest.get(key) != step.get(key):
+            raise FullP0StepError(
+                f"source manifest {key} {source_manifest.get(key)!r} "
+                f"!= target {step.get(key)!r}"
+            )
+
+
+def _copy_stream_with_calibration_metadata(
+    source_stream: Path,
+    target_stream: Path,
+    *,
+    calibration: str,
+) -> None:
+    payload = _read_json(source_stream)
+    metadata = payload.setdefault("metadata", {})
+    if not isinstance(metadata, dict):
+        raise FullP0StepError(f"stream metadata must be an object: {source_stream}")
+    metadata["calibration"] = calibration
+    metadata["scoring_mode"] = "stream_ordered_full_p0_production"
+    target_stream.parent.mkdir(parents=True, exist_ok=True)
+    _write_json(target_stream, payload)
+
+
+def _execute_temperature_materialized_step(
+    step: dict[str, Any],
+    *,
+    stream_length: int,
+) -> None:
+    """Materialize full-P0 temperature rows from matching measured none scores.
+
+    The project already treats temperature scaling as deterministic score
+    postprocessing. This keeps full-P0 temperature steps paper-ineligible while
+    avoiding a second baseline inference pass over the same streams.
+    """
+    output_root = _repo_path(str(step["output_root"]))
+    source_root = _source_none_output_root(step)
+    source_manifest_path = source_root / "manifest.json"
+    source_manifest = _read_json(source_manifest_path)
+    _require_source_none_manifest(source_manifest, step)
+
+    source_runs = source_manifest.get("runs")
+    if not isinstance(source_runs, list) or not source_runs:
+        raise FullP0StepError(f"source manifest contains no runs: {source_manifest_path}")
+
+    metadata = {
+        **build_manifest_metadata(step),
+        "execution_mode": "production",
+    }
+    latest_run_metadata = {
+        **build_latest_run_metadata(step),
+        "execution_mode": "production",
+    }
+    categories = [str(value) for value in source_manifest.get("categories", [])]
+    if not categories:
+        raise FullP0StepError("source manifest must record categories")
+
+    rows: list[dict[str, str]] = []
+    run_manifests: list[dict[str, Any]] = []
+    latest_runs: list[dict[str, Any]] = []
+    timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    source_stream_length = int(source_manifest.get("stream_length") or stream_length)
+
+    for source_row in source_runs:
+        source_run_dir = _repo_path(str(source_row.get("run_dir", "")))
+        if not source_run_dir.is_dir():
+            raise FullP0StepError(f"source run_dir is missing: {source_run_dir}")
+        target_run_dir = output_root / "production_runs" / source_run_dir.name
+        target_run_dir.mkdir(parents=True, exist_ok=True)
+
+        source_scores = source_run_dir / "scores.csv"
+        source_stream = source_run_dir / "stream.json"
+        source_latest_run = source_run_dir / "latest_run.json"
+        if not source_scores.exists() or not source_stream.exists() or not source_latest_run.exists():
+            raise FullP0StepError(f"source run artifacts are incomplete: {source_run_dir}")
+
+        scores_path = target_run_dir / "scores.csv"
+        stream_path = target_run_dir / "stream.json"
+        latest_run_path = target_run_dir / "latest_run.json"
+        manifest_path = target_run_dir / "manifest.json"
+        metrics_path = target_run_dir / "metrics.csv"
+
+        shutil.copyfile(source_scores, scores_path)
+        _copy_stream_with_calibration_metadata(
+            source_stream,
+            stream_path,
+            calibration=str(step.get("calibration", "")),
+        )
+        calibration_metadata_path = scores_path.with_name(
+            f"{scores_path.stem}_calibration.json"
+        )
+        calibration_metadata = apply_calibration_from_config(
+            scores_path,
+            {
+                "calibration": str(step.get("calibration", "")),
+                "calibration_temperature": 2.0,
+            },
+            metadata_output=calibration_metadata_path,
+        )
+
+        latest_run = _read_json(source_latest_run)
+        latest_run.update(
+            {
+                **latest_run_metadata,
+                "status": "measured",
+                "category": str(source_row.get("category", latest_run.get("category", ""))),
+                "stream_path": str(stream_path),
+                "stream_type": str(source_row.get("stream_type", latest_run.get("stream_type", ""))),
+                "contamination_epsilon": float(
+                    source_row.get(
+                        "contamination_epsilon",
+                        latest_run.get("contamination_epsilon", 0.0),
+                    )
+                ),
+                "stream_seed": latest_run.get("stream_seed"),
+                "stream_length": source_stream_length,
+                "scores_csv": str(scores_path),
+                "timestamp": timestamp,
+                "calibration": str(step.get("calibration", "")),
+                "calibration_metadata": calibration_metadata,
+                "command": "python3 experiments/run_p0_full_step.py",
+                "notes": (
+                    "Full-P0 temperature row materialized from matching measured "
+                    "none-calibration full-P0 scores; not a reviewed paper result."
+                ),
+            }
+        )
+        _write_json(latest_run_path, latest_run)
+        _write_json(manifest_path, {**metadata, "status": "measured"})
+        evaluate.evaluate(scores_path, latest_run_path, metrics_path, manifest_path)
+        _patch_json_metadata(manifest_path, metadata)
+
+        row = _read_metric_row(metrics_path, run_dir=target_run_dir)
+        row["category"] = str(source_row.get("category", ""))
+        rows.append(row)
+        run_manifests.append(_read_json(manifest_path))
+        latest_runs.append(_read_json(latest_run_path))
+
+    expected = int(step.get("expected_full_run_count") or 0)
+    if len(rows) != expected:
+        raise FullP0StepError(f"Full-P0 row count {len(rows)} != expected {expected}")
+
+    outputs = step["outputs"]
+    aggregate_metrics = _repo_path(str(outputs["aggregate_metrics"]))
+    aggregate_manifest = _repo_path(str(outputs["aggregate_manifest"]))
+    crd_lite_summary = _repo_path(str(outputs["crd_lite_summary"]))
+
+    crd_rows: list[dict[str, str]] = []
+    crd_by_run_dir: dict[str, str] = {}
+    for selected_category in categories:
+        category_rows = [row for row in rows if row.get("category") == selected_category]
+        category_crd_rows, category_crd_by_run_dir = mini_matrix.compute_crd_lite(
+            category_rows,
+            category=selected_category,
+        )
+        crd_rows.extend(category_crd_rows)
+        crd_by_run_dir.update(category_crd_by_run_dir)
+    for row in rows:
+        row["crd_lite"] = crd_by_run_dir.get(row.get("run_dir", ""), "NA")
+
+    _write_aggregate_metrics(aggregate_metrics, rows)
+    mini_matrix.write_crd_lite_summary(crd_lite_summary, crd_rows)
+    manifest = {
+        **metadata,
+        "status": "measured_full_p0_production_complete",
+        "category_count": len(categories),
+        "categories": categories,
+        "stream_length": source_stream_length,
+        "aggregate_metrics": str(aggregate_metrics),
+        "crd_lite_summary": str(crd_lite_summary),
+        "run_count": len(rows),
+        "expected_full_run_count": expected,
+        "runs": rows,
+        "latest_runs": latest_runs,
+        "run_manifests": run_manifests,
+        "source_none_manifest": str(source_manifest_path),
+        "notes": (
+            "Production full-P0 temperature step materialized from matching "
+            "measured none-calibration full-P0 scores. Not a reviewed paper result."
         ),
     }
     _write_json(aggregate_manifest, manifest)
