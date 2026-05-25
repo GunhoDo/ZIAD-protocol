@@ -143,6 +143,16 @@
   - all aggregate manifests keep `run_tier=p0_full`, `execution_mode=production`, `paper_allowed=false`, `claim_allowed=false`, `review_status=not_reviewed`.
   - generated aggregate output roots are under `results/latest/p0_full/{dataset}/{baseline}/{memory_policy}/{calibration}/`.
   - PatchCore production-validation uses `sampler_percentage=0.001`, `reservoir_memory_fraction=0.001`, and model cache root `results/latest/p0_full/patchcore_model_cache` to keep local validation bounded. This is still real scoring, but it is not reviewed paper evidence.
+- full-P0 validation report:
+  - command: `python3 experiments/p0_full_report.py`
+  - generated outputs:
+    - `results/latest/p0_full/validation_report.json`
+    - `results/latest/tables/p0_full_validation_summary.csv`
+    - `results/latest/tables/p0_full_validation_summary.tex`
+  - report summary: 24 steps, row-count mismatches 0, category-count mismatches 0, gate violations 0.
+  - report keeps `paper_allowed=false`, `claim_allowed=false`, `review_status=not_reviewed`.
+  - paper-promotion criteria are explicit in the report: do not promote validation runs, require non-validation stream length, require reviewed paper sampler settings, require row/category count checks, require no NaN/Inf metrics, and require manual review.
+  - report-observed validation stream lengths are `2` and `20`; the `20` entries are earlier MVTec PatchCore validation aggregates, and both values remain validation-only rather than paper settings.
 - gate/status:
   - `run_tier=p0_full`
   - `execution_mode=production` is required for production skip validation.
@@ -163,6 +173,7 @@
 - 제한:
   - 이번 production validations는 bounded local validation을 위해 `--stream-length 2`로 실행됐다. full reviewed P0/paper result가 아니다.
   - PatchCore는 bounded validation sampler `0.001`을 사용했다. full reviewed P0 전에 sampling/memory budget을 별도로 리뷰해야 한다.
+  - `p0_full_validation_summary.*` is report/table evidence only; it does not change paper gates.
   - full reviewed P0 inference와 paper review는 미실행이며, current `p0_full` outputs remain claim-ineligible.
   - `results/latest/p0_shards/`는 smoke orchestration evidence이고, `results/latest/p0_full/`는 separate full-P0 skeleton/future-output root다.
 

@@ -10,8 +10,8 @@ Canonical experiment reference: [`docs/experiment-prd.md`](docs/experiment-prd.m
 ## Current Status
 
 **Setup smoke gate: PASSED** — docs, configs, scripts, and wrapper stubs exist.
-**First success gate A: PASSED for PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP smoke paths** — real stream files, measured score rows, iid/bursty × ε artifacts, CRD-lite smoke summaries, bottle/capsule/hazelnut PatchCore/WinCLIP quick-sweep artifacts, all-baseline all-15-category iid ε=0 smoke artifacts, CLIP bottle mini-matrix artifacts, PatchCore/WinCLIP/AnomalyCLIP/RareCLIP all-category MVTec stream/epsilon matrix artifacts, VisA candle CLIP/PatchCore smoke artifacts, VisA all-12-category PatchCore/WinCLIP/AnomalyCLIP/RareCLIP iid ε=0 smoke artifacts, MVTec/VisA PatchCore/WinCLIP/AnomalyCLIP/RareCLIP all-category stream/epsilon/calibration matrix artifacts, MVTec/VisA RareCLIP/PatchCore FIFO/Reservoir/Prototype-EMA memory-policy shards, and a paper-ineligible P0 shard manifest exist; not full P0.
-**Paper gate: NOT YET** — current outputs remain smoke/mini-matrix evidence with `paper_allowed: false`; generated paper-facing tables are non-final smoke evidence only; full reviewed P0 results are still required.
+**First success gate A: PASSED for PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP smoke paths** — real stream files, measured score rows, iid/bursty × ε artifacts, CRD-lite smoke summaries, bottle/capsule/hazelnut PatchCore/WinCLIP quick-sweep artifacts, all-baseline all-15-category iid ε=0 smoke artifacts, CLIP bottle mini-matrix artifacts, PatchCore/WinCLIP/AnomalyCLIP/RareCLIP all-category MVTec stream/epsilon matrix artifacts, VisA candle CLIP/PatchCore smoke artifacts, VisA all-12-category PatchCore/WinCLIP/AnomalyCLIP/RareCLIP iid ε=0 smoke artifacts, MVTec/VisA PatchCore/WinCLIP/AnomalyCLIP/RareCLIP all-category stream/epsilon/calibration matrix artifacts, MVTec/VisA RareCLIP/PatchCore FIFO/Reservoir/Prototype-EMA memory-policy shards, a paper-ineligible P0 shard manifest, and a 24/24 full-P0 production-validation report exist; not reviewed paper P0.
+**Paper gate: NOT YET** — current outputs remain smoke/mini-matrix/production-validation evidence with `paper_allowed: false`; generated paper-facing tables are non-final evidence only; full reviewed P0 results are still required.
 
 Baseline repo URLs and commit hashes are pinned in `experiments/configs/baselines.yaml`
 from the current local clones. Do not fabricate replacement URLs or commit hashes.
@@ -89,11 +89,12 @@ ZIAD-protocol/
     mini_matrix.py            # Baseline-parametric mini-matrix config/aggregate helper
     materialize_calibration_matrix.py # Reuses measured matrix scores to materialize calibration-axis smoke matrices
     p0_full.py                # Separate compact full-P0 skeleton manifest/execution-plan builder
+    p0_full_report.py         # Summarizes full-P0 production-validation outputs and paper-promotion blockers
     p0_shards.py              # Paper-ineligible P0 shard planner over current smoke runners
     make_streams.py           # Deterministic MVTec/VisA stream generator (iid/bursty)
     render_paper_tables.py    # Renders paper-ineligible smoke evidence tables
     run_p0_execution_plan.py  # Dry-run/execute restartable P0 shard execution plans
-    run_p0_full_step.py       # Dry-run one compact full-P0 aggregate step; guarded production body for one validation step
+    run_p0_full_step.py       # Dry-run/execute one compact full-P0 aggregate step under closed paper gates
     summarize_p0_smoke.py     # Builds compact paper-ineligible P0 smoke summary CSV/LaTeX
     prepare_data.py           # Placeholder data prep
     run_baselines.py          # Placeholder baseline runner
@@ -261,6 +262,7 @@ python3 experiments/run_p0_full_step.py --plan results/latest/p0_full/execution_
 python3 experiments/run_p0_full_step.py --plan results/latest/p0_full/execution_plan.json --step-id visa:winclip:default_no_memory:none --output-root results/latest/p0_full/visa/winclip/default_no_memory/none --stream-length 2
 python3 experiments/run_p0_full_step.py --plan results/latest/p0_full/execution_plan.json --step-id visa:winclip:default_no_memory:temperature_scaling --output-root results/latest/p0_full/visa/winclip/default_no_memory/temperature_scaling --stream-length 2
 python3 experiments/run_p0_full_step.py --plan results/latest/p0_full/execution_plan.json --step-id mvtec_ad:anomalyclip:default_no_memory:none --output-root results/latest/p0_full/mvtec_ad/anomalyclip/default_no_memory/none --stream-length 2
+python3 experiments/p0_full_report.py # Summarize completed production-validation outputs and promotion blockers
 make paper                        # Build paper/paper.pdf
 make p0                           # Refresh P0 placeholder outputs (no real inference)
 ```
@@ -311,6 +313,10 @@ Stubs currently raise `RuntimeError` with a clear message. Do not write fake ano
 ## No-Fake-Results Rule
 
 Never place fabricated metrics in `paper/paper.tex`, `paper/paper.md`, `paper/paper.pdf`, or `results/latest/`. Missing or unrun results must remain TODO/placeholder with `paper_allowed: false`.
+
+## Paper Promotion Criteria
+
+Current `results/latest/p0_full/` outputs are production-validation artifacts, not paper results. Do not promote validation runs. Promotion requires a reviewed non-validation stream length, reviewed paper sampler/memory settings, row-count and category-count checks, no NaN/Inf metric values, and manual review before changing `paper_allowed` or `claim_allowed`.
 
 ---
 

@@ -10,6 +10,7 @@ if [[ "$#" -gt 0 ]]; then
 fi
 
 python3 experiments/summarize_p0_smoke.py
+python3 experiments/p0_full_report.py
 python3 experiments/render_paper_tables.py
 
 for dataset in mvtec visa; do

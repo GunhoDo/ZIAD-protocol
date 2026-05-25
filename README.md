@@ -1,10 +1,106 @@
 # ZIAD Protocol: Streaming Zero-Shot Anomaly Detection with CLIP
 
-This repository contains the experiment setup and paper pipeline for CLIP ZSAD —
-streaming zero-shot industrial anomaly detection benchmarked against P0 baselines.
+This repository implements a reproducible protocol for **streaming zero-shot
+industrial anomaly detection**. It evaluates CLIP-style anomaly detectors when
+test images arrive as streams rather than as a static offline benchmark.
 
 The canonical experiment reference is [`docs/experiment-prd.md`](docs/experiment-prd.md).
 The final paper artifact is `paper/paper.pdf`, which may only reference `results/latest/`.
+
+## Overview
+
+**Goal.** Benchmark zero-shot and training-light industrial anomaly detectors
+under streaming conditions, then produce paper-ready evidence only after an
+explicit review gate.
+
+**Datasets.**
+
+- MVTec AD
+- VisA
+
+**Baselines.**
+
+- PatchCore
+- WinCLIP
+- AnomalyCLIP
+- RareCLIP
+
+**Experiment axes.**
+
+- stream type: `iid`, `bursty`
+- contamination epsilon: currently `0`, `0.05` for compact full-P0 validation
+- calibration: `none`, `temperature_scaling`
+- memory policy: `default/SCS`, `Reservoir` for PatchCore/RareCLIP;
+  `default/no-memory` for WinCLIP/AnomalyCLIP
+
+**Current status.** P0 smoke coverage is complete and compact full-P0
+production-validation has completed `24/24` aggregate steps. The outputs are
+validated pipeline evidence, not final paper results. All current full-P0
+artifacts keep `paper_allowed=false`, `claim_allowed=false`, and
+`review_status=not_reviewed`.
+
+## Result Artifacts
+
+Compact portfolio-friendly artifacts are tracked under `results/latest/`.
+Per-run streams, scores, configs, caches, model outputs, datasets, and external
+baseline clones are intentionally gitignored.
+
+Full-P0 production-validation artifacts:
+
+- `results/latest/p0_full/execution_plan.json`
+- `results/latest/p0_full/manifest.json`
+- `results/latest/p0_full/validation_report.json`
+- `results/latest/tables/p0_full_validation_summary.csv`
+- `results/latest/tables/p0_full_validation_summary.tex`
+
+Smoke and paper-input artifacts:
+
+- `results/latest/tables/p0_smoke_summary.csv`
+- `results/latest/tables/p0_smoke_summary_manifest.json`
+- `results/latest/tables/p0_smoke_summary.tex`
+- `results/latest/tables/paper_input_contract.json`
+
+The validation report summarizes each of the 24 full-P0 aggregate steps:
+dataset, baseline, memory policy, calibration, row count, expected row count,
+category count, status values, stream length, sampler setting, closed paper
+gates, and aggregate output paths.
+
+## Reproducibility
+
+Regenerate the full-P0 report without inference:
+
+```bash
+python3 experiments/p0_full_report.py
+```
+
+Dry-run the completed full-P0 execution plan:
+
+```bash
+python3 experiments/run_p0_execution_plan.py \
+  --plan results/latest/p0_full/execution_plan.json --dry-run
+```
+
+Run the test suite:
+
+```bash
+python3 -m unittest discover -v
+python3 -m compileall experiments tests
+bash scripts/build_paper.sh
+git diff --check
+```
+
+## Limitations
+
+- Current full-P0 outputs are production-validation artifacts, not paper
+  results.
+- Validation-scale stream lengths are present (`2`, plus earlier MVTec
+  PatchCore validation aggregates at `20`).
+- PatchCore validation uses bounded `sampler_percentage=0.001`.
+- Paper promotion requires non-validation stream length, reviewed sampler and
+  memory settings, row-count/category-count checks, no NaN/Inf metrics, and
+  manual review.
+- Do not change `paper_allowed` or `claim_allowed` without a separate reviewed
+  promotion step.
 
 ## Experiment Setup (Smoke First)
 
@@ -48,16 +144,20 @@ make paper-tables
 ```
 
 This renders checked result CSVs into LaTeX tables. With no arguments it
-refreshes the compact P0 smoke summary, the MVTec quick-sweep smoke table, and
-the MVTec/VisA stream/epsilon/calibration smoke tables for PatchCore, WinCLIP,
-AnomalyCLIP, and RareCLIP. All generated tables are explicitly marked non-final
-and paper-ineligible because `paper_allowed` remains `false`.
+refreshes the compact P0 smoke summary, the full-P0 production-validation
+summary, the MVTec quick-sweep smoke table, and the MVTec/VisA
+stream/epsilon/calibration smoke tables for PatchCore, WinCLIP, AnomalyCLIP,
+and RareCLIP. All generated tables are explicitly marked non-final and
+paper-ineligible because `paper_allowed` remains `false`.
 
 The compact summary artifacts are:
 
 - `results/latest/tables/p0_smoke_summary.csv`
 - `results/latest/tables/p0_smoke_summary_manifest.json`
 - `results/latest/tables/p0_smoke_summary.tex`
+- `results/latest/p0_full/validation_report.json`
+- `results/latest/tables/p0_full_validation_summary.csv`
+- `results/latest/tables/p0_full_validation_summary.tex`
 - `results/latest/tables/paper_input_contract.json`
 
 The compact summary includes the `memory_policy` axis. Current smoke evidence
@@ -185,10 +285,8 @@ and memory policies `default/SCS,Reservoir` for PatchCore/RareCLIP plus
 pending aggregate steps. Production validation is category-aware: MVTec steps
 expect 15 categories and 180 rows, VisA steps expect 12 categories and 144
 rows, for production matrix count `3888`. The execution-plan runner can dry-run
-this skeleton. Production non-dry-run execution is guarded to the four selected
-WinCLIP validation steps for MVTec/VisA × `none`/`temperature_scaling` plus the
-single MVTec AnomalyCLIP `none` validation step; do not run the full 24-step
-plan.
+this skeleton. Current production-validation has completed 24/24 aggregate
+steps using the bounded validation settings below; this is not paper evidence.
 
 The single-step full-P0 executor resolves one step by id or index, enforces
 `results/latest/p0_full/` output paths, and dry-runs without creating outputs.
@@ -198,32 +296,32 @@ Lightweight outputs are not accepted as completed production outputs; a
 completed production aggregate manifest must declare `execution_mode=production`
 and match the production row count.
 
-The current production validation outputs are:
+The current production-validation outputs live under
+`results/latest/p0_full/{dataset}/{baseline}/{memory_policy}/{calibration}/`.
+All 24 aggregate steps are complete: MVTec steps have 180 rows across 15
+categories, VisA steps have 144 rows across 12 categories, every aggregate row
+uses status `measured_full_p0`, and full-P0 dry-run reports `skipped=24` and
+`pending=0`. The validation report records stream-length values from the
+aggregate manifests; current values are validation-only (`2`, with earlier
+MVTec PatchCore validation aggregates at `20`). PatchCore validation also uses
+`sampler_percentage=0.001`. They are not reviewed paper results.
 
-- `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none/metrics.csv`
-- `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none/manifest.json`
-- `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none/crd_lite.csv`
-- `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/temperature_scaling/metrics.csv`
-- `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/temperature_scaling/manifest.json`
-- `results/latest/p0_full/mvtec_ad/winclip/default_no_memory/temperature_scaling/crd_lite.csv`
-- `results/latest/p0_full/visa/winclip/default_no_memory/none/metrics.csv`
-- `results/latest/p0_full/visa/winclip/default_no_memory/none/manifest.json`
-- `results/latest/p0_full/visa/winclip/default_no_memory/none/crd_lite.csv`
-- `results/latest/p0_full/visa/winclip/default_no_memory/temperature_scaling/metrics.csv`
-- `results/latest/p0_full/visa/winclip/default_no_memory/temperature_scaling/manifest.json`
-- `results/latest/p0_full/visa/winclip/default_no_memory/temperature_scaling/crd_lite.csv`
-- `results/latest/p0_full/mvtec_ad/anomalyclip/default_no_memory/none/metrics.csv`
-- `results/latest/p0_full/mvtec_ad/anomalyclip/default_no_memory/none/manifest.json`
-- `results/latest/p0_full/mvtec_ad/anomalyclip/default_no_memory/none/crd_lite.csv`
+Generate the validation report and paper-promotion checklist:
 
-Each completed MVTec WinCLIP production aggregate has 180 rows across 15 MVTec
-categories; each completed VisA WinCLIP aggregate has 144 rows across 12 VisA
-categories. The completed MVTec AnomalyCLIP `none` production aggregate also
-has 180 rows across 15 MVTec categories. All use status `measured_full_p0`,
-`execution_mode=production`, and keep `paper_allowed=false`/`claim_allowed=false`.
-These used `--stream-length 2` as the cheapest production validation setting
-and are not reviewed paper results. After these runs, full-P0 dry-run reports
-`skipped=5` and `pending=19`.
+```bash
+python3 experiments/p0_full_report.py
+```
+
+This writes:
+
+- `results/latest/p0_full/validation_report.json`
+- `results/latest/tables/p0_full_validation_summary.csv`
+- `results/latest/tables/p0_full_validation_summary.tex`
+
+Paper promotion requires a separate reviewed run. Do not promote validation
+runs; require a non-validation stream length, reviewed paper sampler/memory
+settings, row-count and category-count checks, no NaN/Inf metric values, and
+manual review before changing `paper_allowed` or `claim_allowed`.
 
 Full-P0 skeleton gates stay closed by default:
 `run_tier=p0_full`, `execution_mode=production` for production-complete outputs,

@@ -31,7 +31,7 @@ results/latest/**/*.pt
 results/latest/**/*.pth
 results/latest/streams/**
 results/latest/patchcore_model_cache*/**
-# Full-P0 root skeleton JSON is tracked; future per-step outputs stay local.
+# Full-P0 root compact JSON is trackable; nested per-step outputs stay local.
 results/latest/p0_full/*/**
 
 # OMX planning state — not source of truth
