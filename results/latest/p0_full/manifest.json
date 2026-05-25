@@ -1,0 +1,1274 @@
+{
+  "status": "p0_full_skeleton_ready",
+  "run_tier": "p0_full",
+  "paper_allowed": false,
+  "claim_allowed": false,
+  "review_status": "not_reviewed",
+  "config": "experiments/configs/p0_full/compact.yaml",
+  "output_root": "results/latest/p0_full",
+  "source_tier": "p0_full",
+  "source_tier_role": "primary_full_output",
+  "matrix_axes": {
+    "datasets": [
+      "MVTec AD",
+      "VisA"
+    ],
+    "baselines": [
+      "PatchCore",
+      "WinCLIP",
+      "AnomalyCLIP",
+      "RareCLIP"
+    ],
+    "stream_types": [
+      "iid",
+      "bursty"
+    ],
+    "contamination_epsilon": [
+      "0",
+      "0.05"
+    ],
+    "calibration": [
+      "none",
+      "temperature_scaling"
+    ],
+    "seeds": [
+      "0",
+      "1",
+      "2"
+    ],
+    "memory_policies": {
+      "PatchCore": [
+        "default/SCS",
+        "Reservoir"
+      ],
+      "WinCLIP": [
+        "default/no-memory"
+      ],
+      "AnomalyCLIP": [
+        "default/no-memory"
+      ],
+      "RareCLIP": [
+        "default/SCS",
+        "Reservoir"
+      ]
+    }
+  },
+  "matrix_count": 288,
+  "production_matrix_count": 3888,
+  "step_count": 24,
+  "steps": [
+    {
+      "step_id": "mvtec_ad:patchcore:default_scs:none",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "MVTec AD",
+      "baseline": "PatchCore",
+      "memory_policy": "default/SCS",
+      "calibration": "none",
+      "categories": [
+        "bottle",
+        "cable",
+        "capsule",
+        "carpet",
+        "grid",
+        "hazelnut",
+        "leather",
+        "metal_nut",
+        "pill",
+        "screw",
+        "tile",
+        "toothbrush",
+        "transistor",
+        "wood",
+        "zipper"
+      ],
+      "category_count": 15,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 180,
+      "output_root": "results/latest/p0_full/mvtec_ad/patchcore/default_scs/none",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/mvtec_ad/patchcore/default_scs/none/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/mvtec_ad/patchcore/default_scs/none/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/mvtec_ad/patchcore/default_scs/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:patchcore:default_scs:temperature_scaling",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "MVTec AD",
+      "baseline": "PatchCore",
+      "memory_policy": "default/SCS",
+      "calibration": "temperature_scaling",
+      "categories": [
+        "bottle",
+        "cable",
+        "capsule",
+        "carpet",
+        "grid",
+        "hazelnut",
+        "leather",
+        "metal_nut",
+        "pill",
+        "screw",
+        "tile",
+        "toothbrush",
+        "transistor",
+        "wood",
+        "zipper"
+      ],
+      "category_count": 15,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 180,
+      "output_root": "results/latest/p0_full/mvtec_ad/patchcore/default_scs/temperature_scaling",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/mvtec_ad/patchcore/default_scs/temperature_scaling/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/mvtec_ad/patchcore/default_scs/temperature_scaling/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/mvtec_ad/patchcore/default_scs/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:patchcore:reservoir:none",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "MVTec AD",
+      "baseline": "PatchCore",
+      "memory_policy": "Reservoir",
+      "calibration": "none",
+      "categories": [
+        "bottle",
+        "cable",
+        "capsule",
+        "carpet",
+        "grid",
+        "hazelnut",
+        "leather",
+        "metal_nut",
+        "pill",
+        "screw",
+        "tile",
+        "toothbrush",
+        "transistor",
+        "wood",
+        "zipper"
+      ],
+      "category_count": 15,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 180,
+      "output_root": "results/latest/p0_full/mvtec_ad/patchcore/reservoir/none",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/mvtec_ad/patchcore/reservoir/none/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/mvtec_ad/patchcore/reservoir/none/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/mvtec_ad/patchcore/reservoir/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:patchcore:reservoir:temperature_scaling",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "MVTec AD",
+      "baseline": "PatchCore",
+      "memory_policy": "Reservoir",
+      "calibration": "temperature_scaling",
+      "categories": [
+        "bottle",
+        "cable",
+        "capsule",
+        "carpet",
+        "grid",
+        "hazelnut",
+        "leather",
+        "metal_nut",
+        "pill",
+        "screw",
+        "tile",
+        "toothbrush",
+        "transistor",
+        "wood",
+        "zipper"
+      ],
+      "category_count": 15,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 180,
+      "output_root": "results/latest/p0_full/mvtec_ad/patchcore/reservoir/temperature_scaling",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/mvtec_ad/patchcore/reservoir/temperature_scaling/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/mvtec_ad/patchcore/reservoir/temperature_scaling/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/mvtec_ad/patchcore/reservoir/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:winclip:default_no_memory:none",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "MVTec AD",
+      "baseline": "WinCLIP",
+      "memory_policy": "default/no-memory",
+      "calibration": "none",
+      "categories": [
+        "bottle",
+        "cable",
+        "capsule",
+        "carpet",
+        "grid",
+        "hazelnut",
+        "leather",
+        "metal_nut",
+        "pill",
+        "screw",
+        "tile",
+        "toothbrush",
+        "transistor",
+        "wood",
+        "zipper"
+      ],
+      "category_count": 15,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 180,
+      "output_root": "results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:winclip:default_no_memory:temperature_scaling",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "MVTec AD",
+      "baseline": "WinCLIP",
+      "memory_policy": "default/no-memory",
+      "calibration": "temperature_scaling",
+      "categories": [
+        "bottle",
+        "cable",
+        "capsule",
+        "carpet",
+        "grid",
+        "hazelnut",
+        "leather",
+        "metal_nut",
+        "pill",
+        "screw",
+        "tile",
+        "toothbrush",
+        "transistor",
+        "wood",
+        "zipper"
+      ],
+      "category_count": 15,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 180,
+      "output_root": "results/latest/p0_full/mvtec_ad/winclip/default_no_memory/temperature_scaling",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/mvtec_ad/winclip/default_no_memory/temperature_scaling/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/mvtec_ad/winclip/default_no_memory/temperature_scaling/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/mvtec_ad/winclip/default_no_memory/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:anomalyclip:default_no_memory:none",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "MVTec AD",
+      "baseline": "AnomalyCLIP",
+      "memory_policy": "default/no-memory",
+      "calibration": "none",
+      "categories": [
+        "bottle",
+        "cable",
+        "capsule",
+        "carpet",
+        "grid",
+        "hazelnut",
+        "leather",
+        "metal_nut",
+        "pill",
+        "screw",
+        "tile",
+        "toothbrush",
+        "transistor",
+        "wood",
+        "zipper"
+      ],
+      "category_count": 15,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 180,
+      "output_root": "results/latest/p0_full/mvtec_ad/anomalyclip/default_no_memory/none",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/mvtec_ad/anomalyclip/default_no_memory/none/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/mvtec_ad/anomalyclip/default_no_memory/none/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/mvtec_ad/anomalyclip/default_no_memory/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:anomalyclip:default_no_memory:temperature_scaling",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "MVTec AD",
+      "baseline": "AnomalyCLIP",
+      "memory_policy": "default/no-memory",
+      "calibration": "temperature_scaling",
+      "categories": [
+        "bottle",
+        "cable",
+        "capsule",
+        "carpet",
+        "grid",
+        "hazelnut",
+        "leather",
+        "metal_nut",
+        "pill",
+        "screw",
+        "tile",
+        "toothbrush",
+        "transistor",
+        "wood",
+        "zipper"
+      ],
+      "category_count": 15,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 180,
+      "output_root": "results/latest/p0_full/mvtec_ad/anomalyclip/default_no_memory/temperature_scaling",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/mvtec_ad/anomalyclip/default_no_memory/temperature_scaling/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/mvtec_ad/anomalyclip/default_no_memory/temperature_scaling/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/mvtec_ad/anomalyclip/default_no_memory/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:rareclip:default_scs:none",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "MVTec AD",
+      "baseline": "RareCLIP",
+      "memory_policy": "default/SCS",
+      "calibration": "none",
+      "categories": [
+        "bottle",
+        "cable",
+        "capsule",
+        "carpet",
+        "grid",
+        "hazelnut",
+        "leather",
+        "metal_nut",
+        "pill",
+        "screw",
+        "tile",
+        "toothbrush",
+        "transistor",
+        "wood",
+        "zipper"
+      ],
+      "category_count": 15,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 180,
+      "output_root": "results/latest/p0_full/mvtec_ad/rareclip/default_scs/none",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/mvtec_ad/rareclip/default_scs/none/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/mvtec_ad/rareclip/default_scs/none/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/mvtec_ad/rareclip/default_scs/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:rareclip:default_scs:temperature_scaling",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "MVTec AD",
+      "baseline": "RareCLIP",
+      "memory_policy": "default/SCS",
+      "calibration": "temperature_scaling",
+      "categories": [
+        "bottle",
+        "cable",
+        "capsule",
+        "carpet",
+        "grid",
+        "hazelnut",
+        "leather",
+        "metal_nut",
+        "pill",
+        "screw",
+        "tile",
+        "toothbrush",
+        "transistor",
+        "wood",
+        "zipper"
+      ],
+      "category_count": 15,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 180,
+      "output_root": "results/latest/p0_full/mvtec_ad/rareclip/default_scs/temperature_scaling",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/mvtec_ad/rareclip/default_scs/temperature_scaling/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/mvtec_ad/rareclip/default_scs/temperature_scaling/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/mvtec_ad/rareclip/default_scs/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:rareclip:reservoir:none",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "MVTec AD",
+      "baseline": "RareCLIP",
+      "memory_policy": "Reservoir",
+      "calibration": "none",
+      "categories": [
+        "bottle",
+        "cable",
+        "capsule",
+        "carpet",
+        "grid",
+        "hazelnut",
+        "leather",
+        "metal_nut",
+        "pill",
+        "screw",
+        "tile",
+        "toothbrush",
+        "transistor",
+        "wood",
+        "zipper"
+      ],
+      "category_count": 15,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 180,
+      "output_root": "results/latest/p0_full/mvtec_ad/rareclip/reservoir/none",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/mvtec_ad/rareclip/reservoir/none/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/mvtec_ad/rareclip/reservoir/none/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/mvtec_ad/rareclip/reservoir/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:rareclip:reservoir:temperature_scaling",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "MVTec AD",
+      "baseline": "RareCLIP",
+      "memory_policy": "Reservoir",
+      "calibration": "temperature_scaling",
+      "categories": [
+        "bottle",
+        "cable",
+        "capsule",
+        "carpet",
+        "grid",
+        "hazelnut",
+        "leather",
+        "metal_nut",
+        "pill",
+        "screw",
+        "tile",
+        "toothbrush",
+        "transistor",
+        "wood",
+        "zipper"
+      ],
+      "category_count": 15,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 180,
+      "output_root": "results/latest/p0_full/mvtec_ad/rareclip/reservoir/temperature_scaling",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/mvtec_ad/rareclip/reservoir/temperature_scaling/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/mvtec_ad/rareclip/reservoir/temperature_scaling/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/mvtec_ad/rareclip/reservoir/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:patchcore:default_scs:none",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "VisA",
+      "baseline": "PatchCore",
+      "memory_policy": "default/SCS",
+      "calibration": "none",
+      "categories": [
+        "candle",
+        "capsules",
+        "cashew",
+        "chewinggum",
+        "fryum",
+        "macaroni1",
+        "macaroni2",
+        "pcb1",
+        "pcb2",
+        "pcb3",
+        "pcb4",
+        "pipe_fryum"
+      ],
+      "category_count": 12,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 144,
+      "output_root": "results/latest/p0_full/visa/patchcore/default_scs/none",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/visa/patchcore/default_scs/none/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/visa/patchcore/default_scs/none/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/visa/patchcore/default_scs/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:patchcore:default_scs:temperature_scaling",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "VisA",
+      "baseline": "PatchCore",
+      "memory_policy": "default/SCS",
+      "calibration": "temperature_scaling",
+      "categories": [
+        "candle",
+        "capsules",
+        "cashew",
+        "chewinggum",
+        "fryum",
+        "macaroni1",
+        "macaroni2",
+        "pcb1",
+        "pcb2",
+        "pcb3",
+        "pcb4",
+        "pipe_fryum"
+      ],
+      "category_count": 12,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 144,
+      "output_root": "results/latest/p0_full/visa/patchcore/default_scs/temperature_scaling",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/visa/patchcore/default_scs/temperature_scaling/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/visa/patchcore/default_scs/temperature_scaling/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/visa/patchcore/default_scs/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:patchcore:reservoir:none",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "VisA",
+      "baseline": "PatchCore",
+      "memory_policy": "Reservoir",
+      "calibration": "none",
+      "categories": [
+        "candle",
+        "capsules",
+        "cashew",
+        "chewinggum",
+        "fryum",
+        "macaroni1",
+        "macaroni2",
+        "pcb1",
+        "pcb2",
+        "pcb3",
+        "pcb4",
+        "pipe_fryum"
+      ],
+      "category_count": 12,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 144,
+      "output_root": "results/latest/p0_full/visa/patchcore/reservoir/none",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/visa/patchcore/reservoir/none/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/visa/patchcore/reservoir/none/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/visa/patchcore/reservoir/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:patchcore:reservoir:temperature_scaling",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "VisA",
+      "baseline": "PatchCore",
+      "memory_policy": "Reservoir",
+      "calibration": "temperature_scaling",
+      "categories": [
+        "candle",
+        "capsules",
+        "cashew",
+        "chewinggum",
+        "fryum",
+        "macaroni1",
+        "macaroni2",
+        "pcb1",
+        "pcb2",
+        "pcb3",
+        "pcb4",
+        "pipe_fryum"
+      ],
+      "category_count": 12,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 144,
+      "output_root": "results/latest/p0_full/visa/patchcore/reservoir/temperature_scaling",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/visa/patchcore/reservoir/temperature_scaling/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/visa/patchcore/reservoir/temperature_scaling/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/visa/patchcore/reservoir/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:winclip:default_no_memory:none",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "VisA",
+      "baseline": "WinCLIP",
+      "memory_policy": "default/no-memory",
+      "calibration": "none",
+      "categories": [
+        "candle",
+        "capsules",
+        "cashew",
+        "chewinggum",
+        "fryum",
+        "macaroni1",
+        "macaroni2",
+        "pcb1",
+        "pcb2",
+        "pcb3",
+        "pcb4",
+        "pipe_fryum"
+      ],
+      "category_count": 12,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 144,
+      "output_root": "results/latest/p0_full/visa/winclip/default_no_memory/none",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/visa/winclip/default_no_memory/none/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/visa/winclip/default_no_memory/none/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/visa/winclip/default_no_memory/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:winclip:default_no_memory:temperature_scaling",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "VisA",
+      "baseline": "WinCLIP",
+      "memory_policy": "default/no-memory",
+      "calibration": "temperature_scaling",
+      "categories": [
+        "candle",
+        "capsules",
+        "cashew",
+        "chewinggum",
+        "fryum",
+        "macaroni1",
+        "macaroni2",
+        "pcb1",
+        "pcb2",
+        "pcb3",
+        "pcb4",
+        "pipe_fryum"
+      ],
+      "category_count": 12,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 144,
+      "output_root": "results/latest/p0_full/visa/winclip/default_no_memory/temperature_scaling",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/visa/winclip/default_no_memory/temperature_scaling/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/visa/winclip/default_no_memory/temperature_scaling/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/visa/winclip/default_no_memory/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:anomalyclip:default_no_memory:none",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "VisA",
+      "baseline": "AnomalyCLIP",
+      "memory_policy": "default/no-memory",
+      "calibration": "none",
+      "categories": [
+        "candle",
+        "capsules",
+        "cashew",
+        "chewinggum",
+        "fryum",
+        "macaroni1",
+        "macaroni2",
+        "pcb1",
+        "pcb2",
+        "pcb3",
+        "pcb4",
+        "pipe_fryum"
+      ],
+      "category_count": 12,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 144,
+      "output_root": "results/latest/p0_full/visa/anomalyclip/default_no_memory/none",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/visa/anomalyclip/default_no_memory/none/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/visa/anomalyclip/default_no_memory/none/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/visa/anomalyclip/default_no_memory/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:anomalyclip:default_no_memory:temperature_scaling",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "VisA",
+      "baseline": "AnomalyCLIP",
+      "memory_policy": "default/no-memory",
+      "calibration": "temperature_scaling",
+      "categories": [
+        "candle",
+        "capsules",
+        "cashew",
+        "chewinggum",
+        "fryum",
+        "macaroni1",
+        "macaroni2",
+        "pcb1",
+        "pcb2",
+        "pcb3",
+        "pcb4",
+        "pipe_fryum"
+      ],
+      "category_count": 12,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 144,
+      "output_root": "results/latest/p0_full/visa/anomalyclip/default_no_memory/temperature_scaling",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/visa/anomalyclip/default_no_memory/temperature_scaling/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/visa/anomalyclip/default_no_memory/temperature_scaling/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/visa/anomalyclip/default_no_memory/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:rareclip:default_scs:none",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "VisA",
+      "baseline": "RareCLIP",
+      "memory_policy": "default/SCS",
+      "calibration": "none",
+      "categories": [
+        "candle",
+        "capsules",
+        "cashew",
+        "chewinggum",
+        "fryum",
+        "macaroni1",
+        "macaroni2",
+        "pcb1",
+        "pcb2",
+        "pcb3",
+        "pcb4",
+        "pipe_fryum"
+      ],
+      "category_count": 12,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 144,
+      "output_root": "results/latest/p0_full/visa/rareclip/default_scs/none",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/visa/rareclip/default_scs/none/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/visa/rareclip/default_scs/none/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/visa/rareclip/default_scs/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:rareclip:default_scs:temperature_scaling",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "VisA",
+      "baseline": "RareCLIP",
+      "memory_policy": "default/SCS",
+      "calibration": "temperature_scaling",
+      "categories": [
+        "candle",
+        "capsules",
+        "cashew",
+        "chewinggum",
+        "fryum",
+        "macaroni1",
+        "macaroni2",
+        "pcb1",
+        "pcb2",
+        "pcb3",
+        "pcb4",
+        "pipe_fryum"
+      ],
+      "category_count": 12,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 144,
+      "output_root": "results/latest/p0_full/visa/rareclip/default_scs/temperature_scaling",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/visa/rareclip/default_scs/temperature_scaling/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/visa/rareclip/default_scs/temperature_scaling/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/visa/rareclip/default_scs/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:rareclip:reservoir:none",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "VisA",
+      "baseline": "RareCLIP",
+      "memory_policy": "Reservoir",
+      "calibration": "none",
+      "categories": [
+        "candle",
+        "capsules",
+        "cashew",
+        "chewinggum",
+        "fryum",
+        "macaroni1",
+        "macaroni2",
+        "pcb1",
+        "pcb2",
+        "pcb3",
+        "pcb4",
+        "pipe_fryum"
+      ],
+      "category_count": 12,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 144,
+      "output_root": "results/latest/p0_full/visa/rareclip/reservoir/none",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/visa/rareclip/reservoir/none/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/visa/rareclip/reservoir/none/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/visa/rareclip/reservoir/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:rareclip:reservoir:temperature_scaling",
+      "run_tier": "p0_full",
+      "source_tier": "p0_full",
+      "source_tier_role": "primary_full_output",
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "dataset": "VisA",
+      "baseline": "RareCLIP",
+      "memory_policy": "Reservoir",
+      "calibration": "temperature_scaling",
+      "categories": [
+        "candle",
+        "capsules",
+        "cashew",
+        "chewinggum",
+        "fryum",
+        "macaroni1",
+        "macaroni2",
+        "pcb1",
+        "pcb2",
+        "pcb3",
+        "pcb4",
+        "pipe_fryum"
+      ],
+      "category_count": 12,
+      "stream_types": [
+        "iid",
+        "bursty"
+      ],
+      "contamination_epsilon": [
+        "0",
+        "0.05"
+      ],
+      "seeds": [
+        "0",
+        "1",
+        "2"
+      ],
+      "expected_lightweight_run_count": 12,
+      "expected_full_run_count": 144,
+      "output_root": "results/latest/p0_full/visa/rareclip/reservoir/temperature_scaling",
+      "outputs": {
+        "aggregate_metrics": "results/latest/p0_full/visa/rareclip/reservoir/temperature_scaling/metrics.csv",
+        "aggregate_manifest": "results/latest/p0_full/visa/rareclip/reservoir/temperature_scaling/manifest.json",
+        "crd_lite_summary": "results/latest/p0_full/visa/rareclip/reservoir/temperature_scaling/crd_lite.csv"
+      }
+    }
+  ],
+  "notes": "Full-P0 skeleton only. Outputs are intentionally separate from results/latest/p0_shards smoke artifacts and have not been run or reviewed."
+}

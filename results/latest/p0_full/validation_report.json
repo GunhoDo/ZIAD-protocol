@@ -1,0 +1,735 @@
+{
+  "status": "p0_full_validation_report_complete",
+  "plan": "results/latest/p0_full/execution_plan.json",
+  "run_tier": "p0_full",
+  "execution_mode": "production",
+  "paper_allowed": false,
+  "claim_allowed": false,
+  "review_status": "not_reviewed",
+  "step_count": 24,
+  "datasets": [
+    "MVTec AD",
+    "VisA"
+  ],
+  "baselines": [
+    "AnomalyCLIP",
+    "PatchCore",
+    "RareCLIP",
+    "WinCLIP"
+  ],
+  "memory_policies": [
+    "Reservoir",
+    "default/SCS",
+    "default/no-memory"
+  ],
+  "calibrations": [
+    "none",
+    "temperature_scaling"
+  ],
+  "completed_step_count": 24,
+  "row_count_mismatches": [],
+  "category_count_mismatches": [],
+  "gate_violations": [],
+  "non_finite_metric_steps": [],
+  "stream_lengths": [
+    "2",
+    "20"
+  ],
+  "sampler_percentages": [
+    "0.001"
+  ],
+  "limitations": [
+    "Production-validation artifacts only; not paper results.",
+    "Current validation stream_length values are ['2', '20'].",
+    "Current validation sampler_percentage values are ['0.001'].",
+    "All outputs remain paper_allowed=false and claim_allowed=false."
+  ],
+  "paper_promotion_criteria": [
+    {
+      "criterion": "do_not_promote_validation_runs",
+      "required": true,
+      "current_status": "blocked",
+      "detail": "Current p0_full outputs are production-validation artifacts and must remain paper_allowed=false and claim_allowed=false."
+    },
+    {
+      "criterion": "require_non_validation_stream_length",
+      "required": true,
+      "current_status": "blocked",
+      "detail": "Paper promotion requires a reviewed non-validation stream length; current validation stream_length values are ['2', '20']."
+    },
+    {
+      "criterion": "require_paper_sampler_settings",
+      "required": true,
+      "current_status": "blocked",
+      "detail": "Paper promotion requires reviewed sampler and memory settings; current validation sampler_percentage values are ['0.001']."
+    },
+    {
+      "criterion": "require_row_count_category_count_checks",
+      "required": true,
+      "current_status": "must_pass",
+      "detail": "Each promoted aggregate must match expected row and category counts."
+    },
+    {
+      "criterion": "require_no_nan_inf_metrics",
+      "required": true,
+      "current_status": "must_pass",
+      "detail": "Metric cells must not contain NaN, +Inf, or -Inf."
+    },
+    {
+      "criterion": "require_manual_review",
+      "required": true,
+      "current_status": "blocked",
+      "detail": "A human/manual review must set review_status to an approved state before paper_allowed or claim_allowed can be considered."
+    }
+  ],
+  "steps": [
+    {
+      "step_id": "mvtec_ad:patchcore:default_scs:none",
+      "dataset": "MVTec AD",
+      "baseline": "PatchCore",
+      "memory_policy": "default/SCS",
+      "calibration": "none",
+      "row_count": 180,
+      "expected_row_count": 180,
+      "category_count": 15,
+      "expected_category_count": 15,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 20,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/mvtec_ad/patchcore/default_scs/none/metrics.csv",
+        "manifest_json": "results/latest/p0_full/mvtec_ad/patchcore/default_scs/none/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/mvtec_ad/patchcore/default_scs/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:patchcore:default_scs:temperature_scaling",
+      "dataset": "MVTec AD",
+      "baseline": "PatchCore",
+      "memory_policy": "default/SCS",
+      "calibration": "temperature_scaling",
+      "row_count": 180,
+      "expected_row_count": 180,
+      "category_count": 15,
+      "expected_category_count": 15,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 20,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/mvtec_ad/patchcore/default_scs/temperature_scaling/metrics.csv",
+        "manifest_json": "results/latest/p0_full/mvtec_ad/patchcore/default_scs/temperature_scaling/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/mvtec_ad/patchcore/default_scs/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:patchcore:reservoir:none",
+      "dataset": "MVTec AD",
+      "baseline": "PatchCore",
+      "memory_policy": "Reservoir",
+      "calibration": "none",
+      "row_count": 180,
+      "expected_row_count": 180,
+      "category_count": 15,
+      "expected_category_count": 15,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 20,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/mvtec_ad/patchcore/reservoir/none/metrics.csv",
+        "manifest_json": "results/latest/p0_full/mvtec_ad/patchcore/reservoir/none/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/mvtec_ad/patchcore/reservoir/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:patchcore:reservoir:temperature_scaling",
+      "dataset": "MVTec AD",
+      "baseline": "PatchCore",
+      "memory_policy": "Reservoir",
+      "calibration": "temperature_scaling",
+      "row_count": 180,
+      "expected_row_count": 180,
+      "category_count": 15,
+      "expected_category_count": 15,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 20,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/mvtec_ad/patchcore/reservoir/temperature_scaling/metrics.csv",
+        "manifest_json": "results/latest/p0_full/mvtec_ad/patchcore/reservoir/temperature_scaling/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/mvtec_ad/patchcore/reservoir/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:winclip:default_no_memory:none",
+      "dataset": "MVTec AD",
+      "baseline": "WinCLIP",
+      "memory_policy": "default/no-memory",
+      "calibration": "none",
+      "row_count": 180,
+      "expected_row_count": 180,
+      "category_count": 15,
+      "expected_category_count": 15,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 2,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none/metrics.csv",
+        "manifest_json": "results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/mvtec_ad/winclip/default_no_memory/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:winclip:default_no_memory:temperature_scaling",
+      "dataset": "MVTec AD",
+      "baseline": "WinCLIP",
+      "memory_policy": "default/no-memory",
+      "calibration": "temperature_scaling",
+      "row_count": 180,
+      "expected_row_count": 180,
+      "category_count": 15,
+      "expected_category_count": 15,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 2,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/mvtec_ad/winclip/default_no_memory/temperature_scaling/metrics.csv",
+        "manifest_json": "results/latest/p0_full/mvtec_ad/winclip/default_no_memory/temperature_scaling/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/mvtec_ad/winclip/default_no_memory/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:anomalyclip:default_no_memory:none",
+      "dataset": "MVTec AD",
+      "baseline": "AnomalyCLIP",
+      "memory_policy": "default/no-memory",
+      "calibration": "none",
+      "row_count": 180,
+      "expected_row_count": 180,
+      "category_count": 15,
+      "expected_category_count": 15,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 2,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/mvtec_ad/anomalyclip/default_no_memory/none/metrics.csv",
+        "manifest_json": "results/latest/p0_full/mvtec_ad/anomalyclip/default_no_memory/none/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/mvtec_ad/anomalyclip/default_no_memory/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:anomalyclip:default_no_memory:temperature_scaling",
+      "dataset": "MVTec AD",
+      "baseline": "AnomalyCLIP",
+      "memory_policy": "default/no-memory",
+      "calibration": "temperature_scaling",
+      "row_count": 180,
+      "expected_row_count": 180,
+      "category_count": 15,
+      "expected_category_count": 15,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 2,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/mvtec_ad/anomalyclip/default_no_memory/temperature_scaling/metrics.csv",
+        "manifest_json": "results/latest/p0_full/mvtec_ad/anomalyclip/default_no_memory/temperature_scaling/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/mvtec_ad/anomalyclip/default_no_memory/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:rareclip:default_scs:none",
+      "dataset": "MVTec AD",
+      "baseline": "RareCLIP",
+      "memory_policy": "default/SCS",
+      "calibration": "none",
+      "row_count": 180,
+      "expected_row_count": 180,
+      "category_count": 15,
+      "expected_category_count": 15,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 2,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/mvtec_ad/rareclip/default_scs/none/metrics.csv",
+        "manifest_json": "results/latest/p0_full/mvtec_ad/rareclip/default_scs/none/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/mvtec_ad/rareclip/default_scs/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:rareclip:default_scs:temperature_scaling",
+      "dataset": "MVTec AD",
+      "baseline": "RareCLIP",
+      "memory_policy": "default/SCS",
+      "calibration": "temperature_scaling",
+      "row_count": 180,
+      "expected_row_count": 180,
+      "category_count": 15,
+      "expected_category_count": 15,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 2,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/mvtec_ad/rareclip/default_scs/temperature_scaling/metrics.csv",
+        "manifest_json": "results/latest/p0_full/mvtec_ad/rareclip/default_scs/temperature_scaling/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/mvtec_ad/rareclip/default_scs/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:rareclip:reservoir:none",
+      "dataset": "MVTec AD",
+      "baseline": "RareCLIP",
+      "memory_policy": "Reservoir",
+      "calibration": "none",
+      "row_count": 180,
+      "expected_row_count": 180,
+      "category_count": 15,
+      "expected_category_count": 15,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 2,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/mvtec_ad/rareclip/reservoir/none/metrics.csv",
+        "manifest_json": "results/latest/p0_full/mvtec_ad/rareclip/reservoir/none/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/mvtec_ad/rareclip/reservoir/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "mvtec_ad:rareclip:reservoir:temperature_scaling",
+      "dataset": "MVTec AD",
+      "baseline": "RareCLIP",
+      "memory_policy": "Reservoir",
+      "calibration": "temperature_scaling",
+      "row_count": 180,
+      "expected_row_count": 180,
+      "category_count": 15,
+      "expected_category_count": 15,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 2,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/mvtec_ad/rareclip/reservoir/temperature_scaling/metrics.csv",
+        "manifest_json": "results/latest/p0_full/mvtec_ad/rareclip/reservoir/temperature_scaling/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/mvtec_ad/rareclip/reservoir/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:patchcore:default_scs:none",
+      "dataset": "VisA",
+      "baseline": "PatchCore",
+      "memory_policy": "default/SCS",
+      "calibration": "none",
+      "row_count": 144,
+      "expected_row_count": 144,
+      "category_count": 12,
+      "expected_category_count": 12,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 2,
+      "sampler_percentage": 0.001,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/visa/patchcore/default_scs/none/metrics.csv",
+        "manifest_json": "results/latest/p0_full/visa/patchcore/default_scs/none/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/visa/patchcore/default_scs/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:patchcore:default_scs:temperature_scaling",
+      "dataset": "VisA",
+      "baseline": "PatchCore",
+      "memory_policy": "default/SCS",
+      "calibration": "temperature_scaling",
+      "row_count": 144,
+      "expected_row_count": 144,
+      "category_count": 12,
+      "expected_category_count": 12,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 2,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/visa/patchcore/default_scs/temperature_scaling/metrics.csv",
+        "manifest_json": "results/latest/p0_full/visa/patchcore/default_scs/temperature_scaling/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/visa/patchcore/default_scs/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:patchcore:reservoir:none",
+      "dataset": "VisA",
+      "baseline": "PatchCore",
+      "memory_policy": "Reservoir",
+      "calibration": "none",
+      "row_count": 144,
+      "expected_row_count": 144,
+      "category_count": 12,
+      "expected_category_count": 12,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 2,
+      "sampler_percentage": 0.001,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/visa/patchcore/reservoir/none/metrics.csv",
+        "manifest_json": "results/latest/p0_full/visa/patchcore/reservoir/none/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/visa/patchcore/reservoir/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:patchcore:reservoir:temperature_scaling",
+      "dataset": "VisA",
+      "baseline": "PatchCore",
+      "memory_policy": "Reservoir",
+      "calibration": "temperature_scaling",
+      "row_count": 144,
+      "expected_row_count": 144,
+      "category_count": 12,
+      "expected_category_count": 12,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 2,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/visa/patchcore/reservoir/temperature_scaling/metrics.csv",
+        "manifest_json": "results/latest/p0_full/visa/patchcore/reservoir/temperature_scaling/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/visa/patchcore/reservoir/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:winclip:default_no_memory:none",
+      "dataset": "VisA",
+      "baseline": "WinCLIP",
+      "memory_policy": "default/no-memory",
+      "calibration": "none",
+      "row_count": 144,
+      "expected_row_count": 144,
+      "category_count": 12,
+      "expected_category_count": 12,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 2,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/visa/winclip/default_no_memory/none/metrics.csv",
+        "manifest_json": "results/latest/p0_full/visa/winclip/default_no_memory/none/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/visa/winclip/default_no_memory/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:winclip:default_no_memory:temperature_scaling",
+      "dataset": "VisA",
+      "baseline": "WinCLIP",
+      "memory_policy": "default/no-memory",
+      "calibration": "temperature_scaling",
+      "row_count": 144,
+      "expected_row_count": 144,
+      "category_count": 12,
+      "expected_category_count": 12,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 2,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/visa/winclip/default_no_memory/temperature_scaling/metrics.csv",
+        "manifest_json": "results/latest/p0_full/visa/winclip/default_no_memory/temperature_scaling/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/visa/winclip/default_no_memory/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:anomalyclip:default_no_memory:none",
+      "dataset": "VisA",
+      "baseline": "AnomalyCLIP",
+      "memory_policy": "default/no-memory",
+      "calibration": "none",
+      "row_count": 144,
+      "expected_row_count": 144,
+      "category_count": 12,
+      "expected_category_count": 12,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 2,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/visa/anomalyclip/default_no_memory/none/metrics.csv",
+        "manifest_json": "results/latest/p0_full/visa/anomalyclip/default_no_memory/none/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/visa/anomalyclip/default_no_memory/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:anomalyclip:default_no_memory:temperature_scaling",
+      "dataset": "VisA",
+      "baseline": "AnomalyCLIP",
+      "memory_policy": "default/no-memory",
+      "calibration": "temperature_scaling",
+      "row_count": 144,
+      "expected_row_count": 144,
+      "category_count": 12,
+      "expected_category_count": 12,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 2,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/visa/anomalyclip/default_no_memory/temperature_scaling/metrics.csv",
+        "manifest_json": "results/latest/p0_full/visa/anomalyclip/default_no_memory/temperature_scaling/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/visa/anomalyclip/default_no_memory/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:rareclip:default_scs:none",
+      "dataset": "VisA",
+      "baseline": "RareCLIP",
+      "memory_policy": "default/SCS",
+      "calibration": "none",
+      "row_count": 144,
+      "expected_row_count": 144,
+      "category_count": 12,
+      "expected_category_count": 12,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 2,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/visa/rareclip/default_scs/none/metrics.csv",
+        "manifest_json": "results/latest/p0_full/visa/rareclip/default_scs/none/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/visa/rareclip/default_scs/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:rareclip:default_scs:temperature_scaling",
+      "dataset": "VisA",
+      "baseline": "RareCLIP",
+      "memory_policy": "default/SCS",
+      "calibration": "temperature_scaling",
+      "row_count": 144,
+      "expected_row_count": 144,
+      "category_count": 12,
+      "expected_category_count": 12,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 2,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/visa/rareclip/default_scs/temperature_scaling/metrics.csv",
+        "manifest_json": "results/latest/p0_full/visa/rareclip/default_scs/temperature_scaling/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/visa/rareclip/default_scs/temperature_scaling/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:rareclip:reservoir:none",
+      "dataset": "VisA",
+      "baseline": "RareCLIP",
+      "memory_policy": "Reservoir",
+      "calibration": "none",
+      "row_count": 144,
+      "expected_row_count": 144,
+      "category_count": 12,
+      "expected_category_count": 12,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 2,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/visa/rareclip/reservoir/none/metrics.csv",
+        "manifest_json": "results/latest/p0_full/visa/rareclip/reservoir/none/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/visa/rareclip/reservoir/none/crd_lite.csv"
+      }
+    },
+    {
+      "step_id": "visa:rareclip:reservoir:temperature_scaling",
+      "dataset": "VisA",
+      "baseline": "RareCLIP",
+      "memory_policy": "Reservoir",
+      "calibration": "temperature_scaling",
+      "row_count": 144,
+      "expected_row_count": 144,
+      "category_count": 12,
+      "expected_category_count": 12,
+      "status_values": [
+        "measured_full_p0"
+      ],
+      "stream_length": 2,
+      "sampler_percentage": null,
+      "paper_allowed": false,
+      "claim_allowed": false,
+      "review_status": "not_reviewed",
+      "run_tier": "p0_full",
+      "execution_mode": "production",
+      "non_finite_metric_count": 0,
+      "outputs": {
+        "metrics_csv": "results/latest/p0_full/visa/rareclip/reservoir/temperature_scaling/metrics.csv",
+        "manifest_json": "results/latest/p0_full/visa/rareclip/reservoir/temperature_scaling/manifest.json",
+        "crd_lite_csv": "results/latest/p0_full/visa/rareclip/reservoir/temperature_scaling/crd_lite.csv"
+      }
+    }
+  ]
+}
