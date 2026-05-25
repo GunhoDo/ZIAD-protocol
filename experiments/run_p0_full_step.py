@@ -56,6 +56,7 @@ ALLOWED_PRODUCTION_STEP_IDS = {
     "mvtec_ad:winclip:default_no_memory:none",
     "mvtec_ad:winclip:default_no_memory:temperature_scaling",
     "visa:winclip:default_no_memory:none",
+    "visa:winclip:default_no_memory:temperature_scaling",
 }
 CommandRunner = Callable[[list[str]], int]
 

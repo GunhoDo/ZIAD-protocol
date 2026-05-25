@@ -423,6 +423,49 @@ class P0FullStepExecutorTest(unittest.TestCase):
             if output_root.exists():
                 shutil.rmtree(output_root)
 
+    def test_visa_winclip_temperature_production_run_is_allowed(self):
+        plan = self._plan()
+        _, step = run_p0_full_step.resolve_step(
+            plan,
+            "visa:winclip:default_no_memory:temperature_scaling",
+        )
+        output_root = Path("results/latest/p0_full/unit_test_production_visa_temperature")
+        if output_root.exists():
+            shutil.rmtree(output_root)
+        step = dict(step)
+        step["output_root"] = str(output_root)
+        step["outputs"] = {
+            "aggregate_metrics": str(output_root / "metrics.csv"),
+            "aggregate_manifest": str(output_root / "manifest.json"),
+            "crd_lite_summary": str(output_root / "crd_lite.csv"),
+        }
+        plan = dict(plan)
+        plan["steps"] = [step]
+        try:
+            _, selected = run_p0_full_step.run_step(
+                plan,
+                selector=step["step_id"],
+                output_root=output_root,
+                command_runner=self._fake_full_step_runner,
+            )
+            run_p0_full_step.verify_completed_step(selected)
+
+            manifest = json.loads(Path(step["outputs"]["aggregate_manifest"]).read_text())
+            self.assertEqual("production", manifest["execution_mode"])
+            self.assertEqual("VisA", manifest["dataset"])
+            self.assertEqual("temperature_scaling", manifest["calibration"])
+            self.assertEqual(12, manifest["category_count"])
+            self.assertEqual(144, manifest["run_count"])
+
+            with Path(step["outputs"]["aggregate_metrics"]).open() as handle:
+                rows = list(csv.DictReader(handle))
+            self.assertEqual(144, len(rows))
+            self.assertEqual({"temperature_scaling"}, {row["calibration"] for row in rows})
+            self.assertEqual(12, len({row["category"] for row in rows}))
+        finally:
+            if output_root.exists():
+                shutil.rmtree(output_root)
+
     def test_production_run_is_guarded_to_selected_step(self):
         plan = self._plan()
         _, step = run_p0_full_step.resolve_step(plan, "0")
