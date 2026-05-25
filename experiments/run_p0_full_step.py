@@ -4,9 +4,8 @@
 This is the single-step boundary for the future reviewed P0 run. It resolves
 one step from `results/latest/p0_full/execution_plan.json`, validates that every
 declared output stays under `results/latest/p0_full/`, and keeps all paper gates
-closed. Production execution is intentionally guarded to the first validated
-WinCLIP/MVTec step; use `--dry-run` to inspect any selected step without
-producing outputs.
+closed. Production execution is intentionally guarded to explicitly validated
+steps; use `--dry-run` to inspect any selected step without producing outputs.
 """
 from __future__ import annotations
 
@@ -16,6 +15,7 @@ import json
 import subprocess
 import time
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Callable
 
 if __package__ in {None, ""}:  # Allow `python3 experiments/run_p0_full_step.py ...`.
@@ -53,6 +53,7 @@ DEFAULT_VALIDATION_CATEGORIES = {
     "VisA": "candle",
 }
 ALLOWED_PRODUCTION_STEP_IDS = {
+    "mvtec_ad:anomalyclip:default_no_memory:none",
     "mvtec_ad:winclip:default_no_memory:none",
     "mvtec_ad:winclip:default_no_memory:temperature_scaling",
     "visa:winclip:default_no_memory:none",
@@ -76,6 +77,13 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 def _as_posix(path: Path | str) -> str:
     return Path(str(path)).as_posix()
+
+
+def _repo_path(path: Path | str) -> Path:
+    candidate = Path(str(path))
+    if candidate.is_absolute():
+        return candidate
+    return (Path.cwd() / candidate).resolve()
 
 
 def _is_under_full_root(path: Path | str) -> bool:
@@ -477,7 +485,14 @@ def _execute_production_step(
         )
         return
 
-    _execute_winclip_production_step(step, stream_length=stream_length)
+    baseline = str(step.get("baseline", ""))
+    if baseline == "WinCLIP":
+        _execute_winclip_production_step(step, stream_length=stream_length)
+        return
+    if baseline == "AnomalyCLIP":
+        _execute_anomalyclip_production_step(step, stream_length=stream_length)
+        return
+    raise FullP0StepError(f"Production execution is not implemented for {baseline}")
 
 
 def _execute_production_step_with_commands(
@@ -799,6 +814,258 @@ def _execute_winclip_production_step(step: dict[str, Any], *, stream_length: int
     aggregate_metrics = Path(str(outputs["aggregate_metrics"]))
     aggregate_manifest = Path(str(outputs["aggregate_manifest"]))
     crd_lite_summary = Path(str(outputs["crd_lite_summary"]))
+
+    crd_rows: list[dict[str, str]] = []
+    crd_by_run_dir: dict[str, str] = {}
+    for selected_category in categories:
+        category_rows = [row for row in rows if row.get("category") == selected_category]
+        category_crd_rows, category_crd_by_run_dir = mini_matrix.compute_crd_lite(
+            category_rows,
+            category=selected_category,
+        )
+        crd_rows.extend(category_crd_rows)
+        crd_by_run_dir.update(category_crd_by_run_dir)
+    for row in rows:
+        row["crd_lite"] = crd_by_run_dir.get(row.get("run_dir", ""), "NA")
+
+    _write_aggregate_metrics(aggregate_metrics, rows)
+    mini_matrix.write_crd_lite_summary(crd_lite_summary, crd_rows)
+    manifest = {
+        **metadata,
+        "status": "measured_full_p0_production_complete",
+        "category_count": len(categories),
+        "categories": categories,
+        "stream_length": stream_length,
+        "aggregate_metrics": str(aggregate_metrics),
+        "crd_lite_summary": str(crd_lite_summary),
+        "run_count": len(rows),
+        "expected_full_run_count": expected,
+        "runs": rows,
+        "latest_runs": latest_runs,
+        "run_manifests": run_manifests,
+        "notes": (
+            "Single production full-P0 validation step. "
+            "Not a reviewed paper result."
+        ),
+    }
+    _write_json(aggregate_manifest, manifest)
+
+
+def _execute_anomalyclip_production_step(
+    step: dict[str, Any],
+    *,
+    stream_length: int,
+) -> None:
+    from experiments.baselines import anomalyclip
+
+    output_root = _repo_path(str(step["output_root"]))
+    metadata = {
+        **build_manifest_metadata(step),
+        "execution_mode": "production",
+    }
+    dataset_root = _step_dataset_root(step)
+    dataset_root_path = anomalyclip._resolve_repo_path(dataset_root)
+    dataset = str(step["dataset"])
+    baseline = str(step["baseline"])
+    categories = _run_categories(step, execution_mode="production", category=None)
+    rows: list[dict[str, str]] = []
+    run_manifests: list[dict[str, Any]] = []
+    latest_runs: list[dict[str, Any]] = []
+    timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+    anomalyclip._ensure_anomalyclip_importable()
+    try:
+        import torch
+        from scipy.ndimage import gaussian_filter
+
+        import AnomalyCLIP_lib
+        from prompt_ensemble import AnomalyCLIP_PromptLearner
+        from utils import get_transform
+    except ImportError as error:  # pragma: no cover - environment-dependent
+        raise anomalyclip._dependency_error(error) from error
+
+    config = {
+        "baseline": baseline,
+        "dataset": dataset,
+        "dataset_root": dataset_root,
+        "memory_policy": _runner_memory_policy(step),
+        "calibration": str(step.get("calibration", "none")),
+        "scoring_mode": "stream_ordered_full_p0_production",
+        "latency_semantics": "wrapper_reported",
+    }
+    anomalyclip.validate_execution_contract(
+        config,
+        baseline_name="AnomalyCLIP",
+        supported_calibrations={"none", "temperature_scaling"},
+    )
+    checkpoint_path = anomalyclip._resolve_repo_path(
+        str(anomalyclip._cfg(config, "checkpoint_path", anomalyclip.DEFAULT_CHECKPOINT))
+    )
+    if not checkpoint_path.is_file():
+        raise FullP0StepError(f"AnomalyCLIP checkpoint is required but missing: {checkpoint_path}")
+
+    image_size = anomalyclip._cfg(config, "image_size", 518, int)
+    depth = anomalyclip._cfg(config, "depth", 9, int)
+    n_ctx = anomalyclip._cfg(config, "n_ctx", 12, int)
+    t_n_ctx = anomalyclip._cfg(config, "t_n_ctx", 4, int)
+    features_list = anomalyclip._csv_ints(
+        anomalyclip._cfg(config, "features_list", None),
+        (6, 12, 18, 24),
+    )
+    feature_map_layer = anomalyclip._csv_ints(
+        anomalyclip._cfg(config, "feature_map_layer", None),
+        (0, 1, 2, 3),
+    )
+    sigma = anomalyclip._cfg(config, "sigma", 4, int)
+    dpam_layer = anomalyclip._cfg(config, "dpam_layer", 20, int)
+    score_source = str(anomalyclip._cfg(config, "score_source", "text_prob"))
+    clip_model_name = str(
+        anomalyclip._cfg(config, "clip_model_name", "ViT-L/14@336px")
+    )
+    clip_cache = anomalyclip._resolve_repo_path(
+        str(anomalyclip._cfg(config, "clip_download_root", anomalyclip.DEFAULT_CLIP_CACHE))
+    )
+    force_cpu = anomalyclip._cfg(config, "use_cpu", not torch.cuda.is_available(), bool)
+    device = torch.device("cpu" if force_cpu or not torch.cuda.is_available() else "cuda:0")
+
+    clip_cache.mkdir(parents=True, exist_ok=True)
+    parameters = {
+        "Prompt_length": n_ctx,
+        "learnabel_text_embedding_depth": depth,
+        "learnabel_text_embedding_length": t_n_ctx,
+    }
+    args = SimpleNamespace(image_size=image_size)
+
+    with anomalyclip._temporary_cwd(Path(anomalyclip.LOCAL_PATH).resolve()):
+        model, _ = AnomalyCLIP_lib.load(
+            clip_model_name,
+            device=str(device),
+            design_details=parameters,
+            download_root=str(clip_cache),
+        )
+        model.eval()
+        preprocess, _ = get_transform(args)
+        prompt_learner = AnomalyCLIP_PromptLearner(model.to("cpu"), parameters)
+        checkpoint = torch.load(str(checkpoint_path), map_location="cpu")
+        prompt_learner.load_state_dict(checkpoint["prompt_learner"])
+        prompt_learner.to(device)
+        model.to(device)
+        model.visual.DAPM_replace(DPAM_layer=dpam_layer)
+
+        prompts, tokenized_prompts, compound_prompts_text = prompt_learner(cls_id=None)
+        text_features = model.encode_text_learn(
+            prompts,
+            tokenized_prompts,
+            compound_prompts_text,
+        ).float()
+        text_features = torch.stack(torch.chunk(text_features, dim=0, chunks=2), dim=1)
+        text_features = text_features / text_features.norm(dim=-1, keepdim=True)
+
+        for selected_category in categories:
+            category_root = _category_root_for_dataset(
+                dataset_root_path,
+                dataset,
+                selected_category,
+            )
+            if not category_root.is_dir():
+                raise FullP0StepError(f"{dataset} category not found: {category_root}")
+            for stream_type in [str(value) for value in step.get("stream_types", [])]:
+                for epsilon in [str(value) for value in step.get("contamination_epsilon", [])]:
+                    for seed in [str(value) for value in step.get("seeds", [])]:
+                        run_id = _category_run_id(
+                            selected_category,
+                            stream_type,
+                            epsilon,
+                            seed,
+                        )
+                        run_dir = output_root / "production_runs" / run_id
+                        stream_path = run_dir / "stream.json"
+                        scores_path = run_dir / "scores.csv"
+                        latest_run_path = run_dir / "latest_run.json"
+                        manifest_path = run_dir / "manifest.json"
+                        metrics_path = run_dir / "metrics.csv"
+
+                        stream_payload = make_streams.build_stream(
+                            dataset_root=str(dataset_root_path),
+                            dataset=dataset,
+                            category=selected_category,
+                            stream_type=stream_type,
+                            prevalence=0.05,
+                            contamination_epsilon=float(epsilon),
+                            seed=int(seed),
+                            length=stream_length,
+                            burst_length=5,
+                        )
+                        stream_payload["metadata"].update(
+                            {
+                                "scoring_mode": "stream_ordered_full_p0_production",
+                                "latency_semantics": "wrapper_reported",
+                                "training_source": "baseline_default",
+                                "stream_source": "test/*",
+                            }
+                        )
+                        make_streams.write_stream(stream_payload, stream_path)
+                        stream_items = anomalyclip._load_stream_items(str(stream_path))
+                        score_rows = anomalyclip.AnomalyCLIPWrapper._predict_rows(
+                            model=model,
+                            preprocess=preprocess,
+                            text_features=text_features,
+                            stream_items=stream_items,
+                            dataset_root=dataset_root_path,
+                            category=selected_category,
+                            image_size=image_size,
+                            features_list=features_list,
+                            feature_map_start=int(feature_map_layer[0]),
+                            sigma=sigma,
+                            dpam_layer=dpam_layer,
+                            score_source=score_source,
+                            device=device,
+                            torch=torch,
+                            anomalyclip_lib=AnomalyCLIP_lib,
+                            gaussian_filter=gaussian_filter,
+                        )
+                        _write_score_rows(
+                            scores_path,
+                            score_rows,
+                            anomalyclip.SCORE_FIELDS,
+                        )
+
+                        latest_run = _run_provenance(
+                            step,
+                            category=selected_category,
+                            stream_type=stream_type,
+                            epsilon=epsilon,
+                            seed=seed,
+                            stream_path=stream_path,
+                            stream_payload=stream_payload,
+                            scores_csv=scores_path,
+                            timestamp=timestamp,
+                        )
+                        latest_run["memory_policy"] = str(step.get("memory_policy", ""))
+                        _write_json(latest_run_path, latest_run)
+                        _write_json(manifest_path, {**metadata, "status": "measured"})
+                        evaluate.evaluate(
+                            scores_path,
+                            latest_run_path,
+                            metrics_path,
+                            manifest_path,
+                        )
+                        _patch_json_metadata(manifest_path, metadata)
+
+                        row = _read_metric_row(metrics_path, run_dir=run_dir)
+                        row["category"] = selected_category
+                        rows.append(row)
+                        run_manifests.append(_read_json(manifest_path))
+                        latest_runs.append(_read_json(latest_run_path))
+
+    expected = int(step.get("expected_full_run_count") or 0)
+    if len(rows) != expected:
+        raise FullP0StepError(f"Full-P0 row count {len(rows)} != expected {expected}")
+
+    outputs = step["outputs"]
+    aggregate_metrics = _repo_path(str(outputs["aggregate_metrics"]))
+    aggregate_manifest = _repo_path(str(outputs["aggregate_manifest"]))
+    crd_lite_summary = _repo_path(str(outputs["crd_lite_summary"]))
 
     crd_rows: list[dict[str, str]] = []
     crd_by_run_dir: dict[str, str] = {}
