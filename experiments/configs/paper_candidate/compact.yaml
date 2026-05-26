@@ -1,0 +1,45 @@
+# Compact paper-candidate skeleton.
+# This derives the full-P0 shape into a separate output root with review-pending
+# metadata. It does not promote any output to paper_allowed=true.
+run_tier: paper_candidate
+paper_allowed: false
+claim_allowed: false
+review_status: review_pending
+output_root: results/latest/paper_candidate
+paper_candidate_stream_length: 64
+patchcore_sampler_percentage: 0.1
+candidate_scope: category_shard
+datasets:
+  - MVTec AD
+  - VisA
+baselines:
+  - PatchCore
+  - WinCLIP
+  - AnomalyCLIP
+  - RareCLIP
+stream_types:
+  - iid
+  - bursty
+contamination_epsilon:
+  - 0
+  - 0.05
+calibration:
+  - none
+  - temperature_scaling
+seeds:
+  - 0
+  - 1
+  - 2
+memory_policies:
+  PatchCore:
+    - default/SCS
+    - Reservoir
+  RareCLIP:
+    - default/SCS
+    - Reservoir
+  WinCLIP:
+    - default/no-memory
+  AnomalyCLIP:
+    - default/no-memory
+source_tier: paper_candidate
+source_tier_notes: Full-P0 validation outputs may be inspected for initialization context only; they must not satisfy paper-candidate outputs.

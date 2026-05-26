@@ -1,6 +1,6 @@
 # HANDOFF — ZIAD 논문 구현 현재 상태
 
-최종 갱신: 2026-05-25
+최종 갱신: 2026-05-26
 프로젝트: Streaming Zero-Shot Industrial Anomaly Detection with CLIP / ZIAD Protocol
 
 ## 0. 절대 규칙
@@ -10,6 +10,96 @@
 - fake metric 금지. placeholder는 `placeholder_not_measured`, 실제 측정은 `measured`/`measured_smoke`, full-P0 aggregate는 `measured_full_p0`만 사용한다.
 - 논문 게이트는 아직 닫힘: 모든 현재 산출물은 `paper_allowed=false` 유지.
 - `.omx/`는 planning history이며 소스 오브 트루스가 아니다.
+
+## 최신 진행: paper-candidate category-shard execution
+
+- 목표: `results/latest/p0_full/` production-validation outputs를 덮어쓰지 않고, 별도 `results/latest/paper_candidate/` root에서 paper-candidate를 category shard 단위로 실행/재개 가능하게 전환.
+- 주요 수정:
+  - `experiments/configs/paper_candidate/compact.yaml` 추가.
+  - `experiments/paper_candidate.py` 추가.
+  - `experiments/run_paper_candidate_step.py` 추가.
+  - `experiments/summarize_paper_candidate_categories.py` 추가.
+  - `tests/test_paper_candidate.py` 추가.
+  - `README.md`에 paper-candidate skeleton/runner와 제한 기록.
+- paper-candidate 설정:
+  - `run_tier=paper_candidate`
+  - `execution_mode=production`
+  - `paper_allowed=false`
+  - `claim_allowed=false`
+  - `review_status=review_pending`
+  - `paper_candidate_stream_length=64`
+  - `patchcore_sampler_percentage=0.1` (첫 실행 step은 WinCLIP이라 미사용)
+  - seeds: `0,1,2`
+  - candidate scope: `category_shard`
+  - each category shard writes under `results/latest/paper_candidate/{dataset}/{baseline}/{memory_policy}/{calibration}/{category}/`
+  - each MVTec category shard expects 12 rows: `iid/bursty × epsilon 0/0.05 × seeds 0/1/2`
+- skeleton 생성 명령:
+  - `python3 experiments/paper_candidate.py --config experiments/configs/paper_candidate/compact.yaml --manifest results/latest/paper_candidate/manifest.json --execution-plan results/latest/paper_candidate/execution_plan.json`
+- skeleton 생성 output:
+  - `results/latest/paper_candidate/manifest.json`
+  - `results/latest/paper_candidate/execution_plan.json`
+- legacy first pilot:
+  - `mvtec_ad:winclip:default_no_memory:none`
+  - category: `bottle`
+  - command used before sharding: `python3 experiments/run_paper_candidate_step.py --plan results/latest/paper_candidate/execution_plan.json --step-id mvtec_ad:winclip:default_no_memory:none --output-root results/latest/paper_candidate/mvtec_ad/winclip/default_no_memory/none`
+  - kept in place for traceability; future category shards use a category suffix and do not overwrite it.
+- legacy generated aggregate outputs:
+  - `results/latest/paper_candidate/mvtec_ad/winclip/default_no_memory/none/metrics.csv`
+  - `results/latest/paper_candidate/mvtec_ad/winclip/default_no_memory/none/manifest.json`
+  - `results/latest/paper_candidate/mvtec_ad/winclip/default_no_memory/none/crd_lite.csv`
+- current category-shard command shape:
+  - `python3 experiments/run_paper_candidate_step.py --plan results/latest/paper_candidate/execution_plan.json --step-id mvtec_ad:winclip:default_no_memory:none --category cable --output-root results/latest/paper_candidate/mvtec_ad/winclip/default_no_memory/none/cable`
+- selected second category shard:
+  - `mvtec_ad:winclip:default_no_memory:none`
+  - category: `cable`
+  - command: `python3 experiments/run_paper_candidate_step.py --plan results/latest/paper_candidate/execution_plan.json --step-id mvtec_ad:winclip:default_no_memory:none --category cable --output-root results/latest/paper_candidate/mvtec_ad/winclip/default_no_memory/none/cable`
+  - generated aggregate outputs:
+    - `results/latest/paper_candidate/mvtec_ad/winclip/default_no_memory/none/cable/metrics.csv`
+    - `results/latest/paper_candidate/mvtec_ad/winclip/default_no_memory/none/cable/manifest.json`
+    - `results/latest/paper_candidate/mvtec_ad/winclip/default_no_memory/none/cable/crd_lite.csv`
+  - verification: row count `12`, category count `1`, category `cable`, status `measured_paper_candidate`, `candidate_scope=category_shard`, `stream_length=64`, seeds `0,1,2`, paper/claim gates false, `review_status=review_pending`.
+  - skip/resume verification: rerunning the same command reports `SKIP complete paper-candidate step ... category=cable`.
+  - full-category guard verification: `verify_full_category_candidate()` rejects the shard with `not a full-category paper candidate: category_shard`.
+- completed MVTec AD WinCLIP category-shard set:
+  - step: `mvtec_ad:winclip:default_no_memory:none`
+  - executed in this completion pass: `bottle`, `capsule`, `carpet`, `grid`, `hazelnut`, `leather`, `metal_nut`, `pill`, `screw`, `tile`, `toothbrush`, `transistor`, `wood`, `zipper`.
+  - skipped because already complete: `cable`.
+  - failed category: none.
+  - command shape:
+    - `python3 experiments/run_paper_candidate_step.py --plan results/latest/paper_candidate/execution_plan.json --step-id mvtec_ad:winclip:default_no_memory:none --category {category} --output-root results/latest/paper_candidate/mvtec_ad/winclip/default_no_memory/none/{category}`
+  - per-category verification: each of 15 category shards has `metrics.csv`, `manifest.json`, `crd_lite.csv`, row count `12`, category count `1`, status `measured_paper_candidate`, `candidate_scope=category_shard`, `stream_length=64`, seeds `[0,1,2]`, `paper_allowed=false`, `claim_allowed=false`, and `review_status=review_pending`.
+  - summary command:
+    - `python3 experiments/summarize_paper_candidate_categories.py --plan results/latest/paper_candidate/execution_plan.json --step-id mvtec_ad:winclip:default_no_memory:none --output-root results/latest/paper_candidate/mvtec_ad/winclip/default_no_memory/none`
+  - summary outputs:
+    - `results/latest/paper_candidate/mvtec_ad/winclip/default_no_memory/none/category_summary.csv`
+    - `results/latest/paper_candidate/mvtec_ad/winclip/default_no_memory/none/category_summary.json`
+  - summary status: `category_shards_complete`, complete `15/15`, paper/claim gates false.
+- completed MVTec AD AnomalyCLIP category-shard set:
+  - purpose: minimum MVTec AD paper-candidate baseline comparison now has WinCLIP and AnomalyCLIP at `default/no-memory × calibration none`.
+  - step: `mvtec_ad:anomalyclip:default_no_memory:none`
+  - executed categories: `bottle`, `cable`, `capsule`, `carpet`, `grid`, `hazelnut`, `leather`, `metal_nut`, `pill`, `screw`, `tile`, `toothbrush`, `transistor`, `wood`, `zipper`.
+  - skipped categories: none as completed aggregate shards; interrupted partial `bottle` production runs were resumed.
+  - failed category: none.
+  - command shape:
+    - `python3 experiments/run_paper_candidate_step.py --plan results/latest/paper_candidate/execution_plan.json --step-id mvtec_ad:anomalyclip:default_no_memory:none --category {category} --output-root results/latest/paper_candidate/mvtec_ad/anomalyclip/default_no_memory/none/{category}`
+  - execution note: AnomalyCLIP category execution now reuses completed per-run outputs and scores each unique image once per category before materializing the 12 stream metrics, to avoid repeated stream-level scoring of identical images.
+  - per-category verification: each of 15 category shards has `metrics.csv`, `manifest.json`, `crd_lite.csv`, row count `12`, category count `1`, status `measured_paper_candidate`, `candidate_scope=category_shard`, `stream_length=64`, seeds `[0,1,2]`, `paper_allowed=false`, `claim_allowed=false`, and `review_status=review_pending`.
+  - summary command:
+    - `python3 experiments/summarize_paper_candidate_categories.py --plan results/latest/paper_candidate/execution_plan.json --step-id mvtec_ad:anomalyclip:default_no_memory:none --output-root results/latest/paper_candidate/mvtec_ad/anomalyclip/default_no_memory/none`
+  - summary outputs:
+    - `results/latest/paper_candidate/mvtec_ad/anomalyclip/default_no_memory/none/category_summary.csv`
+    - `results/latest/paper_candidate/mvtec_ad/anomalyclip/default_no_memory/none/category_summary.json`
+  - summary status: `category_shards_complete`, complete `15/15`, paper/claim gates false.
+- verification:
+  - aggregate row count `12`
+  - category count `1`
+  - category `bottle`
+  - row status `measured_paper_candidate`
+  - manifest keeps `run_tier=paper_candidate`, `execution_mode=production`, `paper_allowed=false`, `claim_allowed=false`, `review_status=review_pending`, `paper_candidate_stream_length=64`.
+- limitation:
+  - Category shards are not complete full-category paper results and must not satisfy full-category paper promotion gates.
+  - A first attempt with all 15 MVTec categories at stream length 64 was too slow for the current CPU path and was stopped; current execution uses the explicit `category_shard` contract.
+  - Per-run generated outputs are local and ignored under `results/latest/paper_candidate/`; compact portfolio result tracking remains unchanged.
 
 ## 최신 진행: full-P0 guarded production validation
 

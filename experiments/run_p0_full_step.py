@@ -202,8 +202,12 @@ def validate_step_contract(
         raise FullP0StepError("full-P0 step validation paper_allowed must be false")
     if validation.get("claim_allowed") is not False:
         raise FullP0StepError("full-P0 step validation claim_allowed must be false")
-    if validation.get("review_status") != "not_reviewed":
-        raise FullP0StepError("full-P0 step validation review_status must be not_reviewed")
+    expected_review_status = REQUIRED_METADATA["review_status"]
+    if validation.get("review_status") != expected_review_status:
+        raise FullP0StepError(
+            "full-P0 step validation review_status must be "
+            f"{expected_review_status}"
+        )
 
 
 def build_manifest_metadata(step: dict[str, Any]) -> dict[str, Any]:
@@ -1476,6 +1480,8 @@ def _execute_anomalyclip_production_step(
             )
             if not category_root.is_dir():
                 raise FullP0StepError(f"{dataset} category not found: {category_root}")
+            category_specs: list[dict[str, Any]] = []
+            unique_items: dict[str, dict[str, Any]] = {}
             for stream_type in [str(value) for value in step.get("stream_types", [])]:
                 for epsilon in [str(value) for value in step.get("contamination_epsilon", [])]:
                     for seed in [str(value) for value in step.get("seeds", [])]:
@@ -1491,6 +1497,19 @@ def _execute_anomalyclip_production_step(
                         latest_run_path = run_dir / "latest_run.json"
                         manifest_path = run_dir / "manifest.json"
                         metrics_path = run_dir / "metrics.csv"
+
+                        if (
+                            scores_path.exists()
+                            and latest_run_path.exists()
+                            and manifest_path.exists()
+                            and metrics_path.exists()
+                        ):
+                            row = _read_metric_row(metrics_path, run_dir=run_dir)
+                            row["category"] = selected_category
+                            rows.append(row)
+                            run_manifests.append(_read_json(manifest_path))
+                            latest_runs.append(_read_json(latest_run_path))
+                            continue
 
                         stream_payload = make_streams.build_stream(
                             dataset_root=str(dataset_root_path),
@@ -1509,61 +1528,121 @@ def _execute_anomalyclip_production_step(
                                 "latency_semantics": "wrapper_reported",
                                 "training_source": "baseline_default",
                                 "stream_source": "test/*",
+                                "category_score_cache": "unique_image_once_per_category",
                             }
                         )
                         make_streams.write_stream(stream_payload, stream_path)
                         stream_items = anomalyclip._load_stream_items(str(stream_path))
-                        score_rows = anomalyclip.AnomalyCLIPWrapper._predict_rows(
-                            model=model,
-                            preprocess=preprocess,
-                            text_features=text_features,
-                            stream_items=stream_items,
-                            dataset_root=dataset_root_path,
-                            category=selected_category,
-                            image_size=image_size,
-                            features_list=features_list,
-                            feature_map_start=int(feature_map_layer[0]),
-                            sigma=sigma,
-                            dpam_layer=dpam_layer,
-                            score_source=score_source,
-                            device=device,
-                            torch=torch,
-                            anomalyclip_lib=AnomalyCLIP_lib,
-                            gaussian_filter=gaussian_filter,
+                        category_specs.append(
+                            {
+                                "run_dir": run_dir,
+                                "stream_type": stream_type,
+                                "epsilon": epsilon,
+                                "seed": seed,
+                                "stream_path": stream_path,
+                                "stream_payload": stream_payload,
+                                "stream_items": stream_items,
+                                "scores_path": scores_path,
+                                "latest_run_path": latest_run_path,
+                                "manifest_path": manifest_path,
+                                "metrics_path": metrics_path,
+                            }
                         )
-                        _write_score_rows(
-                            scores_path,
-                            score_rows,
-                            anomalyclip.SCORE_FIELDS,
-                        )
+                        for item in stream_items:
+                            resolved = anomalyclip._resolve_stream_image_path(
+                                str(item["image_path"]),
+                                dataset_root_path,
+                            )
+                            cache_key = str(resolved)
+                            if cache_key not in unique_items:
+                                cached_item = dict(item)
+                                cached_item["stream_index"] = len(unique_items)
+                                unique_items[cache_key] = cached_item
 
-                        latest_run = _run_provenance(
-                            step,
-                            category=selected_category,
-                            stream_type=stream_type,
-                            epsilon=epsilon,
-                            seed=seed,
-                            stream_path=stream_path,
-                            stream_payload=stream_payload,
-                            scores_csv=scores_path,
-                            timestamp=timestamp,
-                        )
-                        latest_run["memory_policy"] = str(step.get("memory_policy", ""))
-                        _write_json(latest_run_path, latest_run)
-                        _write_json(manifest_path, {**metadata, "status": "measured"})
-                        evaluate.evaluate(
-                            scores_path,
-                            latest_run_path,
-                            metrics_path,
-                            manifest_path,
-                        )
-                        _patch_json_metadata(manifest_path, metadata)
+            score_cache: dict[str, dict[str, str]] = {}
+            if unique_items:
+                unique_score_rows = anomalyclip.AnomalyCLIPWrapper._predict_rows(
+                    model=model,
+                    preprocess=preprocess,
+                    text_features=text_features,
+                    stream_items=list(unique_items.values()),
+                    dataset_root=dataset_root_path,
+                    category=selected_category,
+                    image_size=image_size,
+                    features_list=features_list,
+                    feature_map_start=int(feature_map_layer[0]),
+                    sigma=sigma,
+                    dpam_layer=dpam_layer,
+                    score_source=score_source,
+                    device=device,
+                    torch=torch,
+                    anomalyclip_lib=AnomalyCLIP_lib,
+                    gaussian_filter=gaussian_filter,
+                )
+                for row in unique_score_rows:
+                    resolved = anomalyclip._resolve_stream_image_path(
+                        str(row["image_path"]),
+                        dataset_root_path,
+                    )
+                    score_cache[str(resolved)] = row
 
-                        row = _read_metric_row(metrics_path, run_dir=run_dir)
-                        row["category"] = selected_category
-                        rows.append(row)
-                        run_manifests.append(_read_json(manifest_path))
-                        latest_runs.append(_read_json(latest_run_path))
+            for spec in category_specs:
+                score_rows: list[dict[str, str]] = []
+                for item in spec["stream_items"]:
+                    resolved = anomalyclip._resolve_stream_image_path(
+                        str(item["image_path"]),
+                        dataset_root_path,
+                    )
+                    cached = score_cache[str(resolved)]
+                    score_rows.append(
+                        {
+                            "stream_index": str(item["stream_index"]),
+                            "image_path": str(item["image_path"]),
+                            "label": str(item["label"]),
+                            "category": str(item["category"]),
+                            "anomaly_score": str(cached["anomaly_score"]),
+                            "latency_ms": str(cached["latency_ms"]),
+                            "peak_vram_mb": str(cached["peak_vram_mb"]),
+                            "status": str(cached["status"]),
+                        }
+                    )
+                _write_score_rows(
+                    spec["scores_path"],
+                    score_rows,
+                    anomalyclip.SCORE_FIELDS,
+                )
+
+                spec["stream_payload"]["metadata"]["category_score_cache_unique_images"] = (
+                    len(score_cache)
+                )
+                latest_run = _run_provenance(
+                    step,
+                    category=selected_category,
+                    stream_type=spec["stream_type"],
+                    epsilon=spec["epsilon"],
+                    seed=spec["seed"],
+                    stream_path=spec["stream_path"],
+                    stream_payload=spec["stream_payload"],
+                    scores_csv=spec["scores_path"],
+                    timestamp=timestamp,
+                )
+                latest_run["memory_policy"] = str(step.get("memory_policy", ""))
+                latest_run["category_score_cache_unique_images"] = len(score_cache)
+                _write_json(spec["latest_run_path"], latest_run)
+                _write_json(spec["manifest_path"], {**metadata, "status": "measured"})
+                evaluate.evaluate(
+                    spec["scores_path"],
+                    spec["latest_run_path"],
+                    spec["metrics_path"],
+                    spec["manifest_path"],
+                )
+                _patch_json_metadata(spec["manifest_path"], metadata)
+
+                row = _read_metric_row(spec["metrics_path"], run_dir=spec["run_dir"])
+                row["category"] = selected_category
+                rows.append(row)
+                run_manifests.append(_read_json(spec["manifest_path"]))
+                latest_runs.append(_read_json(spec["latest_run_path"]))
 
     expected = int(step.get("expected_full_run_count") or 0)
     if len(rows) != expected:

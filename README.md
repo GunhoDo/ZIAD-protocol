@@ -39,6 +39,17 @@ validated pipeline evidence, not final paper results. All current full-P0
 artifacts keep `paper_allowed=false`, `claim_allowed=false`, and
 `review_status=not_reviewed`.
 
+Paper-candidate execution is now category-sharded under a separate output root,
+`results/latest/paper_candidate/`. Each shard uses
+`run_tier=paper_candidate`, `candidate_scope=category_shard`,
+`execution_mode=production`, `paper_allowed=false`, `claim_allowed=false`, and
+`review_status=review_pending`. Category shards are still not full paper
+results. The first two paper-candidate shard sets,
+`MVTec AD × WinCLIP × default/no-memory × none` and
+`MVTec AD × AnomalyCLIP × default/no-memory × none`, are complete for all 15
+MVTec AD categories at stream length `64` and seeds `0,1,2`, giving the first
+minimum MVTec AD baseline comparison slice.
+
 ## Result Artifacts
 
 Compact portfolio-friendly artifacts are tracked under `results/latest/`.
@@ -52,6 +63,18 @@ Full-P0 production-validation artifacts:
 - `results/latest/p0_full/validation_report.json`
 - `results/latest/tables/p0_full_validation_summary.csv`
 - `results/latest/tables/p0_full_validation_summary.tex`
+
+Paper-candidate pilot artifacts are generated locally under
+`results/latest/paper_candidate/` and are intentionally separate from
+`results/latest/p0_full/`. They are gitignored by default because they are
+larger per-run outputs.
+
+Current paper-candidate shard summary:
+
+- `results/latest/paper_candidate/mvtec_ad/winclip/default_no_memory/none/category_summary.csv`
+- `results/latest/paper_candidate/mvtec_ad/winclip/default_no_memory/none/category_summary.json`
+- `results/latest/paper_candidate/mvtec_ad/anomalyclip/default_no_memory/none/category_summary.csv`
+- `results/latest/paper_candidate/mvtec_ad/anomalyclip/default_no_memory/none/category_summary.json`
 
 Smoke and paper-input artifacts:
 
@@ -71,6 +94,39 @@ Regenerate the full-P0 report without inference:
 
 ```bash
 python3 experiments/p0_full_report.py
+```
+
+Build the paper-candidate skeleton without inference:
+
+```bash
+python3 experiments/paper_candidate.py \
+  --config experiments/configs/paper_candidate/compact.yaml \
+  --manifest results/latest/paper_candidate/manifest.json \
+  --execution-plan results/latest/paper_candidate/execution_plan.json
+```
+
+Run one paper-candidate category shard:
+
+```bash
+python3 experiments/run_paper_candidate_step.py \
+  --plan results/latest/paper_candidate/execution_plan.json \
+  --step-id mvtec_ad:winclip:default_no_memory:none \
+  --category cable \
+  --output-root results/latest/paper_candidate/mvtec_ad/winclip/default_no_memory/none/cable
+```
+
+The runner skips a completed category shard only when that shard's
+`metrics.csv`, `manifest.json`, and `crd_lite.csv` exist and pass the closed
+gate and row-count checks. A completed category shard is not accepted as a
+full-category paper result.
+
+Summarize a completed MVTec AD paper-candidate category-shard set:
+
+```bash
+python3 experiments/summarize_paper_candidate_categories.py \
+  --plan results/latest/paper_candidate/execution_plan.json \
+  --step-id mvtec_ad:anomalyclip:default_no_memory:none \
+  --output-root results/latest/paper_candidate/mvtec_ad/anomalyclip/default_no_memory/none
 ```
 
 Dry-run the completed full-P0 execution plan:
@@ -93,9 +149,17 @@ git diff --check
 
 - Current full-P0 outputs are production-validation artifacts, not paper
   results.
+- Current paper-candidate outputs are category shards, not a complete reviewed
+  paper matrix.
 - Validation-scale stream lengths are present (`2`, plus earlier MVTec
   PatchCore validation aggregates at `20`).
+- Paper-candidate stream length is `64`, with seeds `0,1,2`; only
+  `MVTec AD × WinCLIP × default/no-memory × none` and
+  `MVTec AD × AnomalyCLIP × default/no-memory × none` have complete
+  category-shard coverage so far.
 - PatchCore validation uses bounded `sampler_percentage=0.001`.
+- Paper-candidate config records PatchCore `sampler_percentage=0.1`, but the
+  first executed step is WinCLIP and does not use PatchCore sampling.
 - Paper promotion requires non-validation stream length, reviewed sampler and
   memory settings, row-count/category-count checks, no NaN/Inf metrics, and
   manual review.
