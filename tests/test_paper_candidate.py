@@ -12,6 +12,7 @@ from experiments import (
     paper_candidate,
     run_p0_execution_plan,
     run_paper_candidate_step,
+    summarize_paper_candidate_baselines,
     summarize_paper_candidate_categories,
 )
 
@@ -329,6 +330,95 @@ class PaperCandidateCategorySummaryTest(unittest.TestCase):
         finally:
             if output_root.exists():
                 shutil.rmtree(output_root)
+
+
+class PaperCandidateBaselineComparisonTest(unittest.TestCase):
+    def test_baseline_comparison_summarizes_completed_category_sets(self):
+        root = Path("results/latest/paper_candidate/unit_test_baseline_compare")
+        if root.exists():
+            shutil.rmtree(root)
+        baselines = [
+            ("winclip", "WinCLIP", 0.9, 0.8),
+            ("anomalyclip", "AnomalyCLIP", 0.7, 0.6),
+        ]
+        try:
+            for slug, baseline, auroc, aupr in baselines:
+                category_root = root / slug / "default_no_memory" / "none" / "bottle"
+                category_root.mkdir(parents=True)
+                metrics_path = category_root / "metrics.csv"
+                metrics_path.write_text(
+                    "dataset,stream_type,prevalence,contamination_epsilon,baseline,"
+                    "memory_policy,calibration,image_auroc,aupr,ece,latency_ms,"
+                    "crd_lite,status,category\n"
+                    f"MVTec AD,iid,0.05,0,{baseline},default/no-memory,none,"
+                    f"{auroc},{aupr},0.1,10,0.2,measured_paper_candidate,bottle\n"
+                    f"MVTec AD,bursty,0.05,0.05,{baseline},default/no-memory,none,"
+                    f"{auroc + 0.1},{aupr + 0.1},0.3,20,NA,measured_paper_candidate,bottle\n"
+                )
+                (category_root / "manifest.json").write_text("{}\n")
+                (category_root / "crd_lite.csv").write_text("category,crd_lite\nbottle,0.2\n")
+                summary_root = root / slug / "default_no_memory" / "none"
+                (summary_root / "category_summary.json").write_text(
+                    json.dumps(
+                        {
+                            "status": "category_shards_complete",
+                            "dataset": "MVTec AD",
+                            "baseline": baseline,
+                            "memory_policy": "default/no-memory",
+                            "calibration": "none",
+                            "category_count": 1,
+                            "complete_category_count": 1,
+                            "paper_allowed": False,
+                            "claim_allowed": False,
+                            "review_status": "review_pending",
+                            "categories": [
+                                {
+                                    "category": "bottle",
+                                    "complete": True,
+                                    "row_count": 2,
+                                    "stream_length": 64,
+                                    "seeds": [0, 1, 2],
+                                    "metrics_csv": str(metrics_path),
+                                }
+                            ],
+                        }
+                    )
+                    + "\n"
+                )
+
+            summary = summarize_paper_candidate_baselines.summarize_baselines(
+                input_root=root,
+                baselines=["winclip", "anomalyclip"],
+            )
+            self.assertEqual("paper_candidate_baseline_comparison_complete", summary["status"])
+            self.assertEqual(2, summary["baseline_count"])
+            self.assertFalse(summary["paper_allowed"])
+            self.assertFalse(summary["claim_allowed"])
+            self.assertEqual("review_pending", summary["review_status"])
+            first = summary["baselines"][0]
+            self.assertEqual("WinCLIP", first["baseline"])
+            self.assertEqual(1, first["completed_categories"])
+            self.assertEqual(2, first["total_rows"])
+            self.assertEqual("64", first["stream_length"])
+            self.assertEqual("0|1|2", first["seeds"])
+            self.assertAlmostEqual(0.95, first["mean_image_auroc"])
+            self.assertAlmostEqual(0.85, first["mean_aupr"])
+            self.assertAlmostEqual(0.2, first["mean_ece"])
+            self.assertAlmostEqual(15.0, first["mean_latency_ms"])
+            self.assertAlmostEqual(0.2, first["mean_crd_lite"])
+
+            csv_path, json_path, tex_path = summarize_paper_candidate_baselines.write_outputs(
+                summary,
+                csv_path=root / "baseline_comparison_none.csv",
+                json_path=root / "baseline_comparison_none.json",
+                tex_path=root / "baseline_comparison_none.tex",
+            )
+            self.assertTrue(csv_path.exists())
+            self.assertTrue(json_path.exists())
+            self.assertTrue(tex_path.exists())
+        finally:
+            if root.exists():
+                shutil.rmtree(root)
 
 
 if __name__ == "__main__":

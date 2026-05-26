@@ -76,6 +76,12 @@ Current paper-candidate shard summary:
 - `results/latest/paper_candidate/mvtec_ad/anomalyclip/default_no_memory/none/category_summary.csv`
 - `results/latest/paper_candidate/mvtec_ad/anomalyclip/default_no_memory/none/category_summary.json`
 
+Current MVTec AD paper-candidate baseline comparison:
+
+- `results/latest/paper_candidate/mvtec_ad/baseline_comparison_none.csv`
+- `results/latest/paper_candidate/mvtec_ad/baseline_comparison_none.json`
+- `results/latest/tables/paper_candidate_mvtec_baseline_comparison_none.tex`
+
 Smoke and paper-input artifacts:
 
 - `results/latest/tables/p0_smoke_summary.csv`
@@ -129,6 +135,13 @@ python3 experiments/summarize_paper_candidate_categories.py \
   --output-root results/latest/paper_candidate/mvtec_ad/anomalyclip/default_no_memory/none
 ```
 
+Generate the current MVTec AD paper-candidate baseline comparison without
+running inference:
+
+```bash
+python3 experiments/summarize_paper_candidate_baselines.py
+```
+
 Dry-run the completed full-P0 execution plan:
 
 ```bash
@@ -157,6 +170,9 @@ git diff --check
   `MVTec AD × WinCLIP × default/no-memory × none` and
   `MVTec AD × AnomalyCLIP × default/no-memory × none` have complete
   category-shard coverage so far.
+- The current MVTec AD paper-candidate baseline comparison includes only
+  WinCLIP and AnomalyCLIP. PatchCore and RareCLIP remain pending for this
+  paper-candidate comparison.
 - PatchCore validation uses bounded `sampler_percentage=0.001`.
 - Paper-candidate config records PatchCore `sampler_percentage=0.1`, but the
   first executed step is WinCLIP and does not use PatchCore sampling.

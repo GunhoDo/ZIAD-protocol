@@ -90,6 +90,21 @@
     - `results/latest/paper_candidate/mvtec_ad/anomalyclip/default_no_memory/none/category_summary.csv`
     - `results/latest/paper_candidate/mvtec_ad/anomalyclip/default_no_memory/none/category_summary.json`
   - summary status: `category_shards_complete`, complete `15/15`, paper/claim gates false.
+- first MVTec AD paper-candidate baseline comparison summary:
+  - included baselines: `WinCLIP`, `AnomalyCLIP`.
+  - dataset: `MVTec AD`
+  - memory policy: `default/no-memory`
+  - calibration: `none`
+  - each baseline contributes `15/15` completed categories and `180` metric rows.
+  - command:
+    - `python3 experiments/summarize_paper_candidate_baselines.py`
+  - generated outputs:
+    - `results/latest/paper_candidate/mvtec_ad/baseline_comparison_none.csv`
+    - `results/latest/paper_candidate/mvtec_ad/baseline_comparison_none.json`
+    - `results/latest/tables/paper_candidate_mvtec_baseline_comparison_none.tex`
+  - included columns: dataset, baseline, memory policy, calibration, completed/expected categories, total rows, stream length, seeds, paper/claim gates, review status, status values, source summary path, and numeric metric means when available (`image_auroc`, `aupr`, `ece`, `latency_ms`, `crd_lite`).
+  - summary status: `paper_candidate_baseline_comparison_complete`, baselines `2`, `paper_allowed=false`, `claim_allowed=false`, `review_status=review_pending`.
+  - remaining MVTec AD paper-candidate comparison baselines: `PatchCore`, `RareCLIP`.
 - verification:
   - aggregate row count `12`
   - category count `1`
