@@ -1,6 +1,6 @@
 # HANDOFF — ZIAD 논문 구현 현재 상태
 
-최종 갱신: 2026-05-26
+최종 갱신: 2026-05-27
 프로젝트: Streaming Zero-Shot Industrial Anomaly Detection with CLIP / ZIAD Protocol
 
 ## 0. 절대 규칙
@@ -32,7 +32,7 @@
   - seeds: `0,1,2`
   - candidate scope: `category_shard`
   - each category shard writes under `results/latest/paper_candidate/{dataset}/{baseline}/{memory_policy}/{calibration}/{category}/`
-  - each MVTec category shard expects 12 rows: `iid/bursty × epsilon 0/0.05 × seeds 0/1/2`
+  - each category shard expects 12 rows: `iid/bursty × epsilon 0/0.05 × seeds 0/1/2`
 - skeleton 생성 명령:
   - `python3 experiments/paper_candidate.py --config experiments/configs/paper_candidate/compact.yaml --manifest results/latest/paper_candidate/manifest.json --execution-plan results/latest/paper_candidate/execution_plan.json`
 - skeleton 생성 output:
@@ -138,6 +138,35 @@
   - included columns: dataset, baseline, memory policy, calibration, completed/expected categories, total rows, stream length, seeds, paper/claim gates, review status, status values, source summary path, and numeric metric means when available (`image_auroc`, `aupr`, `ece`, `latency_ms`, `crd_lite`).
   - summary status: `paper_candidate_baseline_comparison_complete`, baselines `4`, `paper_allowed=false`, `claim_allowed=false`, `review_status=review_pending`.
   - remaining MVTec AD paper-candidate comparison baseline: none for the current 4-baseline `calibration=none` slice.
+- completed VisA WinCLIP category-shard set:
+  - purpose: start the VisA paper-candidate baseline comparison with WinCLIP at `default/no-memory × calibration none`.
+  - step: `visa:winclip:default_no_memory:none`
+  - executed categories: `candle`, `capsules`, `cashew`, `chewinggum`, `fryum`, `macaroni1`, `macaroni2`, `pcb1`, `pcb2`, `pcb3`, `pcb4`, `pipe_fryum`.
+  - skipped categories: completed valid shards are skipped on rerun.
+  - failed category: none.
+  - command shape:
+    - `python3 experiments/run_paper_candidate_step.py --plan results/latest/paper_candidate/execution_plan.json --step-id visa:winclip:default_no_memory:none --category {category} --output-root results/latest/paper_candidate/visa/winclip/default_no_memory/none/{category}`
+  - per-category verification: each of 12 category shards has `metrics.csv`, `manifest.json`, `crd_lite.csv`, row count `12`, category count `1`, status `measured_paper_candidate`, `candidate_scope=category_shard`, `stream_length=64`, seeds `[0,1,2]`, `paper_allowed=false`, `claim_allowed=false`, and `review_status=review_pending`.
+  - summary command:
+    - `python3 experiments/summarize_paper_candidate_categories.py --plan results/latest/paper_candidate/execution_plan.json --step-id visa:winclip:default_no_memory:none --output-root results/latest/paper_candidate/visa/winclip/default_no_memory/none`
+  - summary outputs:
+    - `results/latest/paper_candidate/visa/winclip/default_no_memory/none/category_summary.csv`
+    - `results/latest/paper_candidate/visa/winclip/default_no_memory/none/category_summary.json`
+  - summary status: `category_shards_complete`, complete `12/12`, paper/claim gates false.
+- VisA paper-candidate baseline comparison summary:
+  - included baselines: `WinCLIP`.
+  - dataset: `VisA`
+  - memory policy: `default/no-memory`
+  - calibration: `none`
+  - WinCLIP contributes `12/12` completed categories and `144` metric rows.
+  - command:
+    - `python3 experiments/summarize_paper_candidate_baselines.py --input-root results/latest/paper_candidate/visa --baseline winclip:default_no_memory --output-csv results/latest/paper_candidate/visa/baseline_comparison_none.csv --output-json results/latest/paper_candidate/visa/baseline_comparison_none.json --output-tex results/latest/tables/paper_candidate_visa_baseline_comparison_none.tex`
+  - generated outputs:
+    - `results/latest/paper_candidate/visa/baseline_comparison_none.csv`
+    - `results/latest/paper_candidate/visa/baseline_comparison_none.json`
+    - `results/latest/tables/paper_candidate_visa_baseline_comparison_none.tex`
+  - summary status: `paper_candidate_baseline_comparison_complete`, baselines `1`, `paper_allowed=false`, `claim_allowed=false`, `review_status=review_pending`.
+  - remaining VisA paper-candidate comparison baselines: `AnomalyCLIP`, `RareCLIP`, `PatchCore`.
 - verification:
   - aggregate row count `12`
   - category count `1`

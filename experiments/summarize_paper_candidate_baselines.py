@@ -111,10 +111,15 @@ def summarize_baselines(
 ) -> dict[str, Any]:
     baseline_specs = _baseline_specs(baselines, memory_policy=memory_policy)
     rows: list[dict[str, Any]] = []
+    datasets: set[str] = set()
     for baseline_slug, baseline_memory_policy in baseline_specs:
         path = _summary_path(input_root, baseline_slug, baseline_memory_policy, calibration)
         summary = _load_json(path)
         _validate_summary(summary, path=path)
+        dataset = str(summary.get("dataset", ""))
+        if not dataset:
+            raise BaselineSummaryError(f"Category summary dataset is missing: {path}")
+        datasets.add(dataset)
         metric_rows = _read_metric_rows(summary)
         if not metric_rows:
             raise BaselineSummaryError(f"No metric rows found for baseline summary: {path}")
@@ -164,11 +169,16 @@ def summarize_baselines(
             }
         )
 
+    if len(datasets) != 1:
+        raise BaselineSummaryError(
+            f"Baseline comparison requires one dataset, got: {sorted(datasets)}"
+        )
+    dataset = next(iter(datasets))
     return {
         "status": "paper_candidate_baseline_comparison_complete",
         "run_tier": "paper_candidate",
         "candidate_scope": "baseline_comparison",
-        "dataset": "MVTec AD",
+        "dataset": dataset,
         "calibration": calibration,
         "paper_allowed": False,
         "claim_allowed": False,

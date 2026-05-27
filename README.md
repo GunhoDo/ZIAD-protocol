@@ -50,7 +50,9 @@ results. The four paper-candidate shard sets,
 `MVTec AD × RareCLIP × default/SCS × none`, and
 `MVTec AD × PatchCore × default/SCS × none`, are complete for all 15 MVTec AD
 categories at stream length `64` and seeds `0,1,2`, closing the current minimum
-MVTec AD four-baseline comparison slice.
+MVTec AD four-baseline comparison slice. The VisA paper-candidate comparison has
+started with `VisA × WinCLIP × default/no-memory × none` complete for all 12
+VisA categories at the same stream length and seeds.
 
 ## Result Artifacts
 
@@ -81,12 +83,20 @@ Current paper-candidate shard summary:
 - `results/latest/paper_candidate/mvtec_ad/rareclip/default_scs/none/category_summary.json`
 - `results/latest/paper_candidate/mvtec_ad/patchcore/default_scs/none/category_summary.csv`
 - `results/latest/paper_candidate/mvtec_ad/patchcore/default_scs/none/category_summary.json`
+- `results/latest/paper_candidate/visa/winclip/default_no_memory/none/category_summary.csv`
+- `results/latest/paper_candidate/visa/winclip/default_no_memory/none/category_summary.json`
 
 Current MVTec AD paper-candidate baseline comparison:
 
 - `results/latest/paper_candidate/mvtec_ad/baseline_comparison_none.csv`
 - `results/latest/paper_candidate/mvtec_ad/baseline_comparison_none.json`
 - `results/latest/tables/paper_candidate_mvtec_baseline_comparison_none.tex`
+
+Current VisA paper-candidate baseline comparison:
+
+- `results/latest/paper_candidate/visa/baseline_comparison_none.csv`
+- `results/latest/paper_candidate/visa/baseline_comparison_none.json`
+- `results/latest/tables/paper_candidate_visa_baseline_comparison_none.tex`
 
 Smoke and paper-input artifacts:
 
@@ -148,6 +158,18 @@ running inference:
 python3 experiments/summarize_paper_candidate_baselines.py
 ```
 
+Generate the current VisA paper-candidate baseline comparison without running
+inference:
+
+```bash
+python3 experiments/summarize_paper_candidate_baselines.py \
+  --input-root results/latest/paper_candidate/visa \
+  --baseline winclip:default_no_memory \
+  --output-csv results/latest/paper_candidate/visa/baseline_comparison_none.csv \
+  --output-json results/latest/paper_candidate/visa/baseline_comparison_none.json \
+  --output-tex results/latest/tables/paper_candidate_visa_baseline_comparison_none.tex
+```
+
 Dry-run the completed full-P0 execution plan:
 
 ```bash
@@ -176,11 +198,15 @@ git diff --check
   `MVTec AD × WinCLIP × default/no-memory × none`,
   `MVTec AD × AnomalyCLIP × default/no-memory × none`,
   `MVTec AD × RareCLIP × default/SCS × none`, and
-  `MVTec AD × PatchCore × default/SCS × none` have complete category-shard
+  `MVTec AD × PatchCore × default/SCS × none`, plus
+  `VisA × WinCLIP × default/no-memory × none`, have complete category-shard
   coverage so far.
 - The current MVTec AD paper-candidate baseline comparison includes WinCLIP,
   AnomalyCLIP, RareCLIP, and PatchCore. It is still review-pending candidate
   evidence, not a promoted paper result.
+- The current VisA paper-candidate baseline comparison includes WinCLIP only;
+  AnomalyCLIP, RareCLIP, and PatchCore remain unrun for VisA paper-candidate
+  comparison.
 - PatchCore validation uses bounded `sampler_percentage=0.001`.
 - Paper-candidate config records and uses PatchCore `sampler_percentage=0.1`.
 - Paper promotion requires non-validation stream length, reviewed sampler and

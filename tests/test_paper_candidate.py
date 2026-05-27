@@ -392,6 +392,7 @@ class PaperCandidateBaselineComparisonTest(unittest.TestCase):
                 input_root=root,
             )
             self.assertEqual("paper_candidate_baseline_comparison_complete", summary["status"])
+            self.assertEqual("MVTec AD", summary["dataset"])
             self.assertEqual(4, summary["baseline_count"])
             self.assertFalse(summary["paper_allowed"])
             self.assertFalse(summary["claim_allowed"])
@@ -421,6 +422,63 @@ class PaperCandidateBaselineComparisonTest(unittest.TestCase):
             self.assertTrue(csv_path.exists())
             self.assertTrue(json_path.exists())
             self.assertTrue(tex_path.exists())
+        finally:
+            if root.exists():
+                shutil.rmtree(root)
+
+    def test_baseline_comparison_uses_dataset_from_category_summaries(self):
+        root = Path("results/latest/paper_candidate/unit_test_visa_baseline_compare")
+        if root.exists():
+            shutil.rmtree(root)
+        try:
+            category_root = root / "winclip" / "default_no_memory" / "none" / "candle"
+            category_root.mkdir(parents=True)
+            metrics_path = category_root / "metrics.csv"
+            metrics_path.write_text(
+                "dataset,stream_type,prevalence,contamination_epsilon,baseline,"
+                "memory_policy,calibration,image_auroc,aupr,ece,latency_ms,"
+                "crd_lite,status,category\n"
+                "VisA,iid,0.05,0,WinCLIP,default/no-memory,none,"
+                "0.9,0.8,0.1,10,0.2,measured_paper_candidate,candle\n"
+            )
+            (category_root / "manifest.json").write_text("{}\n")
+            (category_root / "crd_lite.csv").write_text("category,crd_lite\ncandle,0.2\n")
+            summary_root = root / "winclip" / "default_no_memory" / "none"
+            (summary_root / "category_summary.json").write_text(
+                json.dumps(
+                    {
+                        "status": "category_shards_complete",
+                        "dataset": "VisA",
+                        "baseline": "WinCLIP",
+                        "memory_policy": "default/no-memory",
+                        "calibration": "none",
+                        "category_count": 1,
+                        "complete_category_count": 1,
+                        "paper_allowed": False,
+                        "claim_allowed": False,
+                        "review_status": "review_pending",
+                        "categories": [
+                            {
+                                "category": "candle",
+                                "complete": True,
+                                "row_count": 1,
+                                "stream_length": 64,
+                                "seeds": [0, 1, 2],
+                                "metrics_csv": str(metrics_path),
+                            }
+                        ],
+                    }
+                )
+                + "\n"
+            )
+
+            summary = summarize_paper_candidate_baselines.summarize_baselines(
+                input_root=root,
+                baselines=["winclip:default_no_memory"],
+            )
+            self.assertEqual("VisA", summary["dataset"])
+            self.assertEqual(1, summary["baseline_count"])
+            self.assertEqual("WinCLIP", summary["baselines"][0]["baseline"])
         finally:
             if root.exists():
                 shutil.rmtree(root)
