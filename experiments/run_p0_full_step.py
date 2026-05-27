@@ -625,6 +625,19 @@ def _execute_production_step_with_commands(
                         )
                     _write_yaml(config_path, smoke_config)
 
+                    if (
+                        (run_dir / "scores.csv").exists()
+                        and (run_dir / "latest_run.json").exists()
+                        and (run_dir / "manifest.json").exists()
+                        and (run_dir / "metrics.csv").exists()
+                    ):
+                        row = _read_metric_row(run_dir / "metrics.csv", run_dir=run_dir)
+                        row["category"] = selected_category
+                        rows.append(row)
+                        run_manifests.append(_read_json(run_dir / "manifest.json"))
+                        latest_runs.append(_read_json(run_dir / "latest_run.json"))
+                        continue
+
                     _run_command(
                         ["bash", "scripts/run_smoke.sh", str(config_path)],
                         command_runner=command_runner,

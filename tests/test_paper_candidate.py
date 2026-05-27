@@ -341,6 +341,7 @@ class PaperCandidateBaselineComparisonTest(unittest.TestCase):
             ("winclip", "default_no_memory", "default/no-memory", "WinCLIP", 0.9, 0.8),
             ("anomalyclip", "default_no_memory", "default/no-memory", "AnomalyCLIP", 0.7, 0.6),
             ("rareclip", "default_scs", "default/SCS", "RareCLIP", 0.5, 0.4),
+            ("patchcore", "default_scs", "default/SCS", "PatchCore", 0.3, 0.2),
         ]
         try:
             for slug, memory_policy_slug, memory_policy, baseline, auroc, aupr in baselines:
@@ -391,12 +392,12 @@ class PaperCandidateBaselineComparisonTest(unittest.TestCase):
                 input_root=root,
             )
             self.assertEqual("paper_candidate_baseline_comparison_complete", summary["status"])
-            self.assertEqual(3, summary["baseline_count"])
+            self.assertEqual(4, summary["baseline_count"])
             self.assertFalse(summary["paper_allowed"])
             self.assertFalse(summary["claim_allowed"])
             self.assertEqual("review_pending", summary["review_status"])
             self.assertEqual(
-                ["WinCLIP", "AnomalyCLIP", "RareCLIP"],
+                ["WinCLIP", "AnomalyCLIP", "RareCLIP", "PatchCore"],
                 [row["baseline"] for row in summary["baselines"]],
             )
             first = summary["baselines"][0]

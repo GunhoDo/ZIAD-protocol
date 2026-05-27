@@ -44,12 +44,13 @@ Paper-candidate execution is now category-sharded under a separate output root,
 `run_tier=paper_candidate`, `candidate_scope=category_shard`,
 `execution_mode=production`, `paper_allowed=false`, `claim_allowed=false`, and
 `review_status=review_pending`. Category shards are still not full paper
-results. The first three paper-candidate shard sets,
+results. The four paper-candidate shard sets,
 `MVTec AD × WinCLIP × default/no-memory × none` and
 `MVTec AD × AnomalyCLIP × default/no-memory × none`, and
-`MVTec AD × RareCLIP × default/SCS × none`, are complete for all 15 MVTec AD
-categories at stream length `64` and seeds `0,1,2`, giving the current minimum
-MVTec AD baseline comparison slice.
+`MVTec AD × RareCLIP × default/SCS × none`, and
+`MVTec AD × PatchCore × default/SCS × none`, are complete for all 15 MVTec AD
+categories at stream length `64` and seeds `0,1,2`, closing the current minimum
+MVTec AD four-baseline comparison slice.
 
 ## Result Artifacts
 
@@ -78,6 +79,8 @@ Current paper-candidate shard summary:
 - `results/latest/paper_candidate/mvtec_ad/anomalyclip/default_no_memory/none/category_summary.json`
 - `results/latest/paper_candidate/mvtec_ad/rareclip/default_scs/none/category_summary.csv`
 - `results/latest/paper_candidate/mvtec_ad/rareclip/default_scs/none/category_summary.json`
+- `results/latest/paper_candidate/mvtec_ad/patchcore/default_scs/none/category_summary.csv`
+- `results/latest/paper_candidate/mvtec_ad/patchcore/default_scs/none/category_summary.json`
 
 Current MVTec AD paper-candidate baseline comparison:
 
@@ -170,15 +173,16 @@ git diff --check
 - Validation-scale stream lengths are present (`2`, plus earlier MVTec
   PatchCore validation aggregates at `20`).
 - Paper-candidate stream length is `64`, with seeds `0,1,2`; only
-  `MVTec AD × WinCLIP × default/no-memory × none` and
-  `MVTec AD × AnomalyCLIP × default/no-memory × none` have complete
-  category-shard coverage so far.
-- The current MVTec AD paper-candidate baseline comparison includes only
-  WinCLIP and AnomalyCLIP. PatchCore and RareCLIP remain pending for this
-  paper-candidate comparison.
+  `MVTec AD × WinCLIP × default/no-memory × none`,
+  `MVTec AD × AnomalyCLIP × default/no-memory × none`,
+  `MVTec AD × RareCLIP × default/SCS × none`, and
+  `MVTec AD × PatchCore × default/SCS × none` have complete category-shard
+  coverage so far.
+- The current MVTec AD paper-candidate baseline comparison includes WinCLIP,
+  AnomalyCLIP, RareCLIP, and PatchCore. It is still review-pending candidate
+  evidence, not a promoted paper result.
 - PatchCore validation uses bounded `sampler_percentage=0.001`.
-- Paper-candidate config records PatchCore `sampler_percentage=0.1`, but the
-  first executed step is WinCLIP and does not use PatchCore sampling.
+- Paper-candidate config records and uses PatchCore `sampler_percentage=0.1`.
 - Paper promotion requires non-validation stream length, reviewed sampler and
   memory settings, row-count/category-count checks, no NaN/Inf metrics, and
   manual review.

@@ -17,6 +17,7 @@ DEFAULT_BASELINE_SPECS = [
     ("winclip", "default_no_memory"),
     ("anomalyclip", "default_no_memory"),
     ("rareclip", "default_scs"),
+    ("patchcore", "default_scs"),
 ]
 METRIC_COLUMNS = ["image_auroc", "aupr", "ece", "latency_ms", "crd_lite"]
 

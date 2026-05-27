@@ -106,10 +106,27 @@
     - `results/latest/paper_candidate/mvtec_ad/rareclip/default_scs/none/category_summary.csv`
     - `results/latest/paper_candidate/mvtec_ad/rareclip/default_scs/none/category_summary.json`
   - summary status: `category_shards_complete`, complete `15/15`, paper/claim gates false.
+- completed MVTec AD PatchCore category-shard set:
+  - purpose: close the minimum MVTec AD paper-candidate baseline comparison with PatchCore at `default/SCS × calibration none`.
+  - step: `mvtec_ad:patchcore:default_scs:none`
+  - executed categories: `bottle`, `cable`, `capsule`, `carpet`, `grid`, `hazelnut`, `leather`, `metal_nut`, `pill`, `screw`, `tile`, `toothbrush`, `transistor`, `wood`, `zipper`.
+  - skipped categories: completed valid shards are skipped on rerun.
+  - failed category: none.
+  - PatchCore sampler setting: paper-candidate `sampler_percentage=0.1`.
+  - command shape:
+    - `python3 experiments/run_paper_candidate_step.py --plan results/latest/paper_candidate/execution_plan.json --step-id mvtec_ad:patchcore:default_scs:none --category {category} --output-root results/latest/paper_candidate/mvtec_ad/patchcore/default_scs/none/{category}`
+  - execution note: PatchCore caches fitted category models/scores under each category shard; completed per-run outputs are reused on resume.
+  - per-category verification: each of 15 category shards has `metrics.csv`, `manifest.json`, `crd_lite.csv`, row count `12`, category count `1`, status `measured_paper_candidate`, `candidate_scope=category_shard`, `stream_length=64`, seeds `[0,1,2]`, PatchCore sampler setting recorded, `paper_allowed=false`, `claim_allowed=false`, and `review_status=review_pending`.
+  - summary command:
+    - `python3 experiments/summarize_paper_candidate_categories.py --plan results/latest/paper_candidate/execution_plan.json --step-id mvtec_ad:patchcore:default_scs:none --output-root results/latest/paper_candidate/mvtec_ad/patchcore/default_scs/none`
+  - summary outputs:
+    - `results/latest/paper_candidate/mvtec_ad/patchcore/default_scs/none/category_summary.csv`
+    - `results/latest/paper_candidate/mvtec_ad/patchcore/default_scs/none/category_summary.json`
+  - summary status: `category_shards_complete`, complete `15/15`, paper/claim gates false.
 - MVTec AD paper-candidate baseline comparison summary:
-  - included baselines: `WinCLIP`, `AnomalyCLIP`, `RareCLIP`.
+  - included baselines: `WinCLIP`, `AnomalyCLIP`, `RareCLIP`, `PatchCore`.
   - dataset: `MVTec AD`
-  - memory policies: `default/no-memory` for WinCLIP/AnomalyCLIP, `default/SCS` for RareCLIP.
+  - memory policies: `default/no-memory` for WinCLIP/AnomalyCLIP, `default/SCS` for RareCLIP/PatchCore.
   - calibration: `none`
   - each baseline contributes `15/15` completed categories and `180` metric rows.
   - command:
@@ -119,8 +136,8 @@
     - `results/latest/paper_candidate/mvtec_ad/baseline_comparison_none.json`
     - `results/latest/tables/paper_candidate_mvtec_baseline_comparison_none.tex`
   - included columns: dataset, baseline, memory policy, calibration, completed/expected categories, total rows, stream length, seeds, paper/claim gates, review status, status values, source summary path, and numeric metric means when available (`image_auroc`, `aupr`, `ece`, `latency_ms`, `crd_lite`).
-  - summary status: `paper_candidate_baseline_comparison_complete`, baselines `3`, `paper_allowed=false`, `claim_allowed=false`, `review_status=review_pending`.
-  - remaining MVTec AD paper-candidate comparison baseline: `PatchCore`.
+  - summary status: `paper_candidate_baseline_comparison_complete`, baselines `4`, `paper_allowed=false`, `claim_allowed=false`, `review_status=review_pending`.
+  - remaining MVTec AD paper-candidate comparison baseline: none for the current 4-baseline `calibration=none` slice.
 - verification:
   - aggregate row count `12`
   - category count `1`
