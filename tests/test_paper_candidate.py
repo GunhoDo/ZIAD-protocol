@@ -338,33 +338,34 @@ class PaperCandidateBaselineComparisonTest(unittest.TestCase):
         if root.exists():
             shutil.rmtree(root)
         baselines = [
-            ("winclip", "WinCLIP", 0.9, 0.8),
-            ("anomalyclip", "AnomalyCLIP", 0.7, 0.6),
+            ("winclip", "default_no_memory", "default/no-memory", "WinCLIP", 0.9, 0.8),
+            ("anomalyclip", "default_no_memory", "default/no-memory", "AnomalyCLIP", 0.7, 0.6),
+            ("rareclip", "default_scs", "default/SCS", "RareCLIP", 0.5, 0.4),
         ]
         try:
-            for slug, baseline, auroc, aupr in baselines:
-                category_root = root / slug / "default_no_memory" / "none" / "bottle"
+            for slug, memory_policy_slug, memory_policy, baseline, auroc, aupr in baselines:
+                category_root = root / slug / memory_policy_slug / "none" / "bottle"
                 category_root.mkdir(parents=True)
                 metrics_path = category_root / "metrics.csv"
                 metrics_path.write_text(
                     "dataset,stream_type,prevalence,contamination_epsilon,baseline,"
                     "memory_policy,calibration,image_auroc,aupr,ece,latency_ms,"
                     "crd_lite,status,category\n"
-                    f"MVTec AD,iid,0.05,0,{baseline},default/no-memory,none,"
+                    f"MVTec AD,iid,0.05,0,{baseline},{memory_policy},none,"
                     f"{auroc},{aupr},0.1,10,0.2,measured_paper_candidate,bottle\n"
-                    f"MVTec AD,bursty,0.05,0.05,{baseline},default/no-memory,none,"
+                    f"MVTec AD,bursty,0.05,0.05,{baseline},{memory_policy},none,"
                     f"{auroc + 0.1},{aupr + 0.1},0.3,20,NA,measured_paper_candidate,bottle\n"
                 )
                 (category_root / "manifest.json").write_text("{}\n")
                 (category_root / "crd_lite.csv").write_text("category,crd_lite\nbottle,0.2\n")
-                summary_root = root / slug / "default_no_memory" / "none"
+                summary_root = root / slug / memory_policy_slug / "none"
                 (summary_root / "category_summary.json").write_text(
                     json.dumps(
                         {
                             "status": "category_shards_complete",
                             "dataset": "MVTec AD",
                             "baseline": baseline,
-                            "memory_policy": "default/no-memory",
+                            "memory_policy": memory_policy,
                             "calibration": "none",
                             "category_count": 1,
                             "complete_category_count": 1,
@@ -388,13 +389,16 @@ class PaperCandidateBaselineComparisonTest(unittest.TestCase):
 
             summary = summarize_paper_candidate_baselines.summarize_baselines(
                 input_root=root,
-                baselines=["winclip", "anomalyclip"],
             )
             self.assertEqual("paper_candidate_baseline_comparison_complete", summary["status"])
-            self.assertEqual(2, summary["baseline_count"])
+            self.assertEqual(3, summary["baseline_count"])
             self.assertFalse(summary["paper_allowed"])
             self.assertFalse(summary["claim_allowed"])
             self.assertEqual("review_pending", summary["review_status"])
+            self.assertEqual(
+                ["WinCLIP", "AnomalyCLIP", "RareCLIP"],
+                [row["baseline"] for row in summary["baselines"]],
+            )
             first = summary["baselines"][0]
             self.assertEqual("WinCLIP", first["baseline"])
             self.assertEqual(1, first["completed_categories"])

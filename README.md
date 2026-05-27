@@ -44,11 +44,12 @@ Paper-candidate execution is now category-sharded under a separate output root,
 `run_tier=paper_candidate`, `candidate_scope=category_shard`,
 `execution_mode=production`, `paper_allowed=false`, `claim_allowed=false`, and
 `review_status=review_pending`. Category shards are still not full paper
-results. The first two paper-candidate shard sets,
+results. The first three paper-candidate shard sets,
 `MVTec AD × WinCLIP × default/no-memory × none` and
-`MVTec AD × AnomalyCLIP × default/no-memory × none`, are complete for all 15
-MVTec AD categories at stream length `64` and seeds `0,1,2`, giving the first
-minimum MVTec AD baseline comparison slice.
+`MVTec AD × AnomalyCLIP × default/no-memory × none`, and
+`MVTec AD × RareCLIP × default/SCS × none`, are complete for all 15 MVTec AD
+categories at stream length `64` and seeds `0,1,2`, giving the current minimum
+MVTec AD baseline comparison slice.
 
 ## Result Artifacts
 
@@ -75,6 +76,8 @@ Current paper-candidate shard summary:
 - `results/latest/paper_candidate/mvtec_ad/winclip/default_no_memory/none/category_summary.json`
 - `results/latest/paper_candidate/mvtec_ad/anomalyclip/default_no_memory/none/category_summary.csv`
 - `results/latest/paper_candidate/mvtec_ad/anomalyclip/default_no_memory/none/category_summary.json`
+- `results/latest/paper_candidate/mvtec_ad/rareclip/default_scs/none/category_summary.csv`
+- `results/latest/paper_candidate/mvtec_ad/rareclip/default_scs/none/category_summary.json`
 
 Current MVTec AD paper-candidate baseline comparison:
 

@@ -13,7 +13,11 @@ DEFAULT_INPUT_ROOT = Path("results/latest/paper_candidate/mvtec_ad")
 DEFAULT_OUTPUT_CSV = DEFAULT_INPUT_ROOT / "baseline_comparison_none.csv"
 DEFAULT_OUTPUT_JSON = DEFAULT_INPUT_ROOT / "baseline_comparison_none.json"
 DEFAULT_OUTPUT_TEX = Path("results/latest/tables/paper_candidate_mvtec_baseline_comparison_none.tex")
-DEFAULT_BASELINES = ["winclip", "anomalyclip"]
+DEFAULT_BASELINE_SPECS = [
+    ("winclip", "default_no_memory"),
+    ("anomalyclip", "default_no_memory"),
+    ("rareclip", "default_scs"),
+]
 METRIC_COLUMNS = ["image_auroc", "aupr", "ece", "latency_ms", "crd_lite"]
 
 
@@ -76,6 +80,27 @@ def _summary_path(root: Path, baseline: str, memory_policy: str, calibration: st
     return root / baseline / memory_policy / calibration / "category_summary.json"
 
 
+def _baseline_specs(
+    baselines: list[str] | None,
+    *,
+    memory_policy: str,
+) -> list[tuple[str, str]]:
+    if not baselines:
+        return list(DEFAULT_BASELINE_SPECS)
+    specs: list[tuple[str, str]] = []
+    for baseline in baselines:
+        if ":" in baseline:
+            baseline_slug, baseline_memory_policy = baseline.split(":", 1)
+            if not baseline_slug or not baseline_memory_policy:
+                raise BaselineSummaryError(
+                    f"Baseline spec must be '<baseline>' or '<baseline>:<memory_policy>': {baseline}"
+                )
+            specs.append((baseline_slug, baseline_memory_policy))
+        else:
+            specs.append((baseline, memory_policy))
+    return specs
+
+
 def summarize_baselines(
     *,
     input_root: Path = DEFAULT_INPUT_ROOT,
@@ -83,10 +108,10 @@ def summarize_baselines(
     memory_policy: str = "default_no_memory",
     calibration: str = "none",
 ) -> dict[str, Any]:
-    baselines = baselines or list(DEFAULT_BASELINES)
+    baseline_specs = _baseline_specs(baselines, memory_policy=memory_policy)
     rows: list[dict[str, Any]] = []
-    for baseline_slug in baselines:
-        path = _summary_path(input_root, baseline_slug, memory_policy, calibration)
+    for baseline_slug, baseline_memory_policy in baseline_specs:
+        path = _summary_path(input_root, baseline_slug, baseline_memory_policy, calibration)
         summary = _load_json(path)
         _validate_summary(summary, path=path)
         metric_rows = _read_metric_rows(summary)

@@ -815,6 +815,19 @@ def _execute_rareclip_production_step(step: dict[str, Any], *, stream_length: in
                         manifest_path = run_dir / "manifest.json"
                         metrics_path = run_dir / "metrics.csv"
 
+                        if (
+                            scores_path.exists()
+                            and latest_run_path.exists()
+                            and manifest_path.exists()
+                            and metrics_path.exists()
+                        ):
+                            row = _read_metric_row(metrics_path, run_dir=run_dir)
+                            row["category"] = selected_category
+                            rows.append(row)
+                            run_manifests.append(_read_json(manifest_path))
+                            latest_runs.append(_read_json(latest_run_path))
+                            continue
+
                         stream_payload = make_streams.build_stream(
                             dataset_root=str(dataset_root_path),
                             dataset=dataset,
