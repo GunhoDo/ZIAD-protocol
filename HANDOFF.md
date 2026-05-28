@@ -3,6 +3,40 @@
 최종 갱신: 2026-05-29
 프로젝트: Streaming Industrial Anomaly Detection Evaluation / ZIAD Protocol
 
+## 최신 진행: stream-length sensitivity scaffold
+
+- 목표: main paper-candidate `stream_length=64` limitation을 줄이기 위한 작은 appendix/sanity-check lane을 추가. full matrix는 실행하지 않음.
+- 추가 config:
+  - `experiments/configs/sensitivity/stream_length.yaml`
+- 추가 scripts:
+  - `experiments/stream_length_sensitivity.py`
+  - `experiments/run_stream_length_sensitivity_step.py`
+  - `experiments/summarize_stream_length_sensitivity.py`
+- scope:
+  - dataset: `MVTec AD`
+  - baselines: `PatchCore`, `WinCLIP`
+  - categories: `bottle`, `cable`, `capsule`
+  - stream lengths: `64`, `128`, `256`
+  - stream types: `iid`, `bursty`
+  - epsilons: `0`, `0.05`
+  - seeds: `0`, `1`, `2`
+  - calibration: `none`
+- expected scaffold size:
+  - steps: `18`
+  - rows if complete: `216`
+  - rows per completed shard: `12`
+- output root:
+  - `results/latest/sensitivity/stream_length/`
+- dry-run pilot:
+  - `python3 experiments/run_stream_length_sensitivity_step.py --step-id mvtec_ad:winclip:default_no_memory:none:bottle:len_128 --dry-run`
+- generated summary paths:
+  - `results/latest/sensitivity/stream_length/summary.csv`
+  - `results/latest/sensitivity/stream_length/summary.json`
+  - `results/latest/tables/stream_length_sensitivity_summary.tex`
+- limitation:
+  - no sensitivity inference has been run yet; current summary may be empty/pending.
+  - this remains appendix sanity-check evidence only and keeps `paper_allowed=false`, `claim_allowed=false`, `review_status=review_pending`.
+
 ## 최신 진행: paper-candidate stream/epsilon breakdown
 
 - 목표: 새 추론 없이 기존 `results/latest/paper_candidate/**/metrics.csv` category-shard rows를 재집계해 논문에서 주장하는 stream type 및 contamination epsilon 축을 aggregate table 밖으로 노출.

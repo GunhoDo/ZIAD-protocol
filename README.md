@@ -127,6 +127,20 @@ Current combined paper-candidate baseline comparison:
 - `results/latest/figures/paper_candidate_accuracy_latency_tradeoff.png`
 - `results/latest/figures/paper_candidate_accuracy_latency_tradeoff.pdf`
 
+Appendix stream-length sensitivity scaffold:
+
+- `experiments/configs/sensitivity/stream_length.yaml`
+- `results/latest/sensitivity/stream_length/manifest.json`
+- `results/latest/sensitivity/stream_length/execution_plan.json`
+- `results/latest/sensitivity/stream_length/summary.csv`
+- `results/latest/sensitivity/stream_length/summary.json`
+- `results/latest/tables/stream_length_sensitivity_summary.tex`
+
+This scaffold is intentionally small: MVTec AD only, PatchCore and WinCLIP,
+categories `bottle`, `cable`, `capsule`, stream lengths `64`, `128`, `256`,
+`iid`/`bursty`, epsilon `0`/`0.05`, seeds `0,1,2`, and calibration `none`.
+It is an appendix sanity check, not a main paper result.
+
 Runtime documentation for claim-promotion review:
 
 - `docs/runtime_environment.md`
@@ -174,6 +188,20 @@ The runner skips a completed category shard only when that shard's
 `metrics.csv`, `manifest.json`, and `crd_lite.csv` exist and pass the closed
 gate and row-count checks. A completed category shard is not accepted as a
 full-category paper result.
+
+Build the stream-length sensitivity scaffold without inference:
+
+```bash
+python3 experiments/stream_length_sensitivity.py
+python3 experiments/run_stream_length_sensitivity_step.py \
+  --step-id mvtec_ad:winclip:default_no_memory:none:bottle:len_128 \
+  --dry-run
+python3 experiments/summarize_stream_length_sensitivity.py
+```
+
+Sensitivity outputs live under `results/latest/sensitivity/stream_length/`.
+They remain appendix/sanity-check artifacts with `paper_allowed=false` and
+`claim_allowed=false`.
 
 Summarize a completed MVTec AD paper-candidate category-shard set:
 
@@ -301,6 +329,9 @@ git diff --check
 - The stream/epsilon breakdown is generated from existing category-shard
   metrics and exposes `iid`/`bursty` and epsilon `0`/`0.05` groups without
   running new inference. It is still review-pending candidate evidence.
+- Stream-length sensitivity is scaffolded as a bounded appendix check, but the
+  full sensitivity grid has not been run. Do not use it as evidence until
+  actual completed shards are summarized.
 - The generated paper-candidate accuracy-latency figure and ranking table are
   analysis artifacts only. They are included in the input contract but are not
   promoted paper results.

@@ -1,0 +1,38 @@
+run_tier: stream_length_sensitivity
+evidence_scope: appendix_sanity_check
+paper_allowed: false
+claim_allowed: false
+review_status: review_pending
+output_root: results/latest/sensitivity/stream_length
+
+dataset: MVTec AD
+baselines:
+  - PatchCore
+  - WinCLIP
+memory_policies:
+  PatchCore:
+    - default/SCS
+  WinCLIP:
+    - default/no-memory
+calibration:
+  - none
+categories:
+  - bottle
+  - cable
+  - capsule
+stream_lengths:
+  - 64
+  - 128
+  - 256
+stream_types:
+  - iid
+  - bursty
+contamination_epsilon:
+  - 0
+  - 0.05
+seeds:
+  - 0
+  - 1
+  - 2
+prevalence: 0.05
+patchcore_sampler_percentage: 0.1
