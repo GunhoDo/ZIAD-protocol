@@ -33,9 +33,26 @@
   - `results/latest/sensitivity/stream_length/summary.csv`
   - `results/latest/sensitivity/stream_length/summary.json`
   - `results/latest/tables/stream_length_sensitivity_summary.tex`
+- executed pilot shards:
+  - `mvtec_ad:winclip:default_no_memory:none:bottle:len_128`
+    - row_count: `12`
+    - category: `bottle`
+    - baseline: `WinCLIP`
+    - status: `measured_stream_length_sensitivity`
+    - gates: `paper_allowed=false`, `claim_allowed=false`
+  - `mvtec_ad:winclip:default_no_memory:none:bottle:len_256`
+    - row_count: `12`
+    - category: `bottle`
+    - baseline: `WinCLIP`
+    - status: `measured_stream_length_sensitivity`
+    - gates: `paper_allowed=false`, `claim_allowed=false`
+- latest summary:
+  - status: `stream_length_sensitivity_summary_complete`
+  - group_count: `2`
+  - error_count: `0`
 - limitation:
-  - no sensitivity inference has been run yet; current summary may be empty/pending.
-  - this remains appendix sanity-check evidence only and keeps `paper_allowed=false`, `claim_allowed=false`, `review_status=review_pending`.
+  - only two WinCLIP/bottle shards have been run; the full 18-step bounded sensitivity grid has not been run.
+  - this remains preliminary appendix sanity-check evidence only and keeps `paper_allowed=false`, `claim_allowed=false`, `review_status=review_pending`.
 
 ## 최신 진행: paper-candidate stream/epsilon breakdown
 
