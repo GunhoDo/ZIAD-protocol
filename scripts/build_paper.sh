@@ -64,7 +64,7 @@ out = Path('paper/paper.pdf')
 # Minimal dependency-free PDF fallback. It intentionally renders a concise,
 # placeholder-safe paper preview when LaTeX is unavailable.
 lines = [
-    'Streaming Zero-Shot Industrial Anomaly Detection with CLIP',
+    'ZIAD: A Streaming Evaluation Protocol for Industrial Anomaly Detection',
     'Anonymous ACCV/LNCS-style paper scaffold',
     '',
     'Final artifact: paper/paper.pdf',

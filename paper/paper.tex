@@ -4,8 +4,8 @@
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage[pagebackref,breaklinks,colorlinks,citecolor=accvblue]{hyperref}
-\title{Streaming Zero-Shot Industrial Anomaly Detection with CLIP}
-\titlerunning{Streaming ZSAD with CLIP}
+\title{ZIAD: A Streaming Evaluation Protocol for Industrial Anomaly Detection}
+\titlerunning{ZIAD Streaming IAD Evaluation}
 \author{Anonymous ACCV Submission}
 \authorrunning{Anonymous ACCV Submission}
 \institute{Paper ID *****}
@@ -15,28 +15,32 @@
 Industrial anomaly detection is commonly reported on static image sets, yet
 inspection systems receive samples over time and must balance accuracy,
 calibration, latency, and behavior under changing stream conditions. We present
-ZIAD, a streaming evaluation protocol for zero-shot industrial anomaly detection
-with CLIP-style baselines. Rather than proposing a new detector, ZIAD turns
+ZIAD, a streaming evaluation protocol for zero-shot and training-light
+industrial anomaly detection. Rather than proposing a new detector, ZIAD turns
 static industrial anomaly benchmarks into controlled i.i.d. and bursty streams
 and evaluates methods along accuracy, calibration, latency, contamination, and
 memory axes. We instantiate the protocol on two industrial datasets, MVTec AD
-and VisA, with four representative baselines: PatchCore, WinCLIP, AnomalyCLIP,
-and RareCLIP. The current evidence is candidate-stage and pending final audit,
-but already illustrates why static AUROC alone is insufficient: accuracy,
-calibration, and latency can rank methods differently across datasets.
+and VisA, with four representative baselines: PatchCore as a strong
+training-light reference, and WinCLIP, AnomalyCLIP, and RareCLIP as
+CLIP-style baselines. The current evidence is candidate-stage and pending final
+audit, but already illustrates why static AUROC alone is insufficient:
+accuracy, calibration, and latency can rank methods differently across
+datasets.
 \end{abstract}
 
 \section{Introduction}
 Industrial anomaly detection is often evaluated on static test sets, but
 practical inspection systems receive images over time. This mismatch is
-especially important for zero-shot anomaly detection, where CLIP-style models
-can be attractive because they reduce category-specific training, but where
-deployment still depends on latency, score calibration, stream order, anomaly
-prevalence, contamination, and memory behavior. A single offline AUROC number
-does not expose these operational dimensions.
+especially important for zero-shot and training-light anomaly detection, where
+category-specific training may be reduced or avoided, but where deployment
+still depends on latency, score calibration, stream order, anomaly prevalence,
+contamination, and memory behavior. PatchCore provides a strong training-light
+reference point, while WinCLIP, AnomalyCLIP, and RareCLIP represent CLIP-style
+zero-shot baselines. A single offline AUROC number does not expose these
+operational dimensions.
 
 This paper positions ZIAD as an evaluation protocol and analysis framework, not
-as a new model. The protocol asks whether common zero-shot or training-light
+as a new model. The protocol asks whether common zero-shot and training-light
 industrial anomaly detectors preserve their behavior when test samples arrive
 as streams. It also records whether a method is fast enough for repeated
 inspection use, whether its scores are calibrated, and whether i.i.d. versus
@@ -44,8 +48,9 @@ bursty anomaly arrivals change the resulting metrics.
 
 The main contributions are:
 \begin{itemize}
-\item a streaming zero-shot industrial anomaly detection protocol that converts
-static category benchmarks into controlled i.i.d. and bursty streams;
+\item a streaming industrial anomaly detection protocol for zero-shot and
+training-light detectors that converts static category benchmarks into
+controlled i.i.d. and bursty streams;
 \item a category-sharded execution design that makes long evaluations
 restartable while preserving dataset and label integrity;
 \item a common baseline interface and multi-metric comparison across MVTec AD
@@ -68,13 +73,15 @@ PatchCore~\cite{Roth2022PatchCore} have become common reference points. ZIAD kee
 these datasets and baselines, but changes the evaluation unit from an unordered
 test set to an ordered stream.
 
-\paragraph{Zero-shot anomaly detection with CLIP.}
+\paragraph{Zero-shot anomaly detection and CLIP-style baselines.}
 CLIP-style anomaly detectors aim to reduce category-specific supervision by
 using vision-language representations or prompt-driven scoring. WinCLIP,
 AnomalyCLIP, and RareCLIP are representative baselines in this direction
 \cite{Jeong2023WinCLIP,Zhou2024AnomalyCLIP,He2025RareCLIP}. This paper does not modify
 their architectures; it evaluates how their outputs behave under streaming
-conditions and common deployment constraints.
+conditions and common deployment constraints. PatchCore is included separately
+as a training-light reference baseline rather than treated as a CLIP-based
+method.
 
 \paragraph{Streaming and online anomaly evaluation.}
 Streaming evaluation emphasizes sample order, distribution shift, bursty event
@@ -119,9 +126,11 @@ Each baseline consumes the same stream file and writes the same score schema:
 \texttt{stream\_index}, \texttt{image\_path}, \texttt{label},
 \texttt{category}, \texttt{anomaly\_score}, \texttt{latency\_ms},
 \texttt{peak\_vram\_mb}, and \texttt{status}. This interface keeps the
-protocol independent of a particular detector implementation. PatchCore and
-RareCLIP use their default/SCS memory setting in the main candidate comparison;
-WinCLIP and AnomalyCLIP use default/no-memory settings.
+protocol independent of a particular detector implementation. PatchCore is
+treated as a training-light reference baseline, while WinCLIP, AnomalyCLIP, and
+RareCLIP are treated as CLIP-style baselines. PatchCore and RareCLIP use their
+default/SCS memory setting in the main candidate comparison; WinCLIP and
+AnomalyCLIP use default/no-memory settings.
 
 \subsection{Metrics}
 For each detector \(f\), the wrapper emits an anomaly score
@@ -266,8 +275,8 @@ multi-objective evaluation. A detector that is strong in AUROC may not be the
 best calibrated or fastest method on every dataset. The protocol therefore
 separates image discrimination, calibration, latency, stream robustness, and
 memory behavior. This separation is the main contribution of the paper: the
-benchmark is intended to make operational trade-offs visible for zero-shot
-industrial anomaly detection.
+benchmark is intended to make operational trade-offs visible for zero-shot and
+training-light industrial anomaly detection.
 
 The current draft has not yet elevated temperature-scaling or memory-policy
 variants into the main candidate comparison. Those axes are implemented in the

@@ -1,4 +1,4 @@
-# Experiment PRD: Portable Baseline Setup for CLIP ZSAD
+# Experiment PRD: Portable Baseline Setup for ZIAD
 
 This document is the canonical experiment reference. A fresh git clone of this
 repository should be fully explained by this file plus `README.md`, without
@@ -8,9 +8,11 @@ depending on `.omx/` planning state.
 
 ## Project Purpose
 
-Streaming Zero-Shot Industrial Anomaly Detection with CLIP (CLIP ZSAD) evaluates
-how CLIP-based baselines perform under realistic deployment conditions — streaming
-images with configurable prevalence, contamination, and memory constraints.
+ZIAD evaluates how zero-shot and training-light industrial anomaly detection
+baselines perform under realistic deployment conditions: streaming images with
+configurable prevalence, contamination, and memory constraints. PatchCore is
+treated as a training-light reference baseline; WinCLIP, AnomalyCLIP, and
+RareCLIP are treated as CLIP-style baselines.
 
 **Smoke-first strategy**: The first real experiment success is deliberately small:
 one baseline + one dataset category produces `results/latest/scores.csv` using

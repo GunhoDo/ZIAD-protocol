@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Report baseline clone directories for CLIP ZSAD P0 experiments.
+# Report baseline clone directories for ZIAD P0 experiments.
 # The current project registry pins repo URLs and commits from local clones, but
 # this script does not clone, checkout, or modify external repositories.
 set -euo pipefail
@@ -7,7 +7,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-echo "=== Baseline Setup: CLIP ZSAD P0 ==="
+echo "=== Baseline Setup: ZIAD P0 ==="
 echo ""
 echo "Expected baseline directories (external/ is gitignored):"
 echo ""

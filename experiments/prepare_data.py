@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Minimal metadata placeholder/validator for the CLIP ZSAD paper pipeline.
+"""Minimal metadata placeholder/validator for the ZIAD paper pipeline.
 
 This script intentionally does not fabricate dataset contents. It only writes a
 schema placeholder so the reduced pipeline has a stable contract before real

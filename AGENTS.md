@@ -1,7 +1,7 @@
 # AGENTS.md — ZIAD Protocol
 
-Project: **Streaming Zero-Shot Industrial Anomaly Detection with CLIP (CLIP ZSAD)**
-Goal: Benchmark CLIP-based anomaly detection baselines under streaming conditions (i.i.d./bursty, prevalence 0.05, configurable contamination ε), publish results as an ACCV/LNCS paper.
+Project: **Streaming Industrial Anomaly Detection Evaluation (ZIAD Protocol)**
+Goal: Benchmark zero-shot and training-light anomaly detection baselines under streaming conditions (i.i.d./bursty, prevalence 0.05, configurable contamination ε), publish results as an ACCV/LNCS paper.
 
 Canonical experiment reference: [`docs/experiment-prd.md`](docs/experiment-prd.md)
 

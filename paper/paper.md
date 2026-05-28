@@ -1,12 +1,12 @@
-# Streaming Zero-Shot Industrial Anomaly Detection with CLIP: A Minimal ACCV/LNCS Paper Scaffold
+# ZIAD: A Streaming Evaluation Protocol for Industrial Anomaly Detection
 
 ## Abstract
 
-TODO: Replace this placeholder abstract after real P0 results exist. This paper targets a CLIP-based zero-shot industrial anomaly detection evaluation protocol under streaming conditions. The current build intentionally avoids measured-result claims until `results/latest/manifest.json` is marked `final`.
+TODO: Replace this placeholder abstract after real P0 results exist. This paper targets a streaming industrial anomaly detection evaluation protocol for zero-shot and training-light baselines. The current build intentionally avoids measured-result claims until `results/latest/manifest.json` is marked `final`.
 
 ## 1 Introduction
 
-Industrial anomaly detection is often evaluated on static test sets, but practical inspection systems receive images over time. This scaffold focuses on the paper pipeline for a streaming CLIP-based zero-shot anomaly detection study.
+Industrial anomaly detection is often evaluated on static test sets, but practical inspection systems receive images over time. This scaffold focuses on the paper pipeline for a streaming evaluation study that includes PatchCore as a training-light reference and WinCLIP, AnomalyCLIP, and RareCLIP as CLIP-style baselines.
 
 TODO: Add evidence-backed motivation and citations.
 

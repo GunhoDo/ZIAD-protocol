@@ -1,8 +1,9 @@
-# ZIAD Protocol: Streaming Zero-Shot Anomaly Detection with CLIP
+# ZIAD Protocol: Streaming Industrial Anomaly Detection Evaluation
 
-This repository implements a reproducible protocol for **streaming zero-shot
-industrial anomaly detection**. It evaluates CLIP-style anomaly detectors when
-test images arrive as streams rather than as a static offline benchmark.
+This repository implements a reproducible protocol for **streaming industrial
+anomaly detection evaluation**. It evaluates zero-shot and training-light
+detectors when test images arrive as streams rather than as a static offline
+benchmark.
 
 The canonical experiment reference is [`docs/experiment-prd.md`](docs/experiment-prd.md).
 The final paper artifact is `paper/paper.pdf`, which may only reference `results/latest/`.

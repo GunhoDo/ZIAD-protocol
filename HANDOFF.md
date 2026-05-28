@@ -1,7 +1,7 @@
 # HANDOFF — ZIAD 논문 구현 현재 상태
 
 최종 갱신: 2026-05-29
-프로젝트: Streaming Zero-Shot Industrial Anomaly Detection with CLIP / ZIAD Protocol
+프로젝트: Streaming Industrial Anomaly Detection Evaluation / ZIAD Protocol
 
 ## 최신 진행: paper-candidate stream/epsilon breakdown
 
