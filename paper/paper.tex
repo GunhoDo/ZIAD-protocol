@@ -99,6 +99,16 @@ The protocol converts a static anomaly-detection test set into stream-ordered
 evaluation items with a common schema:
 \texttt{stream\_index}, \texttt{image\_path}, \texttt{label},
 \texttt{category}, \texttt{source\_split}, and \texttt{anomaly\_type}.
+For a category \(c\), a generated stream is written as
+\[
+S_{c,\tau,\epsilon,r}=\{(x_t,y_t,a_t)\}_{t=1}^{T},
+\]
+where \(x_t\) is the image at stream index \(t\), \(y_t\in\{0,1\}\) is the
+normal/anomaly label, \(a_t\) is the anomaly type, \(\tau\in\{\mathrm{iid},
+\mathrm{bursty}\}\) is the stream type, \(\epsilon\) is the contamination
+setting, and \(r\) is the random seed. The i.i.d. setting samples the requested
+normal/anomaly mix subject to available images. The bursty setting uses the same
+item schema but places anomalous samples into one or more contiguous blocks.
 Stream generation preserves label integrity and avoids duplicate image paths.
 When requested stream prevalence, contamination, or burst layout cannot be
 matched exactly, the generator records the applied statistics and emits a
@@ -114,14 +124,38 @@ RareCLIP use their default/SCS memory setting in the main candidate comparison;
 WinCLIP and AnomalyCLIP use default/no-memory settings.
 
 \subsection{Metrics}
-ZIAD evaluates each detector along five axes. First, it compares i.i.d. streams
-with bursty streams, where anomalous samples are concentrated into contiguous
+For each detector \(f\), the wrapper emits an anomaly score
+\(s_t=f(x_t)\) and a measured latency for each stream item. ZIAD evaluates the
+resulting score sequence along five axes. First, it compares i.i.d. streams with
+bursty streams, where anomalous samples are concentrated into contiguous
 blocks. Second, it evaluates contamination levels, including the current compact
 candidate settings \(\epsilon \in \{0, 0.05\}\). Third, it records score
 calibration, with the current main candidate comparison using no post-hoc
 calibration. Fourth, it distinguishes no-memory baselines from methods with
 memory or coreset-style state. Fifth, it reports latency alongside image AUROC,
 AUPR, ECE, and CRD-lite.
+
+Image AUROC and AUPR are computed from \(\{(y_t,s_t)\}_{t=1}^{T}\) for each
+stream. ECE is computed as a diagnostic after min--max normalizing emitted
+anomaly scores, because the wrapped baselines do not all output calibrated
+probabilities. Aggregate tables report means over the completed category and
+seed shards for each dataset/baseline slice.
+
+CRD-lite is the repository's lightweight contamination robustness diagnostic.
+For a fixed dataset, category, stream type, baseline, memory policy,
+calibration, prevalence, and seed, the implementation compares a contaminated
+run at \(\epsilon\) to the matching \(\epsilon=0\) run:
+\[
+\mathrm{CRD\text{-}lite}(\epsilon)=
+\frac{1}{2}\left[
+(\mathrm{AUROC}_{0}-\mathrm{AUROC}_{\epsilon})+
+(\mathrm{AUPR}_{0}-\mathrm{AUPR}_{\epsilon})
+\right].
+\]
+Positive values indicate a measured drop under contamination, zero indicates no
+drop, and negative values indicate that the measured AUROC/AUPR improved in the
+contaminated run. This is a signed proxy used for compact diagnostics, not a
+full theoretical robustness metric.
 
 \subsection{Category-sharded execution}
 The candidate protocol currently covers MVTec AD and VisA, the baselines
