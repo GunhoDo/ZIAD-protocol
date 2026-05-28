@@ -221,6 +221,19 @@ Audit the combined paper-candidate metric table before claim promotion:
 python3 experiments/audit_paper_candidate_metrics.py
 ```
 
+Generate the paper-candidate promotion readiness report without changing any
+paper or claim gates:
+
+```bash
+python3 scripts/check_paper_promotion_readiness.py
+```
+
+The checklist is documented in
+[`docs/paper_promotion_checklist.md`](docs/paper_promotion_checklist.md). The
+expected current status is `ready_for_promotion=false` until runtime/timing
+semantics, official template migration, and manual reviewer approval are
+complete.
+
 Check paper source readiness for an eventual ACCV/LNCS template migration:
 
 ```bash

@@ -1,0 +1,101 @@
+{
+  "status": "paper_candidate_promotion_review_blocked",
+  "ready_for_promotion": false,
+  "run_tier": "paper_candidate",
+  "candidate_scope": "promotion_readiness",
+  "paper_allowed": false,
+  "claim_allowed": false,
+  "review_status": "review_pending",
+  "checked_artifacts": {
+    "results/latest/paper_candidate/baseline_comparison_all_datasets_none.csv": true,
+    "results/latest/paper_candidate/baseline_comparison_all_datasets_none.json": true,
+    "results/latest/tables/paper_candidate_baseline_comparison_all_datasets_none.tex": true,
+    "results/latest/paper_candidate/baseline_ranking_summary.json": true,
+    "results/latest/tables/paper_candidate_ranking_summary.tex": true,
+    "results/latest/figures/paper_candidate_accuracy_latency_tradeoff.png": true,
+    "results/latest/paper_candidate/metric_audit_report.json": true,
+    "docs/runtime_environment.md": true,
+    "docs/accv_template_migration.md": true,
+    "docs/paper_promotion_checklist.md": true,
+    "experiments/configs/baselines.yaml": true,
+    "paper/paper.tex": true,
+    "results/latest/figures/paper_candidate_accuracy_latency_tradeoff.pdf": true
+  },
+  "checks": {
+    "combined_table": {
+      "row_count": 8,
+      "datasets": [
+        "MVTec AD",
+        "VisA"
+      ],
+      "baselines_by_dataset": {
+        "MVTec AD": [
+          "AnomalyCLIP",
+          "PatchCore",
+          "RareCLIP",
+          "WinCLIP"
+        ],
+        "VisA": [
+          "AnomalyCLIP",
+          "PatchCore",
+          "RareCLIP",
+          "WinCLIP"
+        ]
+      }
+    },
+    "metric_audit": {
+      "status": "paper_candidate_metric_audit_passed",
+      "error_count": 0,
+      "missing_value_count": 0,
+      "non_finite_value_count": 0,
+      "negative_latency_count": 0,
+      "category_summary_count": 8
+    },
+    "baseline_provenance": {
+      "AnomalyCLIP": {
+        "repo_url_present": true,
+        "commit_hash_present": true,
+        "commit_hash": "3911738c0867544f545a076ad78f3f11d9ecbfdf"
+      },
+      "PatchCore": {
+        "repo_url_present": true,
+        "commit_hash_present": true,
+        "commit_hash": "fcaa92f124fb1ad74a7acf56726decd4b27cbcad"
+      },
+      "RareCLIP": {
+        "repo_url_present": true,
+        "commit_hash_present": true,
+        "commit_hash": "a8e6d46ee2612a0edbf48c3b88e9998497e2b422"
+      },
+      "WinCLIP": {
+        "repo_url_present": true,
+        "commit_hash_present": true,
+        "commit_hash": "a2ee822d77d01fb7beaed54314e61fe34d5027a4"
+      }
+    },
+    "runtime_documentation": {
+      "todo_count": 5,
+      "path": "docs/runtime_environment.md"
+    },
+    "paper_text": {
+      "mentions_stream_length_64": true,
+      "mentions_local_runtime_latency": true,
+      "mentions_candidate_evidence": true
+    },
+    "template_status": {
+      "document_class": "\\documentclass[10pt]{article}",
+      "llncs_cls_files": [],
+      "accv_like_template_files": [],
+      "template_readiness_ok": true
+    }
+  },
+  "blocking_items": [
+    "runtime/timing semantics still have TODO markers: 5",
+    "official ACCV/LNCS template is not present; llncs migration remains pending",
+    "manual reviewer approval has not been recorded"
+  ],
+  "warning_items": [
+    "paper source contains final-claim phrasing; verify it is in limitations/governance context"
+  ],
+  "notes": "This report is a read-only promotion checklist. It does not change paper_allowed or claim_allowed."
+}

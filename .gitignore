@@ -27,6 +27,7 @@ results/**
 !results/latest/
 !results/latest/paper_candidate/
 !results/latest/paper_candidate/metric_audit_report.json
+!results/latest/paper_candidate/promotion_readiness_report.json
 !results/latest/p0_full/
 !results/latest/p0_full/execution_plan.json
 !results/latest/p0_full/manifest.json

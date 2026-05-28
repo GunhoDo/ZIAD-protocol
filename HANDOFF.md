@@ -22,6 +22,32 @@
   - 공식 bibliography style(`splncs04` 등)을 venue 파일이 있을 때만 적용.
   - LNCS text width에서 table/figure/caption formatting 재확인.
 
+## 최신 진행: paper-candidate promotion readiness checklist
+
+- 목표: 현재 paper-candidate evidence를 paper claim으로 승격하기 전 필요한 리뷰 항목을 문서화하고, gate를 바꾸지 않는 readiness report를 생성.
+- 추가 문서:
+  - `docs/paper_promotion_checklist.md`
+- 추가 스크립트:
+  - `scripts/check_paper_promotion_readiness.py`
+- 생성 report:
+  - `results/latest/paper_candidate/promotion_readiness_report.json`
+- 현재 expected status:
+  - `ready_for_promotion=false`
+  - `paper_allowed=false`
+  - `claim_allowed=false`
+  - `review_status=review_pending`
+- 현재 blockers:
+  - runtime/timing semantics TODOs remain in `docs/runtime_environment.md`
+  - official ACCV/LNCS template is not present, so `llncs` migration remains pending
+  - manual reviewer approval has not been recorded
+- metric/table side checks:
+  - combined table exists
+  - metric audit passes
+  - no missing/NaN/Inf/negative-latency metric audit errors
+  - expected rows/datasets/baselines/category counts are checked
+  - baseline provenance file has repo URLs and pinned commit hashes
+- 이 report는 read-only checklist다. `paper_allowed`나 `claim_allowed`를 변경하지 않는다.
+
 ## 0. 절대 규칙
 
 - `AGENTS.md`와 `docs/experiment-prd.md`가 canonical reference다.
