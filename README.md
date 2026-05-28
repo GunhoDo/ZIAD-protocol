@@ -117,8 +117,14 @@ Current combined paper-candidate baseline comparison:
 - `results/latest/tables/paper_candidate_baseline_comparison_all_datasets_none.tex`
 - `results/latest/paper_candidate/baseline_ranking_summary.json`
 - `results/latest/tables/paper_candidate_ranking_summary.tex`
+- `results/latest/paper_candidate/metric_audit_report.json`
+- `results/latest/tables/paper_candidate_metric_audit_summary.tex`
 - `results/latest/figures/paper_candidate_accuracy_latency_tradeoff.png`
 - `results/latest/figures/paper_candidate_accuracy_latency_tradeoff.pdf`
+
+Runtime documentation for claim-promotion review:
+
+- `docs/runtime_environment.md`
 
 Smoke and paper-input artifacts:
 
@@ -209,6 +215,12 @@ accuracy-latency trade-off figure without running inference:
 python3 experiments/render_paper_candidate_analysis.py
 ```
 
+Audit the combined paper-candidate metric table before claim promotion:
+
+```bash
+python3 experiments/audit_paper_candidate_metrics.py
+```
+
 Dry-run the completed full-P0 execution plan:
 
 ```bash
@@ -255,6 +267,12 @@ git diff --check
 - The generated paper-candidate accuracy-latency figure and ranking table are
   analysis artifacts only. They are included in the input contract but are not
   promoted paper results.
+- The paper-candidate metric audit checks missing values, NaN/Inf values,
+  negative latency, row/dataset/baseline counts, and closed paper/claim gates;
+  a passing audit does not promote claims.
+- Runtime documentation is incomplete for final latency claims: the original
+  device path, model-loading scope, batch settings, and timing granularity must
+  still be confirmed before promotion.
 - PatchCore validation uses bounded `sampler_percentage=0.001`.
 - Paper-candidate config records and uses PatchCore `sampler_percentage=0.1`.
 - Paper promotion requires non-validation stream length, reviewed sampler and

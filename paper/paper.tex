@@ -140,9 +140,12 @@ paper-candidate sampler setting \texttt{sampler\_percentage=0.1}. Baseline
 repository URLs and commit hashes are pinned in the repository configuration;
 this draft intentionally does not invent or replace them.
 
-TODO hardware/runtime: document the CPU/GPU model, software versions, batch
-settings, and timing scope used for latency before any latency value is promoted
-from candidate evidence to a final paper claim.
+Runtime metadata is being tracked separately in
+\texttt{docs/runtime\_environment.md}. The current audit/build environment
+records an Intel Core i5-14500 CPU, Ubuntu 22.04.5, Python 3.10.12, and a
+PyTorch 1.13.1+cu116 stack, but the original device path, model-loading scope,
+batching, and timing granularity still require manual confirmation before any
+latency value is promoted from candidate evidence to a final paper claim.
 
 \section{Results}
 TODO: Results remain paper-candidate and review-pending. Do not rewrite this
@@ -214,15 +217,16 @@ The present draft has four important limitations. First, the main numerical
 results are paper-candidate evidence, not final reviewed paper results. Second,
 the compact candidate setting uses stream length 64; longer streams may be
 needed before stronger deployment claims are made. Third, latency values depend
-on the local software and hardware path and should be documented before final
-submission. Fourth, calibration and memory-policy variants are not yet promoted
-into the main candidate comparison, so the paper should avoid broad claims about
+on the local software and hardware path; they remain local-runtime dependent
+until the final hardware documentation and timing semantics are complete.
+Fourth, calibration and memory-policy variants are not yet promoted into the
+main candidate comparison, so the paper should avoid broad claims about
 temperature scaling or online memory until those slices are reviewed.
 
-TODO before submission: verify venue-specific citation formatting, document
-hardware, audit candidate metrics for non-finite values and outliers, decide
-whether a minimal temperature-scaling candidate slice is necessary, and run the
-manual promotion review before changing any paper gate.
+TODO before submission: verify venue-specific citation formatting, complete
+hardware/timing confirmation, decide whether a minimal temperature-scaling
+candidate slice is necessary, and run the manual promotion review before
+changing any paper gate.
 
 \bibliographystyle{plain}
 \bibliography{refs}

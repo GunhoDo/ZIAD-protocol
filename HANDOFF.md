@@ -246,6 +246,18 @@
   - summary status: `paper_candidate_ranking_summary_complete`, datasets `2`, rows `8`, `paper_allowed=false`, `claim_allowed=false`, `review_status=review_pending`.
   - paper input contract: `scripts/render_paper_tables.sh` now regenerates these analysis artifacts before writing `results/latest/tables/paper_input_contract.json`; the PNG is recorded under `figures`.
   - limitation: the figure and ranking table are review-pending paper-candidate analysis artifacts, not promoted paper results.
+- paper-candidate metric audit/runtime documentation:
+  - purpose: document the local runtime context and audit paper-candidate summary metrics before any claim-promotion review.
+  - command:
+    - `python3 experiments/audit_paper_candidate_metrics.py`
+  - generated outputs:
+    - `results/latest/paper_candidate/metric_audit_report.json`
+    - `results/latest/tables/paper_candidate_metric_audit_summary.tex`
+  - runtime doc:
+    - `docs/runtime_environment.md`
+  - audit checks: missing values, NaN/Inf or non-numeric values, negative latency, expected datasets `2`, expected baselines `4` per dataset, expected rows `8`, `paper_allowed=false`, `claim_allowed=false`, and `review_status=review_pending`.
+  - current audit status: `paper_candidate_metric_audit_passed` after generation; this does not promote paper or claim gates.
+  - remaining runtime TODOs: confirm original latency device path, model-loading scope, batching/concurrency settings, and timing granularity before final paper claims.
 - verification:
   - aggregate row count `12`
   - category count `1`

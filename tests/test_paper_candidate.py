@@ -9,6 +9,7 @@ from unittest import mock
 import yaml
 
 from experiments import (
+    audit_paper_candidate_metrics,
     paper_candidate,
     render_paper_candidate_analysis,
     run_p0_execution_plan,
@@ -498,6 +499,98 @@ class PaperCandidateCombinedComparisonTest(unittest.TestCase):
             self.assertTrue(csv_path.exists())
             self.assertTrue(json_path.exists())
             self.assertTrue(tex_path.exists())
+        finally:
+            if root.exists():
+                shutil.rmtree(root)
+
+
+class PaperCandidateMetricAuditTest(unittest.TestCase):
+    def _write_combined_csv(self, path: Path, *, negative_latency: bool = False) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        rows = []
+        for dataset, expected_categories, total_rows in [
+            ("MVTec AD", 15, 180),
+            ("VisA", 12, 144),
+        ]:
+            for baseline, memory_policy in [
+                ("PatchCore", "default/SCS"),
+                ("WinCLIP", "default/no-memory"),
+                ("AnomalyCLIP", "default/no-memory"),
+                ("RareCLIP", "default/SCS"),
+            ]:
+                latency = -1.0 if negative_latency and baseline == "WinCLIP" else 10.0
+                rows.append(
+                    {
+                        "dataset": dataset,
+                        "baseline": baseline,
+                        "memory_policy": memory_policy,
+                        "calibration": "none",
+                        "completed_categories": str(expected_categories),
+                        "expected_categories": str(expected_categories),
+                        "total_rows": str(total_rows),
+                        "stream_length": "64",
+                        "seeds": "0|1|2",
+                        "mean_image_auroc": "0.9",
+                        "mean_aupr": "0.8",
+                        "mean_ece": "0.1",
+                        "mean_latency_ms": str(latency),
+                        "mean_crd_lite": "0.01",
+                        "paper_allowed": "False",
+                        "claim_allowed": "False",
+                        "review_status": "review_pending",
+                    }
+                )
+        with path.open("w", newline="") as handle:
+            writer = csv.DictWriter(
+                handle,
+                fieldnames=audit_paper_candidate_metrics.REQUIRED_COLUMNS,
+                lineterminator="\n",
+            )
+            writer.writeheader()
+            writer.writerows(rows)
+
+    def test_metric_audit_passes_closed_gate_combined_table(self):
+        root = Path("results/latest/paper_candidate/unit_test_metric_audit")
+        if root.exists():
+            shutil.rmtree(root)
+        try:
+            csv_path = root / "combined.csv"
+            self._write_combined_csv(csv_path)
+            report = audit_paper_candidate_metrics.build_metric_audit(
+                combined_csv=csv_path,
+                category_summary_glob=None,
+            )
+            self.assertEqual("paper_candidate_metric_audit_passed", report["status"])
+            self.assertEqual(8, report["combined_csv"]["row_count"])
+            self.assertEqual(2, report["combined_csv"]["dataset_count"])
+            self.assertFalse(report["paper_allowed"])
+            self.assertFalse(report["claim_allowed"])
+            self.assertEqual("review_pending", report["review_status"])
+            json_path, tex_path = audit_paper_candidate_metrics.write_outputs(
+                report,
+                json_path=root / "metric_audit_report.json",
+                tex_path=root / "metric_audit_summary.tex",
+            )
+            self.assertTrue(json_path.exists())
+            self.assertTrue(tex_path.exists())
+        finally:
+            if root.exists():
+                shutil.rmtree(root)
+
+    def test_metric_audit_fails_negative_latency(self):
+        root = Path("results/latest/paper_candidate/unit_test_metric_audit_fail")
+        if root.exists():
+            shutil.rmtree(root)
+        try:
+            csv_path = root / "combined.csv"
+            self._write_combined_csv(csv_path, negative_latency=True)
+            report = audit_paper_candidate_metrics.build_metric_audit(
+                combined_csv=csv_path,
+                category_summary_glob=None,
+            )
+            self.assertEqual("paper_candidate_metric_audit_failed", report["status"])
+            self.assertEqual(2, report["combined_csv"]["negative_latency_count"])
+            self.assertGreater(report["error_count"], 0)
         finally:
             if root.exists():
                 shutil.rmtree(root)

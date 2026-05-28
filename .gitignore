@@ -25,6 +25,8 @@ build/
 results/**
 !results/
 !results/latest/
+!results/latest/paper_candidate/
+!results/latest/paper_candidate/metric_audit_report.json
 !results/latest/p0_full/
 !results/latest/p0_full/execution_plan.json
 !results/latest/p0_full/manifest.json
@@ -37,6 +39,7 @@ results/**
 !results/latest/tables/p0_full_validation_summary.tex
 !results/latest/tables/p0_smoke_summary.csv
 !results/latest/tables/p0_smoke_summary.tex
+!results/latest/tables/paper_candidate_metric_audit_summary.tex
 !results/latest/tables/paper_input_contract.json
 
 # OMX planning state — not source of truth

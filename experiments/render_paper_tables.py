@@ -246,6 +246,19 @@ def _known_table_inputs() -> list[dict[str, Any]]:
                     "paper-candidate analysis; not a promoted paper result"
                 ),
             },
+            {
+                "name": "paper_candidate_metric_audit",
+                "kind": "paper_candidate_table",
+                "tex": "results/latest/tables/paper_candidate_metric_audit_summary.tex",
+                "source_csv": "results/latest/paper_candidate/baseline_comparison_all_datasets_none.csv",
+                "manifest": "results/latest/paper_candidate/metric_audit_report.json",
+                "included_in_paper_tex": False,
+                "paper_label": "tab:paper-candidate-metric-audit",
+                "interpretation": (
+                    "Metric audit for review-pending paper-candidate summaries; "
+                    "not a promoted paper result"
+                ),
+            },
         ]
     )
     return inputs
