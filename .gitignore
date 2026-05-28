@@ -21,27 +21,26 @@ __pycache__/
 dist/
 build/
 
-# Results — ignore generated outputs by default; force-add only compact portfolio artifacts.
+# Results — generated locally, not committed
 results/**
-!results/
-!results/latest/
-!results/latest/paper_candidate/
-!results/latest/paper_candidate/metric_audit_report.json
-!results/latest/paper_candidate/promotion_readiness_report.json
-!results/latest/p0_full/
-!results/latest/p0_full/execution_plan.json
-!results/latest/p0_full/manifest.json
-!results/latest/p0_full/validation_report.json
-!results/latest/p0_shards/
-!results/latest/p0_shards/execution_plan.json
-!results/latest/p0_shards/manifest.json
-!results/latest/tables/
-!results/latest/tables/p0_full_validation_summary.csv
-!results/latest/tables/p0_full_validation_summary.tex
-!results/latest/tables/p0_smoke_summary.csv
-!results/latest/tables/p0_smoke_summary.tex
-!results/latest/tables/paper_candidate_metric_audit_summary.tex
-!results/latest/tables/paper_input_contract.json
+!results/README.md
+
+# Paper build artifacts — keep source/template files tracked
+paper/*.pdf
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.brf
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.log
+paper/*.out
+paper/*.synctex.gz
+paper/*.toc
+paper/*.lof
+paper/*.lot
+paper/*.zip
+paper/template/*.zip
 
 # OMX planning state — not source of truth
 .omx/
