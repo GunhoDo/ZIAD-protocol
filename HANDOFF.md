@@ -218,6 +218,22 @@
     - `results/latest/tables/paper_candidate_visa_baseline_comparison_none.tex`
   - summary status: `paper_candidate_baseline_comparison_complete`, baselines `4`, `paper_allowed=false`, `claim_allowed=false`, `review_status=review_pending`.
   - remaining VisA paper-candidate comparison baseline: none for the current 4-baseline `calibration=none` slice.
+- combined MVTec AD + VisA paper-candidate baseline comparison summary:
+  - purpose: join the completed MVTec AD and VisA 4-baseline `calibration=none` comparison CSVs without running inference.
+  - input CSVs:
+    - `results/latest/paper_candidate/mvtec_ad/baseline_comparison_none.csv`
+    - `results/latest/paper_candidate/visa/baseline_comparison_none.csv`
+  - command:
+    - `python3 experiments/summarize_paper_candidate_all_datasets.py`
+  - generated outputs:
+    - `results/latest/paper_candidate/baseline_comparison_all_datasets_none.csv`
+    - `results/latest/paper_candidate/baseline_comparison_all_datasets_none.json`
+    - `results/latest/tables/paper_candidate_baseline_comparison_all_datasets_none.tex`
+  - summary status: `paper_candidate_combined_baseline_comparison_complete`, datasets `2`, rows `8`, `paper_allowed=false`, `claim_allowed=false`, `review_status=review_pending`.
+  - ranking summary:
+    - MVTec AD: best AUROC `PatchCore`, best AUPR `PatchCore`, lowest ECE `RareCLIP`, lowest latency `PatchCore`.
+    - VisA: best AUROC `PatchCore`, best AUPR `PatchCore`, lowest ECE `PatchCore`, lowest latency `WinCLIP`.
+  - accuracy-latency note: MVTec AD currently has PatchCore leading AUROC and latency in the candidate slice; VisA has PatchCore leading AUROC while WinCLIP has the lowest latency. These are review-pending trade-off notes, not paper claims.
 - verification:
   - aggregate row count `12`
   - category count `1`

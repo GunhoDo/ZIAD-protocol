@@ -12,6 +12,7 @@ from experiments import (
     paper_candidate,
     run_p0_execution_plan,
     run_paper_candidate_step,
+    summarize_paper_candidate_all_datasets,
     summarize_paper_candidate_baselines,
     summarize_paper_candidate_categories,
 )
@@ -422,6 +423,101 @@ class PaperCandidateBaselineComparisonTest(unittest.TestCase):
             self.assertTrue(csv_path.exists())
             self.assertTrue(json_path.exists())
             self.assertTrue(tex_path.exists())
+        finally:
+            if root.exists():
+                shutil.rmtree(root)
+
+
+class PaperCandidateCombinedComparisonTest(unittest.TestCase):
+    def test_combined_comparison_ranks_each_dataset_and_keeps_gates_closed(self):
+        root = Path("results/latest/paper_candidate/unit_test_combined_compare")
+        if root.exists():
+            shutil.rmtree(root)
+        try:
+            mvtec_csv = root / "mvtec_ad" / "baseline_comparison_none.csv"
+            visa_csv = root / "visa" / "baseline_comparison_none.csv"
+            header = ",".join(summarize_paper_candidate_all_datasets.OUTPUT_COLUMNS)
+            mvtec_csv.parent.mkdir(parents=True)
+            visa_csv.parent.mkdir(parents=True)
+            mvtec_csv.write_text(
+                header
+                + "\n"
+                + "MVTec AD,WinCLIP,default/no-memory,none,15,15,180,64,0|1|2,"
+                "0.70,0.80,0.20,10.0,0.01,False,False,review_pending\n"
+                + "MVTec AD,PatchCore,default/SCS,none,15,15,180,64,0|1|2,"
+                "0.90,0.75,0.10,20.0,0.02,False,False,review_pending\n"
+            )
+            visa_csv.write_text(
+                header
+                + "\n"
+                + "VisA,RareCLIP,default/SCS,none,12,12,144,64,0|1|2,"
+                "0.85,0.60,0.30,30.0,0.03,False,False,review_pending\n"
+                + "VisA,PatchCore,default/SCS,none,12,12,144,64,0|1|2,"
+                "0.95,0.90,0.05,15.0,0.04,False,False,review_pending\n"
+            )
+
+            summary = summarize_paper_candidate_all_datasets.summarize_all_datasets(
+                [mvtec_csv, visa_csv]
+            )
+            self.assertEqual(
+                "paper_candidate_combined_baseline_comparison_complete",
+                summary["status"],
+            )
+            self.assertEqual(["MVTec AD", "VisA"], summary["datasets"])
+            self.assertEqual(4, summary["baseline_row_count"])
+            self.assertFalse(summary["paper_allowed"])
+            self.assertFalse(summary["claim_allowed"])
+            self.assertEqual("review_pending", summary["review_status"])
+            self.assertEqual(
+                "PatchCore",
+                summary["rankings"]["MVTec AD"]["best_auroc"]["baseline"],
+            )
+            self.assertEqual(
+                "WinCLIP",
+                summary["rankings"]["MVTec AD"]["lowest_latency"]["baseline"],
+            )
+            self.assertEqual(
+                "PatchCore",
+                summary["rankings"]["VisA"]["best_aupr"]["baseline"],
+            )
+            self.assertEqual(
+                "PatchCore",
+                summary["rankings"]["VisA"]["lowest_ece"]["baseline"],
+            )
+            self.assertIn("trade-off", summary["accuracy_latency_tradeoff_notes"][0])
+
+            csv_path, json_path, tex_path = (
+                summarize_paper_candidate_all_datasets.write_outputs(
+                    summary,
+                    csv_path=root / "combined.csv",
+                    json_path=root / "combined.json",
+                    tex_path=root / "combined.tex",
+                )
+            )
+            self.assertTrue(csv_path.exists())
+            self.assertTrue(json_path.exists())
+            self.assertTrue(tex_path.exists())
+        finally:
+            if root.exists():
+                shutil.rmtree(root)
+
+    def test_combined_comparison_rejects_open_paper_gate(self):
+        root = Path("results/latest/paper_candidate/unit_test_combined_gate")
+        if root.exists():
+            shutil.rmtree(root)
+        try:
+            path = root / "baseline_comparison_none.csv"
+            path.parent.mkdir(parents=True)
+            path.write_text(
+                ",".join(summarize_paper_candidate_all_datasets.OUTPUT_COLUMNS)
+                + "\n"
+                + "VisA,WinCLIP,default/no-memory,none,12,12,144,64,0|1|2,"
+                "0.70,0.80,0.20,10.0,0.01,True,False,review_pending\n"
+            )
+            with self.assertRaises(
+                summarize_paper_candidate_all_datasets.CombinedComparisonError
+            ):
+                summarize_paper_candidate_all_datasets.summarize_all_datasets([path])
         finally:
             if root.exists():
                 shutil.rmtree(root)

@@ -55,7 +55,10 @@ includes `VisA × WinCLIP × default/no-memory × none`,
 `VisA × AnomalyCLIP × default/no-memory × none`,
 `VisA × RareCLIP × default/SCS × none`, and
 `VisA × PatchCore × default/SCS × none`, each complete for all 12 VisA
-categories at the same stream length and seeds.
+categories at the same stream length and seeds. The combined MVTec AD + VisA
+paper-candidate comparison table has also been generated for the calibration
+`none` slice; it remains review-pending candidate evidence, not a final paper
+result.
 
 ## Result Artifacts
 
@@ -106,6 +109,12 @@ Current VisA paper-candidate baseline comparison:
 - `results/latest/paper_candidate/visa/baseline_comparison_none.csv`
 - `results/latest/paper_candidate/visa/baseline_comparison_none.json`
 - `results/latest/tables/paper_candidate_visa_baseline_comparison_none.tex`
+
+Current combined paper-candidate baseline comparison:
+
+- `results/latest/paper_candidate/baseline_comparison_all_datasets_none.csv`
+- `results/latest/paper_candidate/baseline_comparison_all_datasets_none.json`
+- `results/latest/tables/paper_candidate_baseline_comparison_all_datasets_none.tex`
 
 Smoke and paper-input artifacts:
 
@@ -182,6 +191,13 @@ python3 experiments/summarize_paper_candidate_baselines.py \
   --output-tex results/latest/tables/paper_candidate_visa_baseline_comparison_none.tex
 ```
 
+Generate the combined MVTec AD + VisA paper-candidate baseline comparison
+without running inference:
+
+```bash
+python3 experiments/summarize_paper_candidate_all_datasets.py
+```
+
 Dry-run the completed full-P0 execution plan:
 
 ```bash
@@ -222,6 +238,9 @@ git diff --check
 - The current VisA paper-candidate baseline comparison includes WinCLIP,
   AnomalyCLIP, RareCLIP, and PatchCore. It is still review-pending candidate
   evidence, not a promoted paper result.
+- The combined MVTec AD + VisA paper-candidate comparison includes both
+  4-baseline dataset slices and ranking summaries. It is still
+  `review_pending`, with `paper_allowed=false` and `claim_allowed=false`.
 - PatchCore validation uses bounded `sampler_percentage=0.001`.
 - Paper-candidate config records and uses PatchCore `sampler_percentage=0.1`.
 - Paper promotion requires non-validation stream length, reviewed sampler and
