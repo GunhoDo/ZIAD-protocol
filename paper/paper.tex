@@ -1,42 +1,231 @@
-% Minimal ACCV/LNCS-oriented scaffold.
+% ACCV/LNCS-oriented draft.
 % If an official llncs.cls is available, this source can be migrated to
 % \documentclass[runningheads]{llncs}. The current repository keeps a minimal
 % dependency-free build path through scripts/build_paper.sh.
 \documentclass[10pt]{article}
 \usepackage[margin=1in]{geometry}
 \usepackage{booktabs}
+\usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{url}
+\usepackage{xcolor}
 \title{Streaming Zero-Shot Industrial Anomaly Detection with CLIP}
 \author{Anonymous ACCV Submission}
 \date{}
 \begin{document}
 \maketitle
 \begin{abstract}
-TODO: Replace this placeholder abstract after real P0 results exist. This paper targets a CLIP-based zero-shot industrial anomaly detection evaluation protocol under streaming conditions. The current build intentionally avoids measured-result claims until \texttt{results/latest/manifest.json} is marked \texttt{final}.
+Industrial anomaly detection is commonly reported on static image sets, yet
+inspection systems receive samples over time and must balance accuracy,
+calibration, latency, and behavior under changing stream conditions. We present
+ZIAD, a streaming evaluation protocol for zero-shot industrial anomaly detection
+with CLIP-style baselines. Rather than proposing a new detector, ZIAD evaluates
+existing methods under i.i.d. and bursty streams, contamination settings,
+calibration choices, and memory policies. The current draft includes
+paper-candidate, review-pending evidence on MVTec AD and VisA with PatchCore,
+WinCLIP, AnomalyCLIP, and RareCLIP. These results are not promoted final paper
+claims: all current artifacts retain \texttt{paper\_allowed=false},
+\texttt{claim\_allowed=false}, and \texttt{review\_status=review\_pending}.
+TODO: promote only after manual paper review and final result gating.
 \end{abstract}
 
 \section{Introduction}
-Industrial anomaly detection is often evaluated on static test sets, but practical inspection systems receive images over time. This scaffold focuses on the paper pipeline for a streaming CLIP-based zero-shot anomaly detection study.
+Industrial anomaly detection is often evaluated on static test sets, but
+practical inspection systems receive images over time. This mismatch is
+especially important for zero-shot anomaly detection, where CLIP-style models
+can be attractive because they reduce category-specific training, but where
+deployment still depends on latency, score calibration, stream order, anomaly
+prevalence, contamination, and memory behavior. A single offline AUROC number
+does not expose these operational dimensions.
 
-TODO: Add evidence-backed motivation and citations.
+This paper positions ZIAD as an evaluation protocol and analysis framework, not
+as a new model. The protocol asks whether common zero-shot or training-light
+industrial anomaly detectors preserve their behavior when test samples arrive
+as streams. It also records whether a method is fast enough for repeated
+inspection use, whether its scores are calibrated, and whether i.i.d. versus
+bursty anomaly arrivals change the resulting metrics.
+
+The draft currently uses existing repository artifacts only. The numerical
+tables are paper-candidate evidence generated under closed paper gates; they
+are useful for writing and reviewing the paper narrative, but they must not be
+interpreted as final paper claims until the promotion checklist is complete.
+
+\section{Related Work}
+\paragraph{Industrial anomaly detection.}
+Industrial anomaly detection benchmarks typically measure whether a method can
+separate normal product images from defective ones on static category-level test
+sets. MVTec AD~\cite{TODO-mvtec-ad} and VisA~\cite{TODO-visa} are central
+benchmarks for this setting, and training-light methods such as
+PatchCore~\cite{TODO-patchcore} have become common reference points. ZIAD keeps
+these datasets and baselines, but changes the evaluation unit from an unordered
+test set to an ordered stream.
+
+\paragraph{Zero-shot anomaly detection with CLIP.}
+CLIP-style anomaly detectors aim to reduce category-specific supervision by
+using vision-language representations or prompt-driven scoring. WinCLIP,
+AnomalyCLIP, and RareCLIP are representative baselines in this direction
+\cite{TODO-winclip,TODO-anomalyclip,TODO-rareclip}. This paper does not modify
+their architectures; it evaluates how their outputs behave under streaming
+conditions and common deployment constraints.
+
+\paragraph{Streaming and online anomaly evaluation.}
+Streaming evaluation emphasizes sample order, distribution shift, bursty event
+arrival, contamination, and resume-safe execution. These concerns are related
+to online anomaly detection and monitoring protocols
+\cite{TODO-streaming-evaluation}, but they are less visible in static
+industrial anomaly detection leaderboards. ZIAD makes the stream construction
+explicit so that i.i.d. and bursty arrivals can be compared with the same
+baselines and metrics.
+
+\paragraph{Calibration and reliability.}
+Anomaly scores are often used as thresholds or alarms, so ranking quality alone
+is not sufficient. Calibration metrics such as ECE
+\cite{TODO-calibration-ece} help quantify whether scores can be interpreted
+reliably across streams, categories, and contamination settings. ZIAD therefore
+reports ECE alongside AUROC, AUPR, latency, and CRD-lite rather than treating
+AUROC as the only target.
 
 \section{Evaluation Protocol}
-The minimal P0 protocol covers MVTec AD and VisA, i.i.d. and bursty streams, prevalence 0.05, contamination levels 0, 0.01, and 0.05, and the baselines RareCLIP, PatchCore, WinCLIP, and AnomalyCLIP.
+\subsection{Stream construction}
+The protocol converts a static anomaly-detection test set into stream-ordered
+evaluation items with a common schema:
+\texttt{stream\_index}, \texttt{image\_path}, \texttt{label},
+\texttt{category}, \texttt{source\_split}, and \texttt{anomaly\_type}.
+Stream generation preserves label integrity and avoids duplicate image paths.
+When requested stream prevalence, contamination, or burst layout cannot be
+matched exactly, the generator records the applied statistics and emits a
+warning rather than silently fabricating a perfect stream.
+
+\subsection{Baseline interface}
+Each baseline consumes the same stream file and writes the same score schema:
+\texttt{stream\_index}, \texttt{image\_path}, \texttt{label},
+\texttt{category}, \texttt{anomaly\_score}, \texttt{latency\_ms},
+\texttt{peak\_vram\_mb}, and \texttt{status}. This interface keeps the
+protocol independent of a particular detector implementation. PatchCore and
+RareCLIP use their default/SCS memory setting in the main candidate comparison;
+WinCLIP and AnomalyCLIP use default/no-memory settings.
+
+\subsection{Metrics}
+ZIAD evaluates each detector along five axes. First, it compares i.i.d. streams
+with bursty streams, where anomalous samples are concentrated into contiguous
+blocks. Second, it evaluates contamination levels, including the current compact
+paper-candidate settings \(\epsilon \in \{0, 0.05\}\). Third, it records score
+calibration, with the current main paper-candidate comparison using no
+post-hoc calibration. Fourth, it distinguishes no-memory baselines from methods
+with memory or coreset-style state. Fifth, it reports latency alongside image
+AUROC, AUPR, ECE, and CRD-lite.
+
+\subsection{Category-sharded execution and gates}
+The candidate protocol currently covers MVTec AD and VisA, the baselines
+PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP, stream length 64, and seeds
+\(\{0,1,2\}\). Execution is category-sharded so long-running steps can resume
+without confusing a completed category shard with a full paper result.
+Promotion is deliberately separated from execution: paper-candidate artifacts
+remain review-pending until row counts, category counts, metric validity,
+baseline provenance, sampler settings, and manual review are complete.
+
+\section{Experimental Setup}
+The current paper-candidate comparison is category-sharded. Each category shard
+contains 12 metric rows: two stream types, two contamination settings, and
+three seeds. MVTec AD contributes 15 categories and 180 rows per baseline.
+VisA contributes 12 categories and 144 rows per baseline. All candidate outputs
+are written under \texttt{results/latest/paper\_candidate/}, separate from
+smoke and full-P0 production-validation outputs.
+
+The paper-candidate result root remains closed-gate:
+\texttt{run\_tier=paper\_candidate}, \texttt{execution\_mode=production},
+\texttt{paper\_allowed=false}, \texttt{claim\_allowed=false}, and
+\texttt{review\_status=review\_pending}. PatchCore uses the documented
+paper-candidate sampler setting \texttt{sampler\_percentage=0.1}. Baseline
+repository URLs and commit hashes are pinned in the repository configuration;
+this draft intentionally does not invent or replace them.
+
+TODO hardware/runtime: document the CPU/GPU model, software versions, batch
+settings, and timing scope used for latency before any latency value is promoted
+from candidate evidence to a final paper claim.
 
 \section{Results}
-TODO: Results are intentionally placeholders. Do not report measured AUROC, AUPR, ECE, latency, or CRD-lite until \texttt{results/latest/manifest.json} has \texttt{status: final} and \texttt{paper\_allowed: true}.
+TODO: Results remain paper-candidate and review-pending. Do not rewrite this
+section as final paper evidence until the relevant manifests have passed manual
+review and the project explicitly promotes \texttt{paper\_allowed} and
+\texttt{claim\_allowed}.
 
-The paper may only consume result files from \texttt{results/latest/}.
+Table~\ref{tab:paper-candidate-baseline-comparison} summarizes the current
+paper-candidate comparison for the calibration-none slice. In this candidate slice,
+PatchCore has the highest mean AUROC and AUPR on both datasets. The lowest ECE
+differs by dataset: RareCLIP on MVTec AD and PatchCore on VisA. Latency also
+differs by dataset: PatchCore is lowest on MVTec AD in the current local
+candidate run, while WinCLIP is lowest on VisA. These observations are useful
+for paper drafting, but remain review-pending and should be described as
+candidate evidence rather than final conclusions.
 
-\input{../results/latest/tables/baseline_summary.tex}
-\input{../results/latest/tables/p0_smoke_summary.tex}
-\input{../results/latest/tables/smoke_evidence_summary.tex}
+\begin{table}[t]
+\centering
+\caption{Paper-candidate baseline comparison across MVTec AD and VisA for
+calibration \texttt{none}. Values are generated from
+\texttt{results/latest/paper\_candidate/}; they are review-pending and not
+final paper claims.}
+\label{tab:paper-candidate-baseline-comparison}
+\resizebox{\textwidth}{!}{\input{../results/latest/tables/paper_candidate_baseline_comparison_all_datasets_none.tex}}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{Ranking summary derived from the current paper-candidate comparison.
+The table is a drafting aid and is not a promoted paper result.}
+\label{tab:paper-candidate-ranking}
+\input{../results/latest/tables/paper_candidate_ranking_summary.tex}
+\end{table}
+
+\section{Accuracy--Latency Trade-off}
+Figure~\ref{fig:paper-candidate-accuracy-latency} plots mean image AUROC against
+mean latency for each dataset/baseline pair. The current candidate evidence
+shows that accuracy and latency rankings are not identical across datasets,
+which supports the protocol motivation: reporting accuracy alone can hide
+operational trade-offs. This figure is generated without new inference from the
+combined paper-candidate CSV and remains review-pending.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.82\textwidth]{../results/latest/figures/paper_candidate_accuracy_latency_tradeoff.png}
+\caption{Paper-candidate accuracy--latency trade-off for MVTec AD and VisA.
+The plotted results are review-pending and keep \texttt{paper\_allowed=false}
+and \texttt{claim\_allowed=false}.}
+\label{fig:paper-candidate-accuracy-latency}
+\end{figure}
+
+\section{Discussion}
+The current candidate results illustrate why ZIAD treats the benchmark as a
+multi-objective evaluation. A detector that is strong in AUROC may not be the
+best calibrated or fastest method on every dataset. The protocol therefore
+separates image discrimination, calibration, latency, stream robustness, and
+memory behavior. This separation is the main contribution of the paper: the
+benchmark is intended to make operational trade-offs visible for zero-shot
+industrial anomaly detection.
+
+The current draft has not yet elevated temperature-scaling or memory-policy
+variants into the main paper-candidate comparison. Those axes are implemented
+in the protocol and validated elsewhere in the repository, but the safest main
+paper story is the compact calibration-none comparison plus a clear plan for
+calibration and memory ablations.
 
 \section{Limitations}
-TODO: Replace this section after real P0 runs. Expected interpretations from the protocol are not findings until validated by generated outputs.
+The present draft has four important limitations. First, the main numerical
+results are paper-candidate evidence, not final reviewed paper results. Second,
+the compact candidate setting uses stream length 64; longer streams may be
+needed before stronger deployment claims are made. Third, latency values depend
+on the local software and hardware path and should be documented before final
+submission. Fourth, calibration and memory-policy variants are not yet promoted
+into the main candidate comparison, so the paper should avoid broad claims about
+temperature scaling or online memory until those slices are reviewed.
+
+TODO before submission: complete citation entries, document hardware, audit
+candidate metrics for non-finite values and outliers, decide whether a minimal
+temperature-scaling candidate slice is necessary, and run the manual promotion
+review before changing any paper gate.
 
 \section*{References}
-TODO: Add numeric citations in ACCV/LNCS style.
+TODO: Add numeric citations in ACCV/LNCS style for MVTec AD, VisA, PatchCore,
+WinCLIP, AnomalyCLIP, RareCLIP, calibration/ECE, and streaming evaluation.
 
 \end{document}
