@@ -1,17 +1,14 @@
-% ACCV/LNCS-oriented draft.
-% If an official llncs.cls is available, this source can be migrated to
-% \documentclass[runningheads]{llncs}. The current repository keeps a minimal
-% dependency-free build path through scripts/build_paper.sh.
-\documentclass[10pt]{article}
-\usepackage[margin=1in]{geometry}
-\usepackage{booktabs}
+\documentclass[runningheads]{llncs}
+\usepackage[review,year=2026,ID=*****]{accv}
+\usepackage{accvabbrv}
 \usepackage{graphicx}
-\usepackage{hyperref}
-\usepackage{url}
-\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage[pagebackref,breaklinks,colorlinks,citecolor=accvblue]{hyperref}
 \title{Streaming Zero-Shot Industrial Anomaly Detection with CLIP}
+\titlerunning{Streaming ZSAD with CLIP}
 \author{Anonymous ACCV Submission}
-\date{}
+\authorrunning{Anonymous ACCV Submission}
+\institute{Paper ID *****}
 \begin{document}
 \maketitle
 \begin{abstract}
@@ -242,7 +239,7 @@ hardware/timing confirmation, decide whether a minimal temperature-scaling
 candidate slice is necessary, and run the manual promotion review before
 changing any paper gate.
 
-\bibliographystyle{plain}
+\bibliographystyle{splncs04}
 \bibliography{refs}
 
 \end{document}

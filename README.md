@@ -231,10 +231,9 @@ python3 scripts/check_paper_promotion_readiness.py
 The checklist is documented in
 [`docs/paper_promotion_checklist.md`](docs/paper_promotion_checklist.md). The
 expected current status is `ready_for_promotion=false` until runtime/timing
-semantics, official template migration, and manual reviewer approval are
-complete.
+semantics and manual reviewer approval are complete.
 
-Check paper source readiness for an eventual ACCV/LNCS template migration:
+Check paper source readiness for the integrated ACCV/LNCS template:
 
 ```bash
 python3 scripts/check_paper_template_readiness.py
@@ -242,8 +241,8 @@ python3 scripts/check_paper_template_readiness.py
 
 Template migration notes are documented in
 [`docs/accv_template_migration.md`](docs/accv_template_migration.md). The
-repository currently does not vendor `llncs.cls`; `paper/paper.tex` keeps the
-article fallback until the official venue template is added.
+repository vendors the unpacked template under `paper/template/` and copies the
+required build-time class/style files into `paper/` for the existing build path.
 
 Dry-run the completed full-P0 execution plan:
 

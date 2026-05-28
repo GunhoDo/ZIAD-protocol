@@ -3,11 +3,18 @@
 최종 갱신: 2026-05-27
 프로젝트: Streaming Zero-Shot Industrial Anomaly Detection with CLIP / ZIAD Protocol
 
-## 최신 진행: ACCV/LNCS template migration 준비
+## 최신 진행: ACCV/LNCS template integration
 
-- 공식 ACCV/LNCS 템플릿 확인 결과: 현재 repo에는 `llncs.cls`, ACCV template, LNCS template 파일이 없다.
+- 공식 ACCV/LNCS 템플릿은 `paper/template/`에 unpacked 상태로 존재한다.
+- 원본 템플릿 예제는 `paper/template/main.tex`로 보존했고 `paper/paper.tex`로 덮어쓰지 않았다.
+- 빌드 편의를 위해 필수 템플릿 파일을 `paper/`에도 복사했다:
+  - `paper/llncs.cls`
+  - `paper/accv.sty`
+  - `paper/accvabbrv.sty`
+  - `paper/splncs04.bst`
 - scientific result artifact는 변경하지 않았다. `paper_allowed`/`claim_allowed`도 변경하지 않았다.
-- `paper/paper.tex`는 당분간 dependency-light `article` fallback을 유지한다.
+- `paper/paper.tex`는 `\documentclass[runningheads]{llncs}`와 `\usepackage[review,year=2026,ID=*****]{accv}`를 사용한다.
+- author/institute는 anonymous review mode로 유지한다.
 - 추가 문서:
   - `docs/accv_template_migration.md`
 - 추가 readiness check:
@@ -15,12 +22,8 @@
   - 확인 항목: `paper/paper.tex`, `paper/refs.bib`, combined candidate table, ranking table, accuracy-latency figure, metric audit report/table 존재 여부, 허용되지 않은 TODO 부재, `llncs.cls` 존재 시 document class 전환 여부.
 - `scripts/build_paper.sh`는 table refresh 후 template readiness check를 실행한 뒤 기존 LaTeX/placeholder PDF build를 계속 수행한다.
 - 제출 전 남은 template TODO:
-  - 공식 ACCV/Springer `llncs.cls`와 필요한 `.bst`를 venue 배포본에서 추가.
-  - `\documentclass[runningheads]{llncs}` 전환.
-  - `geometry` 등 article-only layout 제거.
-  - LNCS title/author/running head/institute 형식 정리.
-  - 공식 bibliography style(`splncs04` 등)을 venue 파일이 있을 때만 적용.
   - LNCS text width에서 table/figure/caption formatting 재확인.
+  - camera-ready 단계에서 review option과 anonymous metadata 전환 여부 확인.
 
 ## 최신 진행: paper-candidate promotion readiness checklist
 
@@ -38,7 +41,6 @@
   - `review_status=review_pending`
 - 현재 blockers:
   - runtime/timing semantics TODOs remain in `docs/runtime_environment.md`
-  - official ACCV/LNCS template is not present, so `llncs` migration remains pending
   - manual reviewer approval has not been recorded
 - metric/table side checks:
   - combined table exists

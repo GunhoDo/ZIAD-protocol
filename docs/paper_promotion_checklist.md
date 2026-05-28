@@ -68,10 +68,9 @@ promotion decision must be a separate reviewed step.
 ## Current expected status
 
 The current repository is expected to fail final promotion readiness because
-runtime timing semantics, official template migration, and manual reviewer
-approval are not complete. This is correct. The readiness report should keep
-`ready_for_promotion=false` until those blockers are resolved in a separate
-reviewed promotion step.
+runtime timing semantics and manual reviewer approval are not complete. This
+is correct. The readiness report should keep `ready_for_promotion=false` until
+those blockers are resolved in a separate reviewed promotion step.
 
 Generate the current readiness report with:
 

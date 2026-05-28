@@ -1,38 +1,38 @@
-# ACCV/LNCS Template Migration Notes
+# ACCV/LNCS Template Integration Notes
 
 ## Current status
 
-No official ACCV or Springer LNCS template is currently vendored in this
-repository. The paper source therefore keeps a dependency-light build path:
+The unpacked ACCV/Springer LNCS template is vendored under `paper/template/`.
+The original template example remains at `paper/template/main.tex`; it is not
+used as the real manuscript.
 
-- `paper/paper.tex` uses `\documentclass[10pt]{article}`.
+- `paper/paper.tex` uses `\documentclass[runningheads]{llncs}`.
+- Review mode is enabled with `\usepackage[review,year=2026,ID=*****]{accv}`.
+- Common ACCV abbreviations are enabled with `\usepackage{accvabbrv}`.
+- Bibliography style is `splncs04`.
+- Required template source files are available both in `paper/template/` and
+  copied into `paper/` so the existing `cd paper && pdflatex paper.tex` build
+  path can find them without absolute paths.
 - `scripts/build_paper.sh` builds with `pdflatex` when available.
 - If LaTeX is unavailable, the build script writes a small placeholder PDF so
-  repository checks can still run without external template files.
+  repository checks can still run without committing generated PDFs.
 
-This is intentional for development. It is not a substitute for the official
-submission template.
+Generated PDFs and LaTeX build files remain ignored by Git.
 
-## Before ACCV submission
+## Integrated template files
 
-Add the official ACCV/Springer LNCS files before the final submission-format
-pass. Do not create or modify a fake `llncs.cls`. Use only the class and
-support files distributed by the venue or Springer.
+- `paper/template/llncs.cls`
+- `paper/template/accv.sty`
+- `paper/template/accvabbrv.sty`
+- `paper/template/splncs04.bst`
+- `paper/template/main.tex`
+- `paper/llncs.cls`
+- `paper/accv.sty`
+- `paper/accvabbrv.sty`
+- `paper/splncs04.bst`
 
-Expected source changes once the official template is present:
-
-- Replace `\documentclass[10pt]{article}` with
-  `\documentclass[runningheads]{llncs}`.
-- Remove article-only layout packages such as `geometry` unless the official
-  template explicitly permits them.
-- Check `hyperref`, `url`, `xcolor`, `graphicx`, and `booktabs` compatibility
-  with the official instructions.
-- Convert the title block to LNCS form, including `\title`,
-  `\titlerunning`, `\author`, `\authorrunning`, and `\institute` as required.
-- Keep the anonymous author block while the venue requires anonymity.
-- Switch the bibliography style to the official LNCS style, commonly
-  `splncs04`, only after the official `.bst` file is available.
-- Rebuild the bibliography with the normal LaTeX/BibTeX sequence.
+The manuscript should keep anonymous review metadata until camera-ready review:
+`Anonymous ACCV Submission`, `Paper ID *****`, and review package options.
 
 ## Table and figure checks
 
@@ -43,7 +43,7 @@ The current paper includes generated artifacts by relative paths from
 - `../results/latest/tables/paper_candidate_ranking_summary.tex`
 - `../results/latest/figures/paper_candidate_accuracy_latency_tradeoff.png`
 
-After switching to `llncs`, verify that:
+After edits to paper tables or figures, verify that:
 
 - table widths still fit the LNCS text block;
 - `\resizebox{\textwidth}{!}{...}` is acceptable under the template;
@@ -70,7 +70,7 @@ change `paper_allowed` or `claim_allowed`.
 
 ## Readiness check
 
-Run the repository readiness check before template migration or paper builds:
+Run the repository readiness check before paper builds:
 
 ```bash
 python3 scripts/check_paper_template_readiness.py
