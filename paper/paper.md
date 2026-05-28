@@ -30,4 +30,5 @@ TODO: Replace this section after real P0 runs. Expected interpretations from the
 
 ## References
 
-TODO: Add numeric citations in ACCV/LNCS style.
+Current bibliography source: `paper/refs.bib`; the ACCV/LNCS-oriented LaTeX
+draft consumes it from `paper/paper.tex`.

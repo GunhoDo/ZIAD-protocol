@@ -48,6 +48,10 @@ if command -v pdflatex >/dev/null 2>&1; then
   (
     cd paper
     pdflatex -interaction=nonstopmode -halt-on-error paper.tex
+    if command -v bibtex >/dev/null 2>&1 && grep -q '\\bibliography' paper.tex; then
+      bibtex paper
+    fi
+    pdflatex -interaction=nonstopmode -halt-on-error paper.tex
     pdflatex -interaction=nonstopmode -halt-on-error paper.tex
   )
 else

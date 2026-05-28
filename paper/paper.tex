@@ -54,9 +54,9 @@ interpreted as final paper claims until the promotion checklist is complete.
 \paragraph{Industrial anomaly detection.}
 Industrial anomaly detection benchmarks typically measure whether a method can
 separate normal product images from defective ones on static category-level test
-sets. MVTec AD~\cite{TODO-mvtec-ad} and VisA~\cite{TODO-visa} are central
+sets. MVTec AD~\cite{Bergmann2019MVTec} and VisA~\cite{Zou2022VisA} are central
 benchmarks for this setting, and training-light methods such as
-PatchCore~\cite{TODO-patchcore} have become common reference points. ZIAD keeps
+PatchCore~\cite{Roth2022PatchCore} have become common reference points. ZIAD keeps
 these datasets and baselines, but changes the evaluation unit from an unordered
 test set to an ordered stream.
 
@@ -64,7 +64,7 @@ test set to an ordered stream.
 CLIP-style anomaly detectors aim to reduce category-specific supervision by
 using vision-language representations or prompt-driven scoring. WinCLIP,
 AnomalyCLIP, and RareCLIP are representative baselines in this direction
-\cite{TODO-winclip,TODO-anomalyclip,TODO-rareclip}. This paper does not modify
+\cite{Jeong2023WinCLIP,Zhou2024AnomalyCLIP,He2025RareCLIP}. This paper does not modify
 their architectures; it evaluates how their outputs behave under streaming
 conditions and common deployment constraints.
 
@@ -72,7 +72,7 @@ conditions and common deployment constraints.
 Streaming evaluation emphasizes sample order, distribution shift, bursty event
 arrival, contamination, and resume-safe execution. These concerns are related
 to online anomaly detection and monitoring protocols
-\cite{TODO-streaming-evaluation}, but they are less visible in static
+\cite{Chandola2009AnomalyDetection,Bifet2010MOA}, but they are less visible in static
 industrial anomaly detection leaderboards. ZIAD makes the stream construction
 explicit so that i.i.d. and bursty arrivals can be compared with the same
 baselines and metrics.
@@ -80,7 +80,7 @@ baselines and metrics.
 \paragraph{Calibration and reliability.}
 Anomaly scores are often used as thresholds or alarms, so ranking quality alone
 is not sufficient. Calibration metrics such as ECE
-\cite{TODO-calibration-ece} help quantify whether scores can be interpreted
+\cite{Guo2017Calibration} help quantify whether scores can be interpreted
 reliably across streams, categories, and contamination settings. ZIAD therefore
 reports ECE alongside AUROC, AUPR, latency, and CRD-lite rather than treating
 AUROC as the only target.
@@ -219,13 +219,12 @@ submission. Fourth, calibration and memory-policy variants are not yet promoted
 into the main candidate comparison, so the paper should avoid broad claims about
 temperature scaling or online memory until those slices are reviewed.
 
-TODO before submission: complete citation entries, document hardware, audit
-candidate metrics for non-finite values and outliers, decide whether a minimal
-temperature-scaling candidate slice is necessary, and run the manual promotion
-review before changing any paper gate.
+TODO before submission: verify venue-specific citation formatting, document
+hardware, audit candidate metrics for non-finite values and outliers, decide
+whether a minimal temperature-scaling candidate slice is necessary, and run the
+manual promotion review before changing any paper gate.
 
-\section*{References}
-TODO: Add numeric citations in ACCV/LNCS style for MVTec AD, VisA, PatchCore,
-WinCLIP, AnomalyCLIP, RareCLIP, calibration/ECE, and streaming evaluation.
+\bibliographystyle{plain}
+\bibliography{refs}
 
 \end{document}
