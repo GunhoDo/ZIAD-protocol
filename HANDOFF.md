@@ -234,6 +234,18 @@
     - MVTec AD: best AUROC `PatchCore`, best AUPR `PatchCore`, lowest ECE `RareCLIP`, lowest latency `PatchCore`.
     - VisA: best AUROC `PatchCore`, best AUPR `PatchCore`, lowest ECE `PatchCore`, lowest latency `WinCLIP`.
   - accuracy-latency note: MVTec AD currently has PatchCore leading AUROC and latency in the candidate slice; VisA has PatchCore leading AUROC while WinCLIP has the lowest latency. These are review-pending trade-off notes, not paper claims.
+- paper-candidate analysis artifacts:
+  - purpose: render paper-ready candidate analysis inputs from the combined comparison without running inference.
+  - command:
+    - `python3 experiments/render_paper_candidate_analysis.py`
+  - generated outputs:
+    - `results/latest/figures/paper_candidate_accuracy_latency_tradeoff.png`
+    - `results/latest/figures/paper_candidate_accuracy_latency_tradeoff.pdf`
+    - `results/latest/paper_candidate/baseline_ranking_summary.json`
+    - `results/latest/tables/paper_candidate_ranking_summary.tex`
+  - summary status: `paper_candidate_ranking_summary_complete`, datasets `2`, rows `8`, `paper_allowed=false`, `claim_allowed=false`, `review_status=review_pending`.
+  - paper input contract: `scripts/render_paper_tables.sh` now regenerates these analysis artifacts before writing `results/latest/tables/paper_input_contract.json`; the PNG is recorded under `figures`.
+  - limitation: the figure and ranking table are review-pending paper-candidate analysis artifacts, not promoted paper results.
 - verification:
   - aggregate row count `12`
   - category count `1`

@@ -115,6 +115,10 @@ Current combined paper-candidate baseline comparison:
 - `results/latest/paper_candidate/baseline_comparison_all_datasets_none.csv`
 - `results/latest/paper_candidate/baseline_comparison_all_datasets_none.json`
 - `results/latest/tables/paper_candidate_baseline_comparison_all_datasets_none.tex`
+- `results/latest/paper_candidate/baseline_ranking_summary.json`
+- `results/latest/tables/paper_candidate_ranking_summary.tex`
+- `results/latest/figures/paper_candidate_accuracy_latency_tradeoff.png`
+- `results/latest/figures/paper_candidate_accuracy_latency_tradeoff.pdf`
 
 Smoke and paper-input artifacts:
 
@@ -198,6 +202,13 @@ without running inference:
 python3 experiments/summarize_paper_candidate_all_datasets.py
 ```
 
+Generate the review-pending paper-candidate ranking summary and
+accuracy-latency trade-off figure without running inference:
+
+```bash
+python3 experiments/render_paper_candidate_analysis.py
+```
+
 Dry-run the completed full-P0 execution plan:
 
 ```bash
@@ -241,6 +252,9 @@ git diff --check
 - The combined MVTec AD + VisA paper-candidate comparison includes both
   4-baseline dataset slices and ranking summaries. It is still
   `review_pending`, with `paper_allowed=false` and `claim_allowed=false`.
+- The generated paper-candidate accuracy-latency figure and ranking table are
+  analysis artifacts only. They are included in the input contract but are not
+  promoted paper results.
 - PatchCore validation uses bounded `sampler_percentage=0.001`.
 - Paper-candidate config records and uses PatchCore `sampler_percentage=0.1`.
 - Paper promotion requires non-validation stream length, reviewed sampler and

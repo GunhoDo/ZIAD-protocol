@@ -205,6 +205,49 @@ def _known_table_inputs() -> list[dict[str, Any]]:
                     ),
                 }
             )
+    inputs.extend(
+        [
+            {
+                "name": "paper_candidate_combined_baseline_comparison",
+                "kind": "paper_candidate_table",
+                "tex": "results/latest/tables/paper_candidate_baseline_comparison_all_datasets_none.tex",
+                "source_csv": "results/latest/paper_candidate/baseline_comparison_all_datasets_none.csv",
+                "manifest": "results/latest/paper_candidate/baseline_comparison_all_datasets_none.json",
+                "included_in_paper_tex": False,
+                "paper_label": "tab:paper-candidate-baseline-comparison",
+                "interpretation": (
+                    "MVTec AD and VisA paper-candidate baseline comparison; "
+                    "review-pending and not a promoted paper result"
+                ),
+            },
+            {
+                "name": "paper_candidate_ranking_summary",
+                "kind": "paper_candidate_table",
+                "tex": "results/latest/tables/paper_candidate_ranking_summary.tex",
+                "source_csv": "results/latest/paper_candidate/baseline_comparison_all_datasets_none.csv",
+                "manifest": "results/latest/paper_candidate/baseline_ranking_summary.json",
+                "included_in_paper_tex": False,
+                "paper_label": "tab:paper-candidate-ranking-summary",
+                "interpretation": (
+                    "Ranking summary for review-pending paper-candidate analysis; "
+                    "not a promoted paper result"
+                ),
+            },
+            {
+                "name": "paper_candidate_accuracy_latency_tradeoff",
+                "kind": "paper_candidate_figure",
+                "tex": "results/latest/figures/paper_candidate_accuracy_latency_tradeoff.png",
+                "source_csv": "results/latest/paper_candidate/baseline_comparison_all_datasets_none.csv",
+                "manifest": "results/latest/paper_candidate/baseline_ranking_summary.json",
+                "included_in_paper_tex": False,
+                "paper_label": "fig:paper-candidate-accuracy-latency",
+                "interpretation": (
+                    "Accuracy-latency trade-off figure for review-pending "
+                    "paper-candidate analysis; not a promoted paper result"
+                ),
+            },
+        ]
+    )
     return inputs
 
 
@@ -248,6 +291,8 @@ def write_paper_input_contract(
             }
         )
 
+    table_entries = [entry for entry in normalized if "figure" not in entry["kind"]]
+    figure_entries = [entry for entry in normalized if "figure" in entry["kind"]]
     contract = {
         "status": (
             "paper_input_contract_incomplete"
@@ -256,16 +301,17 @@ def write_paper_input_contract(
         ),
         "paper_allowed": False,
         "claim_allowed": False,
-        "table_count": len(normalized),
+        "table_count": len(table_entries),
+        "figure_count": len(figure_entries),
         "included_table_count": sum(
-            1 for entry in normalized if entry["included_in_paper_tex"]
+            1 for entry in table_entries if entry["included_in_paper_tex"]
         ),
         "missing_input_count": sum(len(entry["missing"]) for entry in normalized),
         "source_paper_allowed_count": sum(
             1 for entry in normalized if entry["source_paper_allowed"]
         ),
-        "tables": normalized,
-        "figures": [],
+        "tables": table_entries,
+        "figures": figure_entries,
         "notes": (
             "This contract enumerates current generated paper inputs. They are "
             "smoke evidence only; do not treat them as reviewed paper results or "

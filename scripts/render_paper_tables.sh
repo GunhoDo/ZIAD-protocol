@@ -12,6 +12,7 @@ fi
 python3 experiments/summarize_p0_smoke.py
 python3 experiments/p0_full_report.py
 python3 experiments/render_paper_tables.py
+python3 experiments/render_paper_candidate_analysis.py
 
 for dataset in mvtec visa; do
   dataset_title="MVTec AD"

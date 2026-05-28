@@ -2,7 +2,8 @@
   "status": "paper_input_contract_ready_smoke_only",
   "paper_allowed": false,
   "claim_allowed": false,
-  "table_count": 10,
+  "table_count": 12,
+  "figure_count": 1,
   "included_table_count": 2,
   "missing_input_count": 0,
   "source_paper_allowed_count": 0,
@@ -166,8 +167,57 @@
       "source_manifest_status": "visa_full_category_stream_matrix_patchcore_temperature_complete",
       "source_paper_allowed": false,
       "eligible_for_claims": false
+    },
+    {
+      "name": "paper_candidate_combined_baseline_comparison",
+      "kind": "paper_candidate_table",
+      "tex": "results/latest/tables/paper_candidate_baseline_comparison_all_datasets_none.tex",
+      "source_csv": "results/latest/paper_candidate/baseline_comparison_all_datasets_none.csv",
+      "manifest": "results/latest/paper_candidate/baseline_comparison_all_datasets_none.json",
+      "included_in_paper_tex": false,
+      "paper_label": "tab:paper-candidate-baseline-comparison",
+      "interpretation": "MVTec AD and VisA paper-candidate baseline comparison; review-pending and not a promoted paper result",
+      "exists": true,
+      "missing": [],
+      "row_count": 8,
+      "source_manifest_status": "paper_candidate_combined_baseline_comparison_complete",
+      "source_paper_allowed": false,
+      "eligible_for_claims": false
+    },
+    {
+      "name": "paper_candidate_ranking_summary",
+      "kind": "paper_candidate_table",
+      "tex": "results/latest/tables/paper_candidate_ranking_summary.tex",
+      "source_csv": "results/latest/paper_candidate/baseline_comparison_all_datasets_none.csv",
+      "manifest": "results/latest/paper_candidate/baseline_ranking_summary.json",
+      "included_in_paper_tex": false,
+      "paper_label": "tab:paper-candidate-ranking-summary",
+      "interpretation": "Ranking summary for review-pending paper-candidate analysis; not a promoted paper result",
+      "exists": true,
+      "missing": [],
+      "row_count": 8,
+      "source_manifest_status": "paper_candidate_ranking_summary_complete",
+      "source_paper_allowed": false,
+      "eligible_for_claims": false
     }
   ],
-  "figures": [],
+  "figures": [
+    {
+      "name": "paper_candidate_accuracy_latency_tradeoff",
+      "kind": "paper_candidate_figure",
+      "tex": "results/latest/figures/paper_candidate_accuracy_latency_tradeoff.png",
+      "source_csv": "results/latest/paper_candidate/baseline_comparison_all_datasets_none.csv",
+      "manifest": "results/latest/paper_candidate/baseline_ranking_summary.json",
+      "included_in_paper_tex": false,
+      "paper_label": "fig:paper-candidate-accuracy-latency",
+      "interpretation": "Accuracy-latency trade-off figure for review-pending paper-candidate analysis; not a promoted paper result",
+      "exists": true,
+      "missing": [],
+      "row_count": 8,
+      "source_manifest_status": "paper_candidate_ranking_summary_complete",
+      "source_paper_allowed": false,
+      "eligible_for_claims": false
+    }
+  ],
   "notes": "This contract enumerates current generated paper inputs. They are smoke evidence only; do not treat them as reviewed paper results or promote paper_allowed without a separate review step."
 }

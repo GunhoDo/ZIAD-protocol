@@ -10,6 +10,7 @@ import yaml
 
 from experiments import (
     paper_candidate,
+    render_paper_candidate_analysis,
     run_p0_execution_plan,
     run_paper_candidate_step,
     summarize_paper_candidate_all_datasets,
@@ -497,6 +498,187 @@ class PaperCandidateCombinedComparisonTest(unittest.TestCase):
             self.assertTrue(csv_path.exists())
             self.assertTrue(json_path.exists())
             self.assertTrue(tex_path.exists())
+        finally:
+            if root.exists():
+                shutil.rmtree(root)
+
+
+class PaperCandidateAnalysisRenderTest(unittest.TestCase):
+    def test_renders_ranking_summary_and_tradeoff_figure_with_closed_gates(self):
+        root = Path("results/latest/paper_candidate/unit_test_analysis_render")
+        if root.exists():
+            shutil.rmtree(root)
+        try:
+            csv_path = root / "combined.csv"
+            json_path = root / "combined.json"
+            summary = {
+                "status": "paper_candidate_combined_baseline_comparison_complete",
+                "dataset_count": 2,
+                "baseline_row_count": 4,
+                "paper_allowed": False,
+                "claim_allowed": False,
+                "review_status": "review_pending",
+                "accuracy_latency_tradeoff_notes": [
+                    "MVTec AD: PatchCore leads AUROC, while WinCLIP has the lowest latency.",
+                    "VisA: PatchCore leads AUROC and latency in this review-pending slice.",
+                ],
+            }
+            rows = [
+                {
+                    "dataset": "MVTec AD",
+                    "baseline": "WinCLIP",
+                    "memory_policy": "default/no-memory",
+                    "calibration": "none",
+                    "completed_categories": "15",
+                    "expected_categories": "15",
+                    "total_rows": "180",
+                    "stream_length": "64",
+                    "seeds": "0|1|2",
+                    "mean_image_auroc": "0.70",
+                    "mean_aupr": "0.80",
+                    "mean_ece": "0.20",
+                    "mean_latency_ms": "10.0",
+                    "mean_crd_lite": "0.01",
+                    "paper_allowed": "False",
+                    "claim_allowed": "False",
+                    "review_status": "review_pending",
+                },
+                {
+                    "dataset": "MVTec AD",
+                    "baseline": "PatchCore",
+                    "memory_policy": "default/SCS",
+                    "calibration": "none",
+                    "completed_categories": "15",
+                    "expected_categories": "15",
+                    "total_rows": "180",
+                    "stream_length": "64",
+                    "seeds": "0|1|2",
+                    "mean_image_auroc": "0.90",
+                    "mean_aupr": "0.75",
+                    "mean_ece": "0.10",
+                    "mean_latency_ms": "20.0",
+                    "mean_crd_lite": "0.02",
+                    "paper_allowed": "False",
+                    "claim_allowed": "False",
+                    "review_status": "review_pending",
+                },
+                {
+                    "dataset": "VisA",
+                    "baseline": "RareCLIP",
+                    "memory_policy": "default/SCS",
+                    "calibration": "none",
+                    "completed_categories": "12",
+                    "expected_categories": "12",
+                    "total_rows": "144",
+                    "stream_length": "64",
+                    "seeds": "0|1|2",
+                    "mean_image_auroc": "0.85",
+                    "mean_aupr": "0.60",
+                    "mean_ece": "0.30",
+                    "mean_latency_ms": "30.0",
+                    "mean_crd_lite": "0.03",
+                    "paper_allowed": "False",
+                    "claim_allowed": "False",
+                    "review_status": "review_pending",
+                },
+                {
+                    "dataset": "VisA",
+                    "baseline": "PatchCore",
+                    "memory_policy": "default/SCS",
+                    "calibration": "none",
+                    "completed_categories": "12",
+                    "expected_categories": "12",
+                    "total_rows": "144",
+                    "stream_length": "64",
+                    "seeds": "0|1|2",
+                    "mean_image_auroc": "0.95",
+                    "mean_aupr": "0.90",
+                    "mean_ece": "0.05",
+                    "mean_latency_ms": "15.0",
+                    "mean_crd_lite": "0.04",
+                    "paper_allowed": "False",
+                    "claim_allowed": "False",
+                    "review_status": "review_pending",
+                },
+            ]
+            csv_path.parent.mkdir(parents=True)
+            with csv_path.open("w", newline="") as handle:
+                writer = csv.DictWriter(
+                    handle,
+                    fieldnames=summarize_paper_candidate_all_datasets.OUTPUT_COLUMNS,
+                    lineterminator="\n",
+                )
+                writer.writeheader()
+                writer.writerows(rows)
+            json_path.write_text(json.dumps(summary) + "\n")
+
+            outputs = render_paper_candidate_analysis.write_outputs(
+                combined_csv=csv_path,
+                combined_json=json_path,
+                ranking_json=root / "ranking.json",
+                ranking_tex=root / "ranking.tex",
+                figure_png=root / "tradeoff.png",
+                figure_pdf=root / "tradeoff.pdf",
+            )
+            ranking = outputs["ranking_summary"]
+            self.assertEqual("paper_candidate_ranking_summary_complete", ranking["status"])
+            self.assertFalse(ranking["paper_allowed"])
+            self.assertFalse(ranking["claim_allowed"])
+            self.assertEqual("review_pending", ranking["review_status"])
+            self.assertEqual(
+                "PatchCore",
+                ranking["rankings"]["MVTec AD"]["best_auroc"]["baseline"],
+            )
+            self.assertEqual(
+                "WinCLIP",
+                ranking["rankings"]["MVTec AD"]["lowest_latency"]["baseline"],
+            )
+            self.assertTrue(outputs["ranking_json"].exists())
+            self.assertTrue(outputs["ranking_tex"].exists())
+            self.assertTrue(outputs["figure_png"].exists())
+            self.assertGreater(outputs["figure_png"].stat().st_size, 0)
+            self.assertTrue(outputs["figure_pdf"].exists())
+            self.assertGreater(outputs["figure_pdf"].stat().st_size, 0)
+        finally:
+            if root.exists():
+                shutil.rmtree(root)
+
+    def test_ranking_summary_rejects_open_claim_gate(self):
+        root = Path("results/latest/paper_candidate/unit_test_analysis_gate")
+        if root.exists():
+            shutil.rmtree(root)
+        try:
+            csv_path = root / "combined.csv"
+            json_path = root / "combined.json"
+            csv_path.parent.mkdir(parents=True)
+            csv_path.write_text(
+                "dataset,baseline,memory_policy,calibration,completed_categories,"
+                "expected_categories,total_rows,stream_length,seeds,mean_image_auroc,"
+                "mean_aupr,mean_ece,mean_latency_ms,mean_crd_lite,paper_allowed,"
+                "claim_allowed,review_status\n"
+                "VisA,WinCLIP,default/no-memory,none,12,12,144,64,0|1|2,"
+                "0.7,0.8,0.2,10,0.01,False,False,review_pending\n"
+            )
+            json_path.write_text(
+                json.dumps(
+                    {
+                        "status": "paper_candidate_combined_baseline_comparison_complete",
+                        "dataset_count": 1,
+                        "baseline_row_count": 1,
+                        "paper_allowed": False,
+                        "claim_allowed": True,
+                        "review_status": "review_pending",
+                    }
+                )
+                + "\n"
+            )
+            with self.assertRaises(
+                render_paper_candidate_analysis.CombinedComparisonError
+            ):
+                render_paper_candidate_analysis.build_ranking_summary(
+                    combined_csv=csv_path,
+                    combined_json=json_path,
+                )
         finally:
             if root.exists():
                 shutil.rmtree(root)
