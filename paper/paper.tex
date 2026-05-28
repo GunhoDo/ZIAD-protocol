@@ -138,16 +138,15 @@ The current candidate comparison is category-sharded. Each category shard
 contains 12 metric rows: two stream types, two contamination settings, and
 three seeds. MVTec AD contributes 15 categories and 180 rows per baseline.
 VisA contributes 12 categories and 144 rows per baseline. All candidate outputs
-are written under \texttt{results/latest/paper\_candidate/}, separate from
+are written under \path{results/latest/paper_candidate/}, separate from
 smoke and full-P0 production-validation outputs.
 
-PatchCore uses the documented candidate sampler setting
-\texttt{sampler\_percentage=0.1}. Baseline repository URLs and commit hashes are
-pinned in the repository configuration; this draft intentionally does not
-invent or replace them.
+PatchCore uses the documented candidate sampler setting of 0.1. Baseline
+repository URLs and commit hashes are pinned in the repository configuration;
+this draft intentionally does not invent or replace them.
 
-Runtime metadata is being tracked separately in
-\texttt{docs/runtime\_environment.md}. The current audit/build environment
+Runtime metadata is being tracked separately in the runtime environment
+document. The current audit/build environment
 records an Intel Core i5-14500 CPU, Ubuntu 22.04.5, Python 3.10.12, and a
 PyTorch 1.13.1+cu116 stack, but the original device path, model-loading scope,
 batching, and timing granularity still require manual confirmation before any
@@ -156,12 +155,12 @@ latency value is promoted from candidate evidence to a final paper claim.
 \subsection{Reproducibility and result governance}
 The repository keeps execution and claim promotion separate. Current result
 artifacts are marked as candidate-stage outputs with closed paper and claim
-gates: \texttt{paper\_allowed=false}, \texttt{claim\_allowed=false}, and
-\texttt{review\_status=review\_pending}. These internal flags are not part of
-the scientific claim; they are engineering safeguards to prevent draft tables
-from being mistaken for final reviewed results. Promotion to final claims
-requires row-count and category-count checks, finite metric audits, provenance
-review, runtime documentation, and manual approval.
+gates. The current gate values are false for paper promotion and claim
+promotion, with review status pending. These internal flags are not part of the
+scientific claim; they are engineering safeguards to prevent draft tables from
+being mistaken for final reviewed results. Promotion to final claims requires
+row-count and category-count checks, finite metric audits, provenance review,
+runtime documentation, and manual approval.
 
 \section{Results}
 Table~\ref{tab:paper-candidate-baseline-comparison} summarizes the current
@@ -192,7 +191,7 @@ rankings are included to highlight trade-offs and remain pending final audit.}
 
 \section{Accuracy--Latency Trade-off}
 Figure~\ref{fig:paper-candidate-accuracy-latency} plots mean image AUROC against
-mean latency for each dataset/baseline pair. The current candidate evidence
+mean latency for each dataset and baseline pair. The current candidate evidence
 shows that accuracy and latency rankings are not identical across datasets,
 which supports the protocol motivation: reporting accuracy alone can hide
 operational trade-offs. This figure is generated without new inference from the
