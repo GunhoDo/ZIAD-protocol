@@ -1,7 +1,35 @@
 # HANDOFF — ZIAD 논문 구현 현재 상태
 
-최종 갱신: 2026-05-27
+최종 갱신: 2026-05-29
 프로젝트: Streaming Zero-Shot Industrial Anomaly Detection with CLIP / ZIAD Protocol
+
+## 최신 진행: paper-candidate stream/epsilon breakdown
+
+- 목표: 새 추론 없이 기존 `results/latest/paper_candidate/**/metrics.csv` category-shard rows를 재집계해 논문에서 주장하는 stream type 및 contamination epsilon 축을 aggregate table 밖으로 노출.
+- 추가 스크립트:
+  - `experiments/summarize_paper_candidate_stream_epsilon.py`
+- 생성 outputs:
+  - `results/latest/paper_candidate/stream_epsilon_breakdown_none.csv`
+  - `results/latest/paper_candidate/stream_epsilon_breakdown_none.json`
+  - `results/latest/tables/paper_candidate_stream_epsilon_breakdown_none.tex`
+- grouping:
+  - dataset × baseline × stream_type × epsilon
+  - current group row count: `32`
+  - datasets: `MVTec AD`, `VisA`
+  - baselines: `PatchCore`, `WinCLIP`, `AnomalyCLIP`, `RareCLIP`
+  - stream types: `iid`, `bursty`
+  - epsilons: `0`, `0.05`
+- sanity checks:
+  - each MVTec AD group has `45` rows (`15` categories × `3` seeds)
+  - each VisA group has `36` rows (`12` categories × `3` seeds)
+  - required fields include dataset, baseline, category, stream_type, contamination_epsilon, metrics, status, and run_dir-derived seed
+  - no missing/NaN/Inf metric values allowed
+  - `paper_allowed=false`, `claim_allowed=false`, `review_status=review_pending`
+- paper update:
+  - `paper/paper.tex` now includes “Stream and contamination breakdown” after Main Results.
+  - `scripts/render_paper_tables.sh` regenerates the breakdown table before paper build.
+- limitation:
+  - breakdown is still paper-candidate evidence only; it does not promote paper or claim gates.
 
 ## 최신 진행: ACCV/LNCS template integration
 

@@ -189,6 +189,26 @@ rankings are included to highlight trade-offs and remain pending final audit.}
 \input{../results/latest/tables/paper_candidate_ranking_summary.tex}
 \end{table}
 
+\subsection{Stream and contamination breakdown}
+The aggregate table above averages over two stream types and two contamination
+settings. Table~\ref{tab:paper-candidate-stream-epsilon-breakdown} exposes those
+axes directly by grouping the same candidate rows by dataset, baseline, stream
+type, and contamination level. This breakdown is intended to check whether the
+protocol axes are visible in the paper rather than hidden inside a single
+leaderboard row. The current draft does not claim that one stream condition is
+universally harder; it reports the grouped measurements as candidate evidence
+for review.
+
+\begin{table}[t]
+\centering
+\caption{Candidate stream and contamination breakdown for calibration
+\texttt{none}. Each row averages completed category-sharded metrics over
+categories and seeds for one dataset, baseline, stream type, and
+contamination level.}
+\label{tab:paper-candidate-stream-epsilon-breakdown}
+\resizebox{\textwidth}{!}{\input{../results/latest/tables/paper_candidate_stream_epsilon_breakdown_none.tex}}
+\end{table}
+
 \section{Accuracy--Latency Trade-off}
 Figure~\ref{fig:paper-candidate-accuracy-latency} plots mean image AUROC against
 mean latency for each dataset and baseline pair. The current candidate evidence

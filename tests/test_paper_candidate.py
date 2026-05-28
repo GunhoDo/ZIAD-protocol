@@ -17,6 +17,7 @@ from experiments import (
     summarize_paper_candidate_all_datasets,
     summarize_paper_candidate_baselines,
     summarize_paper_candidate_categories,
+    summarize_paper_candidate_stream_epsilon,
 )
 
 
@@ -591,6 +592,173 @@ class PaperCandidateMetricAuditTest(unittest.TestCase):
             self.assertEqual("paper_candidate_metric_audit_failed", report["status"])
             self.assertEqual(2, report["combined_csv"]["negative_latency_count"])
             self.assertGreater(report["error_count"], 0)
+        finally:
+            if root.exists():
+                shutil.rmtree(root)
+
+
+class PaperCandidateStreamEpsilonBreakdownTest(unittest.TestCase):
+    def _write_candidate_set(
+        self,
+        root: Path,
+        *,
+        dataset_slug: str,
+        dataset: str,
+        baseline_slug: str,
+        baseline: str,
+        memory_slug: str,
+        memory_policy: str,
+        bad_value: str | None = None,
+    ) -> None:
+        category_root = root / dataset_slug / baseline_slug / memory_slug / "none" / "widget"
+        category_root.mkdir(parents=True)
+        metrics_path = category_root / "metrics.csv"
+        rows = []
+        for stream_type in ["iid", "bursty"]:
+            for epsilon in ["0", "0.05"]:
+                for seed in [0, 1, 2]:
+                    auroc = bad_value if bad_value is not None else str(0.8 + seed * 0.01)
+                    rows.append(
+                        {
+                            "dataset": dataset,
+                            "stream_type": stream_type,
+                            "prevalence": "0.05",
+                            "contamination_epsilon": epsilon,
+                            "baseline": baseline,
+                            "memory_policy": memory_policy,
+                            "calibration": "none",
+                            "image_auroc": auroc,
+                            "aupr": "0.7",
+                            "ece": "0.2",
+                            "latency_ms": "10.0",
+                            "crd_lite": "0.01",
+                            "status": "measured_paper_candidate",
+                            "run_dir": str(
+                                category_root
+                                / "production_runs"
+                                / f"widget_{stream_type}_eps_{epsilon}_seed_{seed}"
+                            ),
+                            "category": "widget",
+                        }
+                    )
+        with metrics_path.open("w", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=list(rows[0].keys()), lineterminator="\n")
+            writer.writeheader()
+            writer.writerows(rows)
+        summary_root = root / dataset_slug / baseline_slug / memory_slug / "none"
+        (summary_root / "category_summary.json").write_text(
+            json.dumps(
+                {
+                    "status": "category_shards_complete",
+                    "dataset": dataset,
+                    "baseline": baseline,
+                    "memory_policy": memory_policy,
+                    "calibration": "none",
+                    "category_count": 1,
+                    "complete_category_count": 1,
+                    "paper_allowed": False,
+                    "claim_allowed": False,
+                    "review_status": "review_pending",
+                    "categories": [
+                        {
+                            "category": "widget",
+                            "complete": True,
+                            "row_count": 12,
+                            "stream_length": 64,
+                            "seeds": [0, 1, 2],
+                            "metrics_csv": str(metrics_path),
+                        }
+                    ],
+                }
+            )
+            + "\n"
+        )
+
+    def test_breakdown_grouping_completeness_and_latex_output(self):
+        root = Path("results/latest/paper_candidate/unit_test_stream_epsilon")
+        if root.exists():
+            shutil.rmtree(root)
+        try:
+            expected_datasets = {"toy": ("Toy", 1)}
+            expected_baselines = {
+                "winclip": ("WinCLIP", "default_no_memory", "default/no-memory"),
+                "patchcore": ("PatchCore", "default_scs", "default/SCS"),
+            }
+            for baseline_slug, (baseline, memory_slug, memory_policy) in expected_baselines.items():
+                self._write_candidate_set(
+                    root,
+                    dataset_slug="toy",
+                    dataset="Toy",
+                    baseline_slug=baseline_slug,
+                    baseline=baseline,
+                    memory_slug=memory_slug,
+                    memory_policy=memory_policy,
+                )
+            with mock.patch.object(
+                summarize_paper_candidate_stream_epsilon,
+                "EXPECTED_DATASETS",
+                expected_datasets,
+            ), mock.patch.object(
+                summarize_paper_candidate_stream_epsilon,
+                "EXPECTED_BASELINES",
+                expected_baselines,
+            ):
+                summary = summarize_paper_candidate_stream_epsilon.summarize_stream_epsilon(root)
+                self.assertEqual("paper_candidate_stream_epsilon_breakdown_complete", summary["status"])
+                self.assertEqual(8, summary["group_row_count"])
+                self.assertEqual(8, summary["expected_group_row_count"])
+                self.assertFalse(summary["paper_allowed"])
+                self.assertFalse(summary["claim_allowed"])
+                self.assertEqual("review_pending", summary["review_status"])
+                self.assertEqual({3}, {row["row_count"] for row in summary["breakdown"]})
+
+                csv_path, json_path, tex_path = (
+                    summarize_paper_candidate_stream_epsilon.write_outputs(
+                        summary,
+                        csv_path=root / "breakdown.csv",
+                        json_path=root / "breakdown.json",
+                        tex_path=root / "breakdown.tex",
+                    )
+                )
+                self.assertTrue(csv_path.exists())
+                self.assertTrue(json_path.exists())
+                self.assertTrue(tex_path.exists())
+        finally:
+            if root.exists():
+                shutil.rmtree(root)
+
+    def test_breakdown_rejects_missing_or_non_finite_metric_values(self):
+        root = Path("results/latest/paper_candidate/unit_test_stream_epsilon_bad")
+        if root.exists():
+            shutil.rmtree(root)
+        try:
+            expected_datasets = {"toy": ("Toy", 1)}
+            expected_baselines = {
+                "winclip": ("WinCLIP", "default_no_memory", "default/no-memory")
+            }
+            self._write_candidate_set(
+                root,
+                dataset_slug="toy",
+                dataset="Toy",
+                baseline_slug="winclip",
+                baseline="WinCLIP",
+                memory_slug="default_no_memory",
+                memory_policy="default/no-memory",
+                bad_value="nan",
+            )
+            with mock.patch.object(
+                summarize_paper_candidate_stream_epsilon,
+                "EXPECTED_DATASETS",
+                expected_datasets,
+            ), mock.patch.object(
+                summarize_paper_candidate_stream_epsilon,
+                "EXPECTED_BASELINES",
+                expected_baselines,
+            ):
+                with self.assertRaises(
+                    summarize_paper_candidate_stream_epsilon.StreamEpsilonSummaryError
+                ):
+                    summarize_paper_candidate_stream_epsilon.summarize_stream_epsilon(root)
         finally:
             if root.exists():
                 shutil.rmtree(root)

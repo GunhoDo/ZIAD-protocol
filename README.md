@@ -57,8 +57,9 @@ includes `VisA × WinCLIP × default/no-memory × none`,
 `VisA × PatchCore × default/SCS × none`, each complete for all 12 VisA
 categories at the same stream length and seeds. The combined MVTec AD + VisA
 paper-candidate comparison table has also been generated for the calibration
-`none` slice; it remains review-pending candidate evidence, not a final paper
-result.
+`none` slice. A no-inference stream/epsilon breakdown now exposes the same
+candidate rows by `iid` versus `bursty` and epsilon `0` versus `0.05`; these
+remain review-pending candidate evidence, not final paper results.
 
 ## Result Artifacts
 
@@ -115,6 +116,9 @@ Current combined paper-candidate baseline comparison:
 - `results/latest/paper_candidate/baseline_comparison_all_datasets_none.csv`
 - `results/latest/paper_candidate/baseline_comparison_all_datasets_none.json`
 - `results/latest/tables/paper_candidate_baseline_comparison_all_datasets_none.tex`
+- `results/latest/paper_candidate/stream_epsilon_breakdown_none.csv`
+- `results/latest/paper_candidate/stream_epsilon_breakdown_none.json`
+- `results/latest/tables/paper_candidate_stream_epsilon_breakdown_none.tex`
 - `results/latest/paper_candidate/baseline_ranking_summary.json`
 - `results/latest/tables/paper_candidate_ranking_summary.tex`
 - `results/latest/paper_candidate/metric_audit_report.json`
@@ -215,6 +219,12 @@ accuracy-latency trade-off figure without running inference:
 python3 experiments/render_paper_candidate_analysis.py
 ```
 
+Generate the review-pending stream/epsilon breakdown without running inference:
+
+```bash
+python3 experiments/summarize_paper_candidate_stream_epsilon.py
+```
+
 Audit the combined paper-candidate metric table before claim promotion:
 
 ```bash
@@ -287,6 +297,9 @@ git diff --check
 - The combined MVTec AD + VisA paper-candidate comparison includes both
   4-baseline dataset slices and ranking summaries. It is still
   `review_pending`, with `paper_allowed=false` and `claim_allowed=false`.
+- The stream/epsilon breakdown is generated from existing category-shard
+  metrics and exposes `iid`/`bursty` and epsilon `0`/`0.05` groups without
+  running new inference. It is still review-pending candidate evidence.
 - The generated paper-candidate accuracy-latency figure and ranking table are
   analysis artifacts only. They are included in the input contract but are not
   promoted paper results.
