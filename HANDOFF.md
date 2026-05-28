@@ -169,21 +169,37 @@
     - `results/latest/paper_candidate/visa/rareclip/default_scs/none/category_summary.csv`
     - `results/latest/paper_candidate/visa/rareclip/default_scs/none/category_summary.json`
   - summary status: `category_shards_complete`, complete `12/12`, paper/claim gates false.
+- completed VisA AnomalyCLIP category-shard set:
+  - purpose: add AnomalyCLIP to the VisA paper-candidate baseline comparison at `default/no-memory × calibration none`.
+  - step: `visa:anomalyclip:default_no_memory:none`
+  - executed categories: `candle`, `capsules`, `cashew`, `chewinggum`, `fryum`, `macaroni1`, `macaroni2`, `pcb1`, `pcb2`, `pcb3`, `pcb4`, `pipe_fryum`.
+  - skipped categories: completed valid shards are skipped on rerun.
+  - failed category: none.
+  - command shape:
+    - `python3 experiments/run_paper_candidate_step.py --plan results/latest/paper_candidate/execution_plan.json --step-id visa:anomalyclip:default_no_memory:none --category {category} --output-root results/latest/paper_candidate/visa/anomalyclip/default_no_memory/none/{category}`
+  - per-category verification: each of 12 category shards has `metrics.csv`, `manifest.json`, `crd_lite.csv`, row count `12`, category count `1`, status `measured_paper_candidate`, `candidate_scope=category_shard`, `stream_length=64`, seeds `[0,1,2]`, `paper_allowed=false`, `claim_allowed=false`, and `review_status=review_pending`.
+  - summary command:
+    - `python3 experiments/summarize_paper_candidate_categories.py --plan results/latest/paper_candidate/execution_plan.json --step-id visa:anomalyclip:default_no_memory:none --output-root results/latest/paper_candidate/visa/anomalyclip/default_no_memory/none`
+  - summary outputs:
+    - `results/latest/paper_candidate/visa/anomalyclip/default_no_memory/none/category_summary.csv`
+    - `results/latest/paper_candidate/visa/anomalyclip/default_no_memory/none/category_summary.json`
+  - summary status: `category_shards_complete`, complete `12/12`, paper/claim gates false.
 - VisA paper-candidate baseline comparison summary:
-  - included baselines: `WinCLIP`, `RareCLIP`.
+  - included baselines: `WinCLIP`, `AnomalyCLIP`, `RareCLIP`.
   - dataset: `VisA`
-  - memory policies: `default/no-memory` for WinCLIP, `default/SCS` for RareCLIP.
+  - memory policies: `default/no-memory` for WinCLIP/AnomalyCLIP, `default/SCS` for RareCLIP.
   - calibration: `none`
   - WinCLIP contributes `12/12` completed categories and `144` metric rows.
+  - AnomalyCLIP contributes `12/12` completed categories and `144` metric rows.
   - RareCLIP contributes `12/12` completed categories and `144` metric rows.
   - command:
-    - `python3 experiments/summarize_paper_candidate_baselines.py --input-root results/latest/paper_candidate/visa --baseline winclip:default_no_memory --baseline rareclip:default_scs --output-csv results/latest/paper_candidate/visa/baseline_comparison_none.csv --output-json results/latest/paper_candidate/visa/baseline_comparison_none.json --output-tex results/latest/tables/paper_candidate_visa_baseline_comparison_none.tex`
+    - `python3 experiments/summarize_paper_candidate_baselines.py --input-root results/latest/paper_candidate/visa --baseline winclip:default_no_memory --baseline anomalyclip:default_no_memory --baseline rareclip:default_scs --output-csv results/latest/paper_candidate/visa/baseline_comparison_none.csv --output-json results/latest/paper_candidate/visa/baseline_comparison_none.json --output-tex results/latest/tables/paper_candidate_visa_baseline_comparison_none.tex`
   - generated outputs:
     - `results/latest/paper_candidate/visa/baseline_comparison_none.csv`
     - `results/latest/paper_candidate/visa/baseline_comparison_none.json`
     - `results/latest/tables/paper_candidate_visa_baseline_comparison_none.tex`
-  - summary status: `paper_candidate_baseline_comparison_complete`, baselines `2`, `paper_allowed=false`, `claim_allowed=false`, `review_status=review_pending`.
-  - remaining VisA paper-candidate comparison baselines: `AnomalyCLIP`, `PatchCore`.
+  - summary status: `paper_candidate_baseline_comparison_complete`, baselines `3`, `paper_allowed=false`, `claim_allowed=false`, `review_status=review_pending`.
+  - remaining VisA paper-candidate comparison baseline: `PatchCore`.
 - verification:
   - aggregate row count `12`
   - category count `1`
