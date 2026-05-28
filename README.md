@@ -221,6 +221,17 @@ Audit the combined paper-candidate metric table before claim promotion:
 python3 experiments/audit_paper_candidate_metrics.py
 ```
 
+Check paper source readiness for an eventual ACCV/LNCS template migration:
+
+```bash
+python3 scripts/check_paper_template_readiness.py
+```
+
+Template migration notes are documented in
+[`docs/accv_template_migration.md`](docs/accv_template_migration.md). The
+repository currently does not vendor `llncs.cls`; `paper/paper.tex` keeps the
+article fallback until the official venue template is added.
+
 Dry-run the completed full-P0 execution plan:
 
 ```bash

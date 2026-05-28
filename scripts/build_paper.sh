@@ -28,6 +28,7 @@ if find results -path "*run_manifest.json" -print | grep -q .; then
 fi
 
 bash scripts/render_paper_tables.sh
+python3 scripts/check_paper_template_readiness.py
 
 python3 - <<'PY'
 import json
