@@ -166,13 +166,10 @@ def _tradeoff_note(dataset: str, rankings: dict[str, dict[str, Any]]) -> str:
     if auroc is None or latency is None:
         return f"{dataset}: insufficient metric coverage for accuracy-latency trade-off."
     if auroc == latency:
-        return (
-            f"{dataset}: {auroc} leads AUROC and latency in this review-pending "
-            "paper-candidate slice."
-        )
+        return f"{dataset}: {auroc} leads AUROC and latency in this compact evaluation slice."
     return (
         f"{dataset}: {auroc} leads AUROC, while {latency} has the lowest latency; "
-        "treat this as a review-pending accuracy-latency trade-off, not a paper claim."
+        "this highlights an accuracy-latency trade-off in the compact evaluation slice."
     )
 
 
@@ -247,6 +244,15 @@ def _tex_escape(value: Any) -> str:
     return "".join(replacements.get(char, char) for char in text)
 
 
+def _tex_metric(row: dict[str, Any], key: str) -> str:
+    value = row.get(key)
+    if value is None:
+        return "NA"
+    if key == "mean_latency_ms":
+        return f"{float(value):.1f}"
+    return f"{float(value):.3f}"
+
+
 def write_tex(summary: dict[str, Any], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     columns = [
@@ -257,11 +263,11 @@ def write_tex(summary: dict[str, Any], path: Path) -> None:
         ("mean_image_auroc", "AUROC"),
         ("mean_aupr", "AUPR"),
         ("mean_ece", "ECE"),
-        ("mean_latency_ms", "Latency ms"),
+        ("mean_latency_ms", "Lat. ms"),
         ("mean_crd_lite", "CRD-lite"),
     ]
     lines = [
-        "% Auto-generated paper-candidate table. Not a final paper result.",
+        "% Auto-generated compact evaluation table.",
         "\\begin{tabular}{llrrrrrrr}",
         "\\toprule",
         " & ".join(label for _, label in columns) + r" \\",
@@ -273,7 +279,11 @@ def write_tex(summary: dict[str, Any], path: Path) -> None:
             value = row.get(key)
             if key == "completed_categories":
                 value = f"{row.get('completed_categories')}/{row.get('expected_categories')}"
-            values.append(_tex_escape(value))
+                values.append(_tex_escape(value))
+            elif key.startswith("mean_"):
+                values.append(_tex_metric(row, key))
+            else:
+                values.append(_tex_escape(value))
         lines.append(" & ".join(values) + r" \\")
     lines.extend(["\\bottomrule", "\\end{tabular}", ""])
     for dataset, rankings in summary["rankings"].items():
@@ -291,7 +301,6 @@ def write_tex(summary: dict[str, Any], path: Path) -> None:
         )
     for note in summary["accuracy_latency_tradeoff_notes"]:
         lines.append("% " + _tex_escape(note))
-    lines.append("% paper_allowed=false; claim_allowed=false; review_status=review_pending")
     path.write_text("\n".join(lines) + "\n")
 
 

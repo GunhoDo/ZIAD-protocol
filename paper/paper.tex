@@ -214,8 +214,8 @@ The current compact comparison is category-sharded. Each category shard
 contains 12 metric rows: two stream types, two contamination settings, and
 three seeds. MVTec AD contributes 15 categories and 180 rows per baseline.
 VisA contributes 12 categories and 144 rows per baseline. All generated outputs
-are written under \path{results/latest/paper_candidate/}, separate from
-smoke and full-P0 production-validation outputs.
+are kept in a dedicated paper-evaluation output root, separate from smoke and
+full-P0 production-validation outputs.
 
 PatchCore uses the documented sampler setting of 0.1. Baseline
 repository URLs and commit hashes are pinned in the repository configuration;

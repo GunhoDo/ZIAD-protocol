@@ -111,6 +111,17 @@ def _tex_escape(value: Any) -> str:
     return "".join(replacements.get(char, char) for char in text)
 
 
+def _tex_value(row: dict[str, Any], key: str) -> str:
+    value = row.get(key, "")
+    if key == "stream_type":
+        return "IID" if value == "iid" else "Bursty"
+    if key == "mean_latency_ms":
+        return f"{float(value):.1f}"
+    if key.startswith("mean_"):
+        return f"{float(value):.3f}"
+    return _tex_escape(value)
+
+
 def _epsilon_key(value: Any) -> str:
     parsed = _parse_float(value, field="contamination_epsilon")
     if math.isclose(parsed, 0.0, abs_tol=1e-12):
@@ -336,11 +347,11 @@ def write_tex(summary: dict[str, Any], path: Path) -> None:
         ("mean_image_auroc", "AUROC"),
         ("mean_aupr", "AUPR"),
         ("mean_ece", "ECE"),
-        ("mean_latency_ms", "Latency ms"),
+        ("mean_latency_ms", "Lat. ms"),
         ("mean_crd_lite", "CRD-lite"),
     ]
     lines = [
-        "% Auto-generated paper-candidate stream/epsilon breakdown. Not a final paper result.",
+        "% Auto-generated stream/epsilon breakdown for the compact evaluation slice.",
         "\\begin{tabular}{llllrrrrrr}",
         "\\toprule",
         " & ".join(label for _, label in columns) + r" \\",
@@ -348,15 +359,9 @@ def write_tex(summary: dict[str, Any], path: Path) -> None:
     ]
     for row in summary["breakdown"]:
         lines.append(
-            " & ".join(_tex_escape(row.get(key, "")) for key, _ in columns) + r" \\"
+            " & ".join(_tex_value(row, key) for key, _ in columns) + r" \\"
         )
-    lines.extend(
-        [
-            "\\bottomrule",
-            "\\end{tabular}",
-            "% paper_allowed=false; claim_allowed=false; review_status=review_pending",
-        ]
-    )
+    lines.extend(["\\bottomrule", "\\end{tabular}"])
     path.write_text("\n".join(lines) + "\n")
 
 

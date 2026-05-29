@@ -114,10 +114,7 @@ def build_ranking_summary(
         "accuracy_latency_tradeoff_notes": combined.get(
             "accuracy_latency_tradeoff_notes", []
         ),
-        "notes": (
-            "Ranking summary for review-pending paper-candidate analysis only; "
-            "not a promoted paper result."
-        ),
+        "notes": "Ranking summary for the compact paper-evaluation analysis.",
     }
 
 
@@ -130,10 +127,10 @@ def write_ranking_json(summary: dict[str, Any], path: Path = DEFAULT_RANKING_JSO
 def write_ranking_tex(summary: dict[str, Any], path: Path = DEFAULT_RANKING_TEX) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     lines = [
-        "% Auto-generated paper-candidate ranking summary. Not a final paper result.",
+        "% Auto-generated ranking summary from the compact evaluation slice.",
         "\\begin{tabular}{lllll}",
         "\\toprule",
-        "Dataset & Best AUROC & Best AUPR & Lowest ECE & Lowest latency \\\\",
+        "Dataset & AUROC $\\uparrow$ & AUPR $\\uparrow$ & ECE $\\downarrow$ & Latency $\\downarrow$ \\\\",
         "\\midrule",
     ]
     for dataset, rankings in summary["rankings"].items():
@@ -152,7 +149,6 @@ def write_ranking_tex(summary: dict[str, Any], path: Path = DEFAULT_RANKING_TEX)
     lines.extend(["\\bottomrule", "\\end{tabular}", ""])
     for note in summary["accuracy_latency_tradeoff_notes"]:
         lines.append("% " + _tex_escape(note))
-    lines.append("% paper_allowed=false; claim_allowed=false; review_status=review_pending")
     path.write_text("\n".join(lines) + "\n")
     return path
 
@@ -181,7 +177,9 @@ def write_tradeoff_figure(
         "RareCLIP": "#d62728",
     }
 
-    fig, ax = plt.subplots(figsize=(7.0, 4.5), constrained_layout=True)
+    from matplotlib.lines import Line2D
+
+    fig, ax = plt.subplots(figsize=(6.6, 3.8), constrained_layout=True)
     for dataset_index, dataset in enumerate(datasets):
         marker = markers[dataset_index % len(markers)]
         for row in [item for item in rows if item["dataset"] == dataset]:
@@ -196,35 +194,54 @@ def write_tradeoff_figure(
                 color=colors.get(baseline, "#555555"),
                 edgecolor="black",
                 linewidth=0.5,
-                label=f"{dataset} / {baseline}",
-            )
-            ax.annotate(
-                baseline,
-                (latency, auroc),
-                textcoords="offset points",
-                xytext=(5, 5),
-                fontsize=8,
             )
 
     ax.set_xlabel("Mean latency (ms)")
     ax.set_ylabel("Mean image AUROC")
-    ax.set_title("Paper-candidate accuracy-latency trade-off")
     ax.grid(True, linestyle=":", linewidth=0.6, alpha=0.7)
-    handles, labels = ax.get_legend_handles_labels()
-    unique = dict(zip(labels, handles))
-    ax.legend(
-        unique.values(),
-        unique.keys(),
+    ax.margins(x=0.08, y=0.08)
+
+    baseline_handles = [
+        Line2D(
+            [0],
+            [0],
+            marker="o",
+            color="w",
+            label=baseline,
+            markerfacecolor=colors.get(baseline, "#555555"),
+            markeredgecolor="black",
+            markersize=6,
+        )
+        for baseline in baselines
+    ]
+    dataset_handles = [
+        Line2D(
+            [0],
+            [0],
+            marker=markers[index % len(markers)],
+            color="#374151",
+            label=dataset,
+            linestyle="None",
+            markersize=6,
+        )
+        for index, dataset in enumerate(datasets)
+    ]
+    first_legend = ax.legend(
+        handles=baseline_handles,
         fontsize=7,
-        loc="best",
+        loc="lower right",
+        title="Baseline",
+        title_fontsize=7,
         frameon=True,
-        ncol=2,
     )
-    fig.text(
-        0.01,
-        0.01,
-        "Review-pending candidate evidence only; paper_allowed=false, claim_allowed=false.",
+    ax.add_artist(first_legend)
+    ax.legend(
+        handles=dataset_handles,
         fontsize=7,
+        loc="upper left",
+        title="Dataset",
+        title_fontsize=7,
+        frameon=True,
     )
 
     output_png.parent.mkdir(parents=True, exist_ok=True)

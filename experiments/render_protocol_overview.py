@@ -37,19 +37,19 @@ def _draw_box(ax, xy, width, height, title: str, lines: Iterable[str], color: st
         title,
         ha="center",
         va="top",
-        fontsize=9.5,
+        fontsize=8.0,
         fontweight="bold",
         color="#111827",
     )
     ax.text(
         x + 0.06,
-        y + height - 0.32,
+        y + height - 0.34,
         "\n".join(lines),
         ha="left",
         va="top",
-        fontsize=8.0,
+        fontsize=7.2,
         color="#111827",
-        linespacing=1.35,
+        linespacing=1.22,
     )
 
 
@@ -79,30 +79,31 @@ def render(output_png: Path, output_pdf: Path | None = None) -> None:
     if output_pdf is not None:
         output_pdf.parent.mkdir(parents=True, exist_ok=True)
 
-    fig, ax = plt.subplots(figsize=(7.2, 2.9), dpi=220)
-    ax.set_xlim(0, 10)
+    fig, ax = plt.subplots(figsize=(7.2, 3.0), dpi=220)
+    ax.set_xlim(0, 10.6)
     ax.set_ylim(0, 4)
     ax.axis("off")
 
     boxes = [
-        ((0.15, 1.15), 1.55, 1.65, "Static IAD\ndatasets", ["MVTec AD", "VisA", "category splits"], "#e0f2fe"),
-        ((2.05, 1.0), 1.75, 1.95, "Stream\ngenerator", ["iid streams", "bursty blocks", "epsilon contamination", "no duplicate paths"], "#dcfce7"),
-        ((4.15, 0.75), 2.05, 2.45, "Baseline\nfamilies", ["training-light: PatchCore", "no-memory CLIP:", "  WinCLIP, AnomalyCLIP", "memory CLIP: RareCLIP"], "#fef3c7"),
-        ((6.55, 1.0), 1.55, 1.95, "Optional\naxes", ["memory policy", "calibration", "stream length"], "#fae8ff"),
-        ((8.45, 0.75), 1.4, 2.45, "Metrics and\ngovernance", ["AUROC / AUPR", "ECE", "latency", "CRD-lite", "category audit"], "#fee2e2"),
+        ((0.15, 1.65), 1.75, 1.35, "Static datasets", ["MVTec AD", "VisA", "category splits"], "#e0f2fe"),
+        ((2.35, 1.65), 1.95, 1.35, "Stream generator", ["iid arrivals", "bursty blocks", "epsilon contamination"], "#dcfce7"),
+        ((4.75, 1.45), 2.25, 1.75, "Baseline families", ["PatchCore", "WinCLIP / AnomalyCLIP", "RareCLIP"], "#fef3c7"),
+        ((7.55, 1.45), 2.65, 1.75, "Metrics and audit", ["AUROC, AUPR, ECE", "latency, CRD-lite", "category-sharded checks"], "#fee2e2"),
+        ((2.8, 0.35), 3.75, 0.72, "Optional protocol axes", ["memory policy   |   calibration   |   stream length"], "#fae8ff"),
     ]
     for xy, width, height, title, lines, color in boxes:
         _draw_box(ax, xy, width, height, title, lines, color)
 
-    _draw_arrow(ax, (1.7, 1.98), (2.05, 1.98))
-    _draw_arrow(ax, (3.8, 1.98), (4.15, 1.98))
-    _draw_arrow(ax, (6.2, 1.98), (6.55, 1.98))
-    _draw_arrow(ax, (8.1, 1.98), (8.45, 1.98))
+    _draw_arrow(ax, (1.9, 2.32), (2.35, 2.32))
+    _draw_arrow(ax, (4.3, 2.32), (4.75, 2.32))
+    _draw_arrow(ax, (7.0, 2.32), (7.55, 2.32))
+    _draw_arrow(ax, (4.9, 1.45), (4.9, 1.07))
+    _draw_arrow(ax, (6.55, 0.71), (7.55, 1.58))
 
     ax.text(
-        5,
-        3.55,
-        "ZIAD turns static industrial anomaly datasets into auditable streaming evaluations",
+        5.3,
+        3.62,
+        "ZIAD converts static IAD benchmarks into auditable streaming evaluations",
         ha="center",
         va="center",
         fontsize=9.3,
