@@ -221,14 +221,12 @@ PatchCore uses the documented sampler setting of 0.1. Baseline
 repository URLs and commit hashes are pinned in the repository configuration;
 this paper intentionally does not invent or replace them.
 
-Runtime metadata is being tracked separately in the runtime environment
-document. The current audit/build environment
-records an Intel Core i5-14500 CPU, Ubuntu 22.04.5, Python 3.10.12, and a
-PyTorch 1.13.1+cu116 stack. The reported latency columns are averages of
-wrapper-emitted \texttt{latency\_ms} values; wrappers may use baseline-specific
-single-image or batch-amortized timing, so latency should be interpreted as a
-local-runtime comparison until device path, model-loading scope, batching, and
-timing granularity are manually confirmed.
+Runtime metadata is tracked separately in the runtime environment document. The
+current audit/build environment records an Intel Core i5-14500 CPU, Ubuntu
+22.04.5, Python 3.10.12, and a PyTorch 1.13.1+cu116 stack. Latency columns are
+averages of wrapper-reported \texttt{latency\_ms} values emitted for metric
+rows; they reflect the local wrapper timing path rather than a standardized
+cross-hardware benchmark.
 
 \subsection{Reproducibility and result governance}
 The repository keeps measurement generation and claim approval separate.
@@ -277,9 +275,8 @@ without turning the main text into a long leaderboard dump.
 \begin{table}[tbp]
 \centering
 \caption{Compact stream and contamination summary for calibration
-\texttt{none}. $\Delta$B-I is bursty minus IID AUROC averaged over
-contamination settings; $\Delta\epsilon$ is $\epsilon=0.05$ minus
-$\epsilon=0$ AUROC averaged over stream types.}
+\texttt{none}. $\Delta$B-I is bursty minus IID AUROC; $\Delta\epsilon$ is
+$\epsilon=0.05$ minus $\epsilon=0$ AUROC.}
 \label{tab:paper-candidate-stream-epsilon-breakdown}
 \resizebox{\textwidth}{!}{\input{../results/latest/tables/paper_candidate_stream_epsilon_breakdown_none.tex}}
 \end{table}
@@ -318,14 +315,13 @@ calibration and memory ablations.
 
 \subsection{Extensions Beyond the Compact Slice}
 The compact slice in this paper is intentionally narrower than the full ZIAD
-proposal. The same protocol design extends to richer memory policies such as
-FIFO, Reservoir, CBRS, InfoRS, GDumb-online, Prototype-EMA, and oracle
-references; calibration variants such as temperature scaling, isotonic
-regression, and ensemble-entropy diagnostics; longer epsilon and prevalence
-sweeps; gradual and sudden drift; natural chronological streams such as
-BeltCrack; Real-IAD/FUIAD-style datasets; statistical uncertainty estimates
-such as signed-rank tests, ROPE analysis, and stationary bootstrap intervals;
-sliding-window ECE; mechanistic intervention analysis; and compute or energy
+proposal. The same protocol design extends along three grouped directions:
+richer online policies and calibration variants, including FIFO/Reservoir-style
+memory, Prototype-EMA, temperature scaling, isotonic regression, and
+sliding-window reliability; broader stream and dataset coverage, including
+longer epsilon/prevalence sweeps, drift, chronological streams, and additional
+industrial datasets; and stronger analysis layers, including statistical
+uncertainty estimates, mechanistic intervention studies, and compute or energy
 disclosure. These axes are part of the protocol design but remain outside the
 current compact evidence slice.
 
@@ -333,12 +329,10 @@ current compact evidence slice.
 The present study has four important limitations. First, it reports a compact
 evaluation slice rather than an exhaustive benchmark. Second, the compact
 setting uses stream length 64; longer streams may be needed before stronger
-deployment claims are made. Third,
-latency values depend on the local software and hardware path; they remain
-local-runtime dependent until the final hardware documentation and timing
-semantics are complete. Fourth, calibration and memory-policy variants are not
-yet part of the main comparison, so the paper avoids broad claims about
-temperature scaling or online memory until those slices are reviewed.
+deployment claims are made. Third, latency values depend on the local software
+and hardware path. Fourth, calibration and memory-policy variants are not yet
+part of the main comparison, so the paper avoids broad claims about temperature
+scaling or online memory until those slices are reviewed.
 
 \subsection{Stream-length sanity check}
 We include a tiny stream-length sensitivity sanity check for MVTec AD bottle
@@ -369,8 +363,9 @@ baseline, with no claim that the trend generalizes.
 
 \paragraph{Runtime validity.}
 Latency is local-runtime dependent. The current runtime documentation records
-the audit environment, but final latency claims require confirming device path,
-model-loading scope, batching behavior, and timing granularity.
+the audit environment and the paper reports wrapper-emitted timing values, but
+the wrappers are not a controlled systems benchmark: device path, model-loading
+scope, batching behavior, and timing granularity can differ across baselines.
 
 \section{Conclusion}
 ZIAD reframes industrial anomaly detection evaluation around ordered streams
