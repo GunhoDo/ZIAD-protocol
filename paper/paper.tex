@@ -22,10 +22,9 @@ and evaluates methods along accuracy, calibration, latency, contamination, and
 memory axes. We instantiate the protocol on two industrial datasets, MVTec AD
 and VisA, with four representative baselines: PatchCore as a strong
 training-light reference, and WinCLIP, AnomalyCLIP, and RareCLIP as
-CLIP-style baselines. The current evidence is candidate-stage and pending final
-audit, but already illustrates why static AUROC alone is insufficient:
-accuracy, calibration, and latency can rank methods differently across
-datasets.
+CLIP-style baselines. The resulting comparison illustrates why static AUROC
+alone is insufficient: accuracy, calibration, and latency can rank methods
+differently across datasets.
 \end{abstract}
 
 \section{Introduction}
@@ -211,9 +210,11 @@ this draft intentionally does not invent or replace them.
 Runtime metadata is being tracked separately in the runtime environment
 document. The current audit/build environment
 records an Intel Core i5-14500 CPU, Ubuntu 22.04.5, Python 3.10.12, and a
-PyTorch 1.13.1+cu116 stack, but the original device path, model-loading scope,
-batching, and timing granularity still require manual confirmation before any
-latency value is promoted from candidate evidence to a final paper claim.
+PyTorch 1.13.1+cu116 stack. The reported latency columns are averages of
+wrapper-emitted \texttt{latency\_ms} values; wrappers may use baseline-specific
+single-image or batch-amortized timing, so latency should be interpreted as a
+local-runtime comparison until device path, model-loading scope, batching, and
+timing granularity are manually confirmed.
 
 \subsection{Reproducibility and result governance}
 The repository keeps execution and claim promotion separate. Current result
@@ -348,10 +349,18 @@ Latency is local-runtime dependent. The current runtime documentation records
 the audit environment, but final latency claims require confirming device path,
 model-loading scope, batching behavior, and timing granularity.
 
-TODO before submission: verify venue-specific citation formatting, complete
-hardware/timing confirmation, decide whether a minimal temperature-scaling
-candidate slice is necessary, and run the manual promotion review before
-changing any paper gate.
+\section{Conclusion}
+ZIAD reframes industrial anomaly detection evaluation around ordered streams
+instead of unordered test sets. The protocol makes stream construction,
+contamination, calibration, latency, memory behavior, and restartable execution
+explicit while preserving compatibility with established industrial datasets
+and representative zero-shot or training-light baselines. The current
+comparison across MVTec AD and VisA shows that accuracy, calibration, and
+latency expose different operational views of the same detectors, motivating
+multi-metric reporting rather than AUROC-only leaderboards. The study does not
+claim a new detector, final state-of-the-art ranking, broad stream-length
+robustness, or a completed calibration/memory-policy ablation; those remain
+subject to final audit and additional reviewed slices.
 
 \bibliographystyle{splncs04}
 \bibliography{refs}
