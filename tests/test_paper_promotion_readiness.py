@@ -68,10 +68,50 @@ def _write_combined_csv(path: Path) -> None:
         writer.writerows(rows)
 
 
+def _write_stream_breakdown_csv(path: Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = [
+        "dataset",
+        "baseline",
+        "stream_type",
+        "epsilon",
+        "mean_image_auroc",
+        "mean_aupr",
+        "mean_ece",
+        "mean_latency_ms",
+        "mean_crd_lite",
+    ]
+    rows = []
+    for dataset in ("MVTec AD", "VisA"):
+        for baseline in ("WinCLIP", "AnomalyCLIP", "RareCLIP", "PatchCore"):
+            for stream_type in ("iid", "bursty"):
+                for epsilon in ("0", "0.05"):
+                    rows.append(
+                        {
+                            "dataset": dataset,
+                            "baseline": baseline,
+                            "stream_type": stream_type,
+                            "epsilon": epsilon,
+                            "mean_image_auroc": "0.9",
+                            "mean_aupr": "0.8",
+                            "mean_ece": "0.2",
+                            "mean_latency_ms": "10.0",
+                            "mean_crd_lite": "0.0",
+                        }
+                    )
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
 def _write_minimal_repo(root: Path, *, runtime_todos: bool = True, include_llncs: bool = False) -> None:
     _write_combined_csv(root / "results/latest/paper_candidate/baseline_comparison_all_datasets_none.csv")
     _write(root / "results/latest/paper_candidate/baseline_comparison_all_datasets_none.json", "{}\n")
     _write(root / "results/latest/tables/paper_candidate_baseline_comparison_all_datasets_none.tex")
+    _write_stream_breakdown_csv(root / "results/latest/paper_candidate/stream_epsilon_breakdown_none.csv")
+    _write(root / "results/latest/paper_candidate/stream_epsilon_breakdown_none.json", "{}\n")
+    _write(root / "results/latest/tables/paper_candidate_stream_epsilon_breakdown_none.tex")
     _write(root / "results/latest/paper_candidate/baseline_ranking_summary.json", "{}\n")
     _write(root / "results/latest/tables/paper_candidate_ranking_summary.tex")
     _write(root / "results/latest/figures/paper_candidate_accuracy_latency_tradeoff.png")

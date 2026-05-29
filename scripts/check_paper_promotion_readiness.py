@@ -29,6 +29,9 @@ COMBINED_JSON = Path("results/latest/paper_candidate/baseline_comparison_all_dat
 COMBINED_TEX = Path("results/latest/tables/paper_candidate_baseline_comparison_all_datasets_none.tex")
 RANKING_JSON = Path("results/latest/paper_candidate/baseline_ranking_summary.json")
 RANKING_TEX = Path("results/latest/tables/paper_candidate_ranking_summary.tex")
+STREAM_BREAKDOWN_CSV = Path("results/latest/paper_candidate/stream_epsilon_breakdown_none.csv")
+STREAM_BREAKDOWN_JSON = Path("results/latest/paper_candidate/stream_epsilon_breakdown_none.json")
+STREAM_BREAKDOWN_TEX = Path("results/latest/tables/paper_candidate_stream_epsilon_breakdown_none.tex")
 TRADEOFF_PNG = Path("results/latest/figures/paper_candidate_accuracy_latency_tradeoff.png")
 TRADEOFF_PDF = Path("results/latest/figures/paper_candidate_accuracy_latency_tradeoff.pdf")
 METRIC_AUDIT_JSON = Path("results/latest/paper_candidate/metric_audit_report.json")
@@ -44,6 +47,9 @@ REQUIRED_ARTIFACTS = (
     COMBINED_TEX,
     RANKING_JSON,
     RANKING_TEX,
+    STREAM_BREAKDOWN_CSV,
+    STREAM_BREAKDOWN_JSON,
+    STREAM_BREAKDOWN_TEX,
     TRADEOFF_PNG,
     METRIC_AUDIT_JSON,
     RUNTIME_DOC,
@@ -58,6 +64,8 @@ EXPECTED_BASELINES = {"PatchCore", "WinCLIP", "AnomalyCLIP", "RareCLIP"}
 EXPECTED_TOTAL_ROWS = {"MVTec AD": 180, "VisA": 144}
 EXPECTED_STREAM_LENGTH = "64"
 EXPECTED_SEEDS = "0|1|2"
+EXPECTED_STREAM_TYPES = {"iid", "bursty"}
+EXPECTED_EPSILONS = {"0", "0.05", "0.0", "0.050000000000000003"}
 
 
 def _load_json(path: Path) -> tuple[dict[str, Any], str | None]:
@@ -206,6 +214,41 @@ def _check_metric_audit(root: Path) -> tuple[list[str], list[str], dict[str, Any
     }
 
 
+def _check_stream_breakdown(rows: list[dict[str, str]]) -> tuple[list[str], list[str], dict[str, Any]]:
+    blocking: list[str] = []
+    warnings: list[str] = []
+    if len(rows) != 32:
+        blocking.append(f"stream/epsilon breakdown row count mismatch: expected 32, found {len(rows)}")
+
+    groups = {
+        (
+            row.get("dataset", ""),
+            row.get("baseline", ""),
+            row.get("stream_type") or row.get("stream", ""),
+            row.get("epsilon") or row.get("contamination", ""),
+        )
+        for row in rows
+    }
+    for dataset in EXPECTED_DATASETS:
+        for baseline in EXPECTED_BASELINES:
+            for stream_type in EXPECTED_STREAM_TYPES:
+                matching = [group for group in groups if group[:3] == (dataset, baseline, stream_type)]
+                epsilons = {group[3] for group in matching}
+                normalized = {"0.05" if eps.startswith("0.05") else eps for eps in epsilons}
+                if normalized != {"0", "0.05"}:
+                    blocking.append(
+                        f"missing stream/epsilon groups for {dataset}/{baseline}/{stream_type}: {sorted(epsilons)}"
+                    )
+
+    return blocking, warnings, {
+        "row_count": len(rows),
+        "datasets": sorted({row.get("dataset", "") for row in rows}),
+        "baselines": sorted({row.get("baseline", "") for row in rows}),
+        "stream_types": sorted({row.get("stream_type") or row.get("stream", "") for row in rows}),
+        "epsilons": sorted({row.get("epsilon") or row.get("contamination", "") for row in rows}),
+    }
+
+
 def _check_runtime_doc(root: Path) -> tuple[list[str], list[str], dict[str, Any]]:
     path = root / RUNTIME_DOC
     if not path.exists():
@@ -233,8 +276,13 @@ def _check_paper_text(root: Path) -> tuple[list[str], list[str], dict[str, Any]]
         blocking.append("paper limitations/setup must mention stream length 64")
     if "local-runtime dependent" not in source:
         blocking.append("paper limitations must mention local-runtime latency caveat")
-    if "candidate evidence" not in source:
-        warnings.append("paper text should retain candidate-evidence wording until promotion")
+    for marker in ("TODO", "pending final audit", "candidate-stage", "paper_allowed", "claim_allowed", "SOTA"):
+        if marker in source:
+            blocking.append(f"paper source contains submission-blocking marker: {marker}")
+    if "state of the art" in source.lower():
+        blocking.append("paper source contains state-of-the-art phrasing")
+    if "candidate evidence" in source:
+        warnings.append("paper source still contains candidate-evidence wording; prefer submission-facing language")
     overclaim_markers = ["final paper claim", "camera-ready claims", "final reviewed paper claims"]
     if any(marker in source for marker in overclaim_markers):
         warnings.append("paper source contains final-claim phrasing; verify it is in limitations/governance context")
@@ -285,6 +333,15 @@ def build_promotion_readiness_report(root: Path) -> dict[str, Any]:
         blocking_items.extend(blocking)
         warning_items.extend(warnings)
         checks["combined_table"] = summary
+
+    stream_rows, stream_csv_error = _read_csv_rows(root / STREAM_BREAKDOWN_CSV)
+    if stream_csv_error:
+        blocking_items.append(stream_csv_error)
+    else:
+        blocking, warnings, summary = _check_stream_breakdown(stream_rows)
+        blocking_items.extend(blocking)
+        warning_items.extend(warnings)
+        checks["stream_epsilon_breakdown"] = summary
 
     for name, check in (
         ("metric_audit", _check_metric_audit),
