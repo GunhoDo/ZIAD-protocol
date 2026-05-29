@@ -40,6 +40,12 @@
     - baseline: `WinCLIP`
     - status: `measured_stream_length_sensitivity`
     - gates: `paper_allowed=false`, `claim_allowed=false`
+  - `mvtec_ad:winclip:default_no_memory:none:bottle:len_128`
+    - row_count: `12`
+    - category: `bottle`
+    - baseline: `WinCLIP`
+    - status: `measured_stream_length_sensitivity`
+    - gates: `paper_allowed=false`, `claim_allowed=false`
   - `mvtec_ad:winclip:default_no_memory:none:bottle:len_256`
     - row_count: `12`
     - category: `bottle`
@@ -48,11 +54,11 @@
     - gates: `paper_allowed=false`, `claim_allowed=false`
 - latest summary:
   - status: `stream_length_sensitivity_summary_complete`
-  - group_count: `2`
+  - group_count: `3`
   - error_count: `0`
-  - current groups: `stream_length=64` and `stream_length=256`
+  - current groups: `stream_length=64`, `stream_length=128`, and `stream_length=256`
 - limitation:
-  - only two WinCLIP/bottle shards are present in the current local summary; the intended `stream_length=128` aggregate from the earlier pilot is not present in the ignored local results tree and was not rerun because the latest task allowed only `len_64` inference.
+  - only the WinCLIP/bottle sanity-check lane is present in the current local summary.
   - the full 18-step bounded sensitivity grid has not been run.
   - this remains preliminary appendix sanity-check evidence only and keeps `paper_allowed=false`, `claim_allowed=false`, `review_status=review_pending`.
 

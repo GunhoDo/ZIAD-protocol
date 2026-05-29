@@ -145,13 +145,13 @@ Current tiny pilot coverage:
 
 - `MVTec AD × WinCLIP × bottle × stream_length=64`: complete in the current
   local summary, 12 rows
+- `MVTec AD × WinCLIP × bottle × stream_length=128`: complete in the current
+  local summary, 12 rows
 - `MVTec AD × WinCLIP × bottle × stream_length=256`: complete, 12 rows
 
-The `stream_length=128` shard was run in an earlier local pilot, but its
-ignored aggregate output is not present in the current results tree. Do not
-claim a 64/128/256 trend until that shard is regenerated under an explicit
-inference request and reviewed. The current pilot shards remain
-`paper_allowed=false`, `claim_allowed=false`, and
+This is still one baseline/category only. Do not claim broad stream-length
+robustness until additional categories and baselines are run and reviewed. The
+current pilot shards remain `paper_allowed=false`, `claim_allowed=false`, and
 `review_status=review_pending`.
 
 Runtime documentation for claim-promotion review:
@@ -343,9 +343,8 @@ git diff --check
   metrics and exposes `iid`/`bursty` and epsilon `0`/`0.05` groups without
   running new inference. It is still review-pending candidate evidence.
 - Stream-length sensitivity has only a tiny WinCLIP/bottle pilot in the current
-  local summary at lengths `64` and `256`; the intended intermediate `128`
-  aggregate is not present locally, and the full bounded sensitivity grid has
-  not been run. Treat it as preliminary appendix evidence only.
+  local summary at lengths `64`, `128`, and `256`; the full bounded sensitivity
+  grid has not been run. Treat it as preliminary appendix evidence only.
 - The generated paper-candidate accuracy-latency figure and ranking table are
   analysis artifacts only. They are included in the input contract but are not
   promoted paper results.
