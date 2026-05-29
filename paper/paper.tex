@@ -58,9 +58,9 @@ and VisA with PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP; and
 trade-offs hidden by static AUROC-only reporting.
 \end{itemize}
 
-The paper reports a compact evaluation slice generated from the repository
-artifacts and uses it to study protocol behavior rather than to assert a final
-leaderboard.
+The paper reports a focused evaluation slice generated from the repository
+artifacts and uses it to study protocol behavior rather than to make
+new best-detector claims.
 
 \section{Related Work}
 \paragraph{Industrial anomaly detection.}
@@ -100,7 +100,7 @@ reports ECE alongside AUROC, AUPR, latency, and CRD-lite rather than treating
 AUROC as the only target.
 
 \section{Evaluation Protocol}
-Figure~\ref{fig:ziad-protocol-overview} summarizes the compact ZIAD flow. The
+Figure~\ref{fig:ziad-protocol-overview} summarizes the focused ZIAD flow. The
 figure is a protocol overview, not a result: static industrial datasets are
 converted into stream-ordered evaluation items, passed through shared baseline
 interfaces, optionally varied along protocol axes, and summarized with metrics
@@ -180,7 +180,7 @@ contaminated run. This is a signed proxy used for compact diagnostics, not a
 full theoretical robustness metric.
 
 \subsection{Category-sharded execution}
-The compact evaluation slice covers MVTec AD and VisA, the baselines
+The focused evaluation covers MVTec AD and VisA, the baselines
 PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP, stream length 64, and seeds
 \(\{0,1,2\}\). Execution is category-sharded so long-running steps can resume
 without confusing a completed category shard with a full paper result.
@@ -210,7 +210,7 @@ Restartability & Single aggregate run & Category-sharded resumable execution \\
 \end{table}
 
 \section{Experimental Setup}
-The current compact comparison is category-sharded. Each category shard
+The current focused comparison is category-sharded. Each category shard
 contains 12 metric rows: two stream types, two contamination settings, and
 three seeds. MVTec AD contributes 15 categories and 180 rows per baseline.
 VisA contributes 12 categories and 144 rows per baseline. All generated outputs
@@ -233,22 +233,23 @@ The repository keeps measurement generation and claim approval separate.
 A governance record tracks whether outputs have passed row-count and
 category-count checks, finite metric audits, provenance review, runtime
 documentation, and manual approval. These safeguards are engineering controls
-for reproducibility; the paper-facing claims are limited to the reviewed
-compact evaluation slice described above.
+for reproducibility; the paper-facing claims are limited to the audited
+evaluation described above.
 
 \section{Results}
 Table~\ref{tab:paper-candidate-baseline-comparison} summarizes the current
-compact comparison for the calibration-none slice. In this slice, PatchCore
+focused comparison for the calibration-none setting. In this representative
+streaming evaluation, PatchCore
 has the highest mean AUROC and AUPR on both datasets. The lowest ECE differs by
 dataset: RareCLIP on MVTec AD and PatchCore on VisA. Latency also differs by
 dataset: PatchCore is lowest on MVTec AD in the current local run, while
-WinCLIP is lowest on VisA. These observations provide structured evidence for
-the protocol analysis rather than a finalized leaderboard claim.
+WinCLIP is lowest on VisA. These observations support the protocol analysis
+without asserting a universal detector ranking.
 
 \begin{table}[t]
 \centering
 \caption{Baseline comparison across MVTec AD and VisA for calibration
-\texttt{none}. Values summarize the current category-sharded compact
+\texttt{none}. Values summarize the current category-sharded focused
 evaluation.}
 \label{tab:paper-candidate-baseline-comparison}
 \resizebox{\textwidth}{!}{\input{../results/latest/tables/paper_candidate_baseline_comparison_all_datasets_none.tex}}
@@ -256,7 +257,7 @@ evaluation.}
 
 \begin{table}[t]
 \centering
-\caption{Ranking summary derived from the compact comparison. The rankings are
+\caption{Ranking summary derived from the focused comparison. The rankings are
 included to highlight trade-offs across metrics.}
 \label{tab:paper-candidate-ranking}
 \input{../results/latest/tables/paper_candidate_ranking_summary.tex}
@@ -281,9 +282,25 @@ $\epsilon=0.05$ minus $\epsilon=0$ AUROC.}
 \resizebox{\textwidth}{!}{\input{../results/latest/tables/paper_candidate_stream_epsilon_breakdown_none.tex}}
 \end{table}
 
+\subsection{Statistical uncertainty}
+Table~\ref{tab:focused-evaluation-ci} reports a no-inference uncertainty audit
+over the same focused evaluation rows. The bootstrap unit is a category/seed
+stratum: stream and contamination rows are averaged within each stratum, then
+strata are resampled with replacement. These intervals should be read as
+uncertainty for the audited slice, not as a guarantee over longer streams,
+additional factories, or untested detector variants.
+
+\begin{table}[tbp]
+\centering
+\caption{Stratified bootstrap confidence intervals for the focused evaluation.
+Intervals use category/seed strata and existing metric rows only.}
+\label{tab:focused-evaluation-ci}
+\resizebox{\textwidth}{!}{\input{../results/latest/tables/focused_evaluation_ci_summary.tex}}
+\end{table}
+
 \section{Accuracy--Latency Trade-off}
 Figure~\ref{fig:paper-candidate-accuracy-latency} plots mean image AUROC against
-mean latency for each dataset and baseline pair. The compact evaluation shows
+mean latency for each dataset and baseline pair. The focused evaluation shows
 that accuracy and latency rankings are not identical across datasets, which
 supports the protocol motivation: reporting accuracy alone can hide operational
 trade-offs. This figure is generated without new inference from the combined
@@ -299,7 +316,7 @@ datasets.}
 \end{figure}
 
 \section{Discussion}
-The compact results illustrate why ZIAD treats the benchmark as a
+The audited results illustrate why ZIAD treats the benchmark as a
 multi-objective evaluation. A detector that is strong in AUROC may not be the
 best calibrated or fastest method on every dataset. The protocol therefore
 separates image discrimination, calibration, latency, stream robustness, and
@@ -309,12 +326,12 @@ training-light industrial anomaly detection.
 
 The present study has not yet elevated temperature-scaling or memory-policy
 variants into the main comparison. Those axes are implemented in the
-protocol and validated elsewhere in the repository, but the safest main paper
-story is the compact calibration-none comparison plus a clear plan for
+protocol and validated elsewhere in the repository, but the focused paper
+story is the calibration-none comparison plus a clear plan for
 calibration and memory ablations.
 
-\subsection{Extensions Beyond the Compact Slice}
-The compact slice in this paper is intentionally narrower than the full ZIAD
+\subsection{Extensions Beyond the Focused Slice}
+The focused slice in this paper is intentionally narrower than the full ZIAD
 proposal. The same protocol design extends along three grouped directions:
 richer online policies and calibration variants, including FIFO/Reservoir-style
 memory, Prototype-EMA, temperature scaling, isotonic regression, and
@@ -323,11 +340,11 @@ longer epsilon/prevalence sweeps, drift, chronological streams, and additional
 industrial datasets; and stronger analysis layers, including statistical
 uncertainty estimates, mechanistic intervention studies, and compute or energy
 disclosure. These axes are part of the protocol design but remain outside the
-current compact evidence slice.
+current focused evaluation.
 
 \section{Limitations}
-The present study has four important limitations. First, it reports a compact
-evaluation slice rather than an exhaustive benchmark. Second, the compact
+The present study has four important limitations. First, it reports a focused
+evaluation slice rather than an exhaustive benchmark. Second, the focused
 setting uses stream length 64; longer streams may be needed before stronger
 deployment claims are made. Third, latency values depend on the local software
 and hardware path. Fourth, calibration and memory-policy variants are not yet

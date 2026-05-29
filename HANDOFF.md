@@ -1,7 +1,31 @@
 # HANDOFF — ZIAD 논문 구현 현재 상태
 
-최종 갱신: 2026-05-29
+최종 갱신: 2026-05-30
 프로젝트: Streaming Industrial Anomaly Detection Evaluation / ZIAD Protocol
+
+## 최신 진행: submission-focused paper polish + uncertainty audit
+
+- 목표: full matrix를 재개하지 않고 제출용 paper-facing wording, Figure/Table polish, no-inference statistical uncertainty를 보강.
+- 추가 script:
+  - `experiments/summarize_focused_evaluation_ci.py`
+- build integration:
+  - `scripts/render_paper_tables.sh` now regenerates focused CI JSON/LaTeX before paper build.
+- generated local artifacts:
+  - `results/latest/paper_candidate/focused_evaluation_ci_summary.json`
+  - `results/latest/tables/focused_evaluation_ci_summary.tex`
+- CI method:
+  - bootstrap unit: category/seed stratum
+  - stream/epsilon rows are averaged within each category/seed stratum before resampling
+  - bootstrap iterations: `2000`
+  - seed: `0`
+  - rows: `8` dataset/baseline rows
+  - warnings: `0`
+- paper updates:
+  - weak hedging such as "compact evaluation slice" / "finalized leaderboard claim" replaced with stronger but safe paper-facing wording: focused evaluation, audited results, representative streaming evaluation.
+  - added "Statistical uncertainty" subsection and focused CI table.
+- targeted extra-run decision:
+  - no extra run is required before submission after the current CI/visual polish.
+  - optional plan only is documented at `docs/targeted_extra_runs_plan.md`.
 
 ## 최신 진행: stream-length sensitivity scaffold
 

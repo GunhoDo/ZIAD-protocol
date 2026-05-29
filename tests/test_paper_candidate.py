@@ -14,6 +14,7 @@ from experiments import (
     render_paper_candidate_analysis,
     run_p0_execution_plan,
     run_paper_candidate_step,
+    summarize_focused_evaluation_ci,
     summarize_paper_candidate_all_datasets,
     summarize_paper_candidate_baselines,
     summarize_paper_candidate_categories,
@@ -776,6 +777,158 @@ class PaperCandidateStreamEpsilonBreakdownTest(unittest.TestCase):
                     summarize_paper_candidate_stream_epsilon.StreamEpsilonSummaryError
                 ):
                     summarize_paper_candidate_stream_epsilon.summarize_stream_epsilon(root)
+        finally:
+            if root.exists():
+                shutil.rmtree(root)
+
+
+class FocusedEvaluationCITest(unittest.TestCase):
+    def _write_ci_candidate_set(
+        self,
+        root: Path,
+        *,
+        dataset_slug: str = "toy",
+        dataset: str = "Toy",
+        baseline_slug: str = "winclip",
+        baseline: str = "WinCLIP",
+        memory_slug: str = "default_no_memory",
+        memory_policy: str = "default/no-memory",
+        bad_value: str | None = None,
+        paper_allowed: bool = False,
+    ) -> Path:
+        summary_root = root / dataset_slug / baseline_slug / memory_slug / "none"
+        categories = []
+        for category_index, category in enumerate(["bottle", "cable"]):
+            category_root = summary_root / category
+            category_root.mkdir(parents=True)
+            metrics_path = category_root / "metrics.csv"
+            rows = []
+            for stream_type in ["iid", "bursty"]:
+                for epsilon in ["0", "0.05"]:
+                    for seed in [0, 1]:
+                        value = (
+                            bad_value
+                            if bad_value is not None
+                            else str(0.70 + category_index * 0.10 + seed * 0.02)
+                        )
+                        rows.append(
+                            {
+                                "dataset": dataset,
+                                "stream_type": stream_type,
+                                "prevalence": "0.05",
+                                "contamination_epsilon": epsilon,
+                                "baseline": baseline,
+                                "memory_policy": memory_policy,
+                                "calibration": "none",
+                                "image_auroc": value,
+                                "aupr": "0.6",
+                                "ece": "0.2",
+                                "latency_ms": "10.0",
+                                "crd_lite": "0.01",
+                                "status": "measured_paper_candidate",
+                                "run_dir": str(
+                                    category_root
+                                    / "production_runs"
+                                    / f"{category}_{stream_type}_eps_{epsilon}_seed_{seed}"
+                                ),
+                                "category": category,
+                            }
+                        )
+            with metrics_path.open("w", newline="") as handle:
+                writer = csv.DictWriter(
+                    handle,
+                    fieldnames=list(rows[0].keys()),
+                    lineterminator="\n",
+                )
+                writer.writeheader()
+                writer.writerows(rows)
+            categories.append(
+                {
+                    "category": category,
+                    "complete": True,
+                    "row_count": len(rows),
+                    "stream_length": 64,
+                    "seeds": [0, 1],
+                    "metrics_csv": str(metrics_path),
+                }
+            )
+        (summary_root / "category_summary.json").write_text(
+            json.dumps(
+                {
+                    "status": "category_shards_complete",
+                    "dataset": dataset,
+                    "baseline": baseline,
+                    "memory_policy": memory_policy,
+                    "calibration": "none",
+                    "category_count": 2,
+                    "complete_category_count": 2,
+                    "paper_allowed": paper_allowed,
+                    "claim_allowed": False,
+                    "review_status": "review_pending",
+                    "categories": categories,
+                }
+            )
+            + "\n"
+        )
+        return summary_root
+
+    def test_focused_ci_uses_category_seed_strata_and_writes_outputs(self):
+        root = Path("results/latest/paper_candidate/unit_test_focused_ci")
+        if root.exists():
+            shutil.rmtree(root)
+        try:
+            self._write_ci_candidate_set(root)
+            summary = summarize_focused_evaluation_ci.summarize_ci(
+                input_root=root,
+                iterations=50,
+                seed=7,
+            )
+            self.assertEqual("focused_evaluation_ci_complete", summary["status"])
+            self.assertEqual("category_seed_stratum", summary["bootstrap_unit"])
+            self.assertEqual(1, summary["baseline_row_count"])
+            self.assertFalse(summary["paper_allowed"])
+            self.assertFalse(summary["claim_allowed"])
+            self.assertEqual("review_pending", summary["review_status"])
+            row = summary["rows"][0]
+            self.assertEqual(2, row["category_count"])
+            self.assertEqual(2, row["seed_count"])
+            self.assertEqual(16, row["metric_row_count"])
+            self.assertEqual(4, row["stratum_count"])
+            self.assertLessEqual(row["ci95_low_image_auroc"], row["mean_image_auroc"])
+            self.assertGreaterEqual(row["ci95_high_image_auroc"], row["mean_image_auroc"])
+            json_path, tex_path = summarize_focused_evaluation_ci.write_outputs(
+                summary,
+                json_path=root / "ci.json",
+                tex_path=root / "ci.tex",
+            )
+            self.assertTrue(json_path.exists())
+            self.assertTrue(tex_path.exists())
+            tex = tex_path.read_text()
+            self.assertIn("AUROC 95\\% CI", tex)
+            self.assertIn("Strata", tex)
+        finally:
+            if root.exists():
+                shutil.rmtree(root)
+
+    def test_focused_ci_rejects_non_finite_metric_and_open_gate(self):
+        root = Path("results/latest/paper_candidate/unit_test_focused_ci_bad")
+        if root.exists():
+            shutil.rmtree(root)
+        try:
+            self._write_ci_candidate_set(root, bad_value="nan")
+            with self.assertRaises(summarize_focused_evaluation_ci.FocusedEvaluationCIError):
+                summarize_focused_evaluation_ci.summarize_ci(input_root=root, iterations=10)
+        finally:
+            if root.exists():
+                shutil.rmtree(root)
+
+        root = Path("results/latest/paper_candidate/unit_test_focused_ci_gate")
+        if root.exists():
+            shutil.rmtree(root)
+        try:
+            self._write_ci_candidate_set(root, paper_allowed=True)
+            with self.assertRaises(summarize_focused_evaluation_ci.FocusedEvaluationCIError):
+                summarize_focused_evaluation_ci.summarize_ci(input_root=root, iterations=10)
         finally:
             if root.exists():
                 shutil.rmtree(root)

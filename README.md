@@ -60,7 +60,9 @@ categories at the same stream length and seeds. The combined MVTec AD + VisA
 paper-candidate comparison table has also been generated for the calibration
 `none` slice. A no-inference stream/epsilon breakdown now exposes the same
 candidate rows by `iid` versus `bursty` and epsilon `0` versus `0.05`; these
-remain review-pending candidate evidence, not final paper results.
+remain review-pending candidate evidence, not final paper results. A
+no-inference stratified bootstrap audit summarizes uncertainty over
+category/seed strata for the focused evaluation slice.
 
 ## Result Artifacts
 
@@ -124,6 +126,8 @@ Current combined paper-candidate baseline comparison:
 - `results/latest/tables/paper_candidate_ranking_summary.tex`
 - `results/latest/paper_candidate/metric_audit_report.json`
 - `results/latest/tables/paper_candidate_metric_audit_summary.tex`
+- `results/latest/paper_candidate/focused_evaluation_ci_summary.json`
+- `results/latest/tables/focused_evaluation_ci_summary.tex`
 - `results/latest/figures/paper_candidate_accuracy_latency_tradeoff.png`
 - `results/latest/figures/paper_candidate_accuracy_latency_tradeoff.pdf`
 
@@ -265,6 +269,12 @@ Generate the review-pending stream/epsilon breakdown without running inference:
 
 ```bash
 python3 experiments/summarize_paper_candidate_stream_epsilon.py
+```
+
+Generate stratified bootstrap uncertainty intervals without running inference:
+
+```bash
+python3 experiments/summarize_focused_evaluation_ci.py
 ```
 
 Audit the combined paper-candidate metric table before claim promotion:
