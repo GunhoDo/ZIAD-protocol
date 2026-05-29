@@ -266,19 +266,20 @@ included to highlight trade-offs across metrics.}
 
 \subsection{Stream and contamination breakdown}
 The aggregate table above averages over two stream types and two contamination
-settings. Table~\ref{tab:paper-candidate-stream-epsilon-breakdown} exposes those
-axes directly by grouping the same evaluation rows by dataset, baseline, stream
-type, and contamination level. This breakdown is intended to check whether the
-protocol axes are visible in the paper rather than hidden inside a single
-leaderboard row. The grouped measurements support protocol analysis while
-leaving broad conclusions about stream difficulty to larger follow-up slices.
+settings. Table~\ref{tab:paper-candidate-stream-epsilon-breakdown} summarizes
+those axes with one row per dataset and baseline: the table reports the mean
+AUROC, the AUROC shift from IID to bursty streams, the AUROC shift from
+$\epsilon=0$ to $\epsilon=0.05$, the corresponding ECE shift, and mean latency.
+The full 32-row stream/epsilon breakdown remains in the generated CSV/JSON
+artifacts. This compact table keeps the protocol axes visible in the paper
+without turning the main text into a long leaderboard dump.
 
-\begin{table}[t]
+\begin{table}[tbp]
 \centering
-\caption{Stream and contamination breakdown for calibration
-\texttt{none}. Each row averages completed category-sharded metrics over
-categories and seeds for one dataset, baseline, stream type, and
-contamination level.}
+\caption{Compact stream and contamination summary for calibration
+\texttt{none}. $\Delta$B-I is bursty minus IID AUROC averaged over
+contamination settings; $\Delta\epsilon$ is $\epsilon=0.05$ minus
+$\epsilon=0$ AUROC averaged over stream types.}
 \label{tab:paper-candidate-stream-epsilon-breakdown}
 \resizebox{\textwidth}{!}{\input{../results/latest/tables/paper_candidate_stream_epsilon_breakdown_none.tex}}
 \end{table}

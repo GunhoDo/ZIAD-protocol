@@ -60,6 +60,15 @@ OUTPUT_COLUMNS = [
     "claim_allowed",
     "review_status",
 ]
+COMPACT_TEX_COLUMNS = [
+    ("dataset", "Dataset"),
+    ("baseline", "Baseline"),
+    ("mean_image_auroc", "AUROC"),
+    ("delta_bursty_iid_auroc", "$\\Delta$B-I"),
+    ("delta_eps_0p05_0_auroc", "$\\Delta\\epsilon$"),
+    ("delta_eps_0p05_0_ece", "$\\Delta$ECE"),
+    ("mean_latency_ms", "Lat. ms"),
+]
 
 
 class StreamEpsilonSummaryError(ValueError):
@@ -122,6 +131,15 @@ def _tex_value(row: dict[str, Any], key: str) -> str:
     return _tex_escape(value)
 
 
+def _compact_tex_value(row: dict[str, Any], key: str) -> str:
+    value = row.get(key, "")
+    if key == "mean_latency_ms":
+        return f"{float(value):.1f}"
+    if key.startswith("mean_") or key.startswith("delta_"):
+        return f"{float(value):+.3f}" if key.startswith("delta_") else f"{float(value):.3f}"
+    return _tex_escape(value)
+
+
 def _epsilon_key(value: Any) -> str:
     parsed = _parse_float(value, field="contamination_epsilon")
     if math.isclose(parsed, 0.0, abs_tol=1e-12):
@@ -129,6 +147,55 @@ def _epsilon_key(value: Any) -> str:
     if math.isclose(parsed, 0.05, abs_tol=1e-12):
         return "0.05"
     return f"{parsed:g}"
+
+
+def _mean_metric(rows: list[dict[str, Any]], key: str) -> float:
+    return _mean([float(row[key]) for row in rows])
+
+
+def _compact_rows(breakdown: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    compact: list[dict[str, Any]] = []
+    by_pair: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
+    for row in breakdown:
+        by_pair[(str(row["dataset"]), str(row["baseline"]))].append(row)
+
+    for dataset_name, _ in EXPECTED_DATASETS.values():
+        for baseline_name, _, memory_policy in EXPECTED_BASELINES.values():
+            rows = by_pair.get((dataset_name, baseline_name), [])
+            if len(rows) != len(EXPECTED_STREAM_TYPES) * len(EXPECTED_EPSILONS):
+                raise StreamEpsilonSummaryError(
+                    f"Cannot build compact stream/epsilon row for {dataset_name}|{baseline_name}"
+                )
+            iid_rows = [row for row in rows if row["stream_type"] == "iid"]
+            bursty_rows = [row for row in rows if row["stream_type"] == "bursty"]
+            eps_zero_rows = [row for row in rows if row["epsilon"] == "0"]
+            eps_high_rows = [row for row in rows if row["epsilon"] == "0.05"]
+            compact.append(
+                {
+                    "dataset": dataset_name,
+                    "baseline": baseline_name,
+                    "memory_policy": memory_policy,
+                    "calibration": "none",
+                    "row_count": sum(int(row["row_count"]) for row in rows),
+                    "mean_image_auroc": _mean_metric(rows, "mean_image_auroc"),
+                    "delta_bursty_iid_auroc": _mean_metric(
+                        bursty_rows, "mean_image_auroc"
+                    )
+                    - _mean_metric(iid_rows, "mean_image_auroc"),
+                    "delta_eps_0p05_0_auroc": _mean_metric(
+                        eps_high_rows, "mean_image_auroc"
+                    )
+                    - _mean_metric(eps_zero_rows, "mean_image_auroc"),
+                    "delta_eps_0p05_0_ece": _mean_metric(eps_high_rows, "mean_ece")
+                    - _mean_metric(eps_zero_rows, "mean_ece"),
+                    "mean_latency_ms": _mean_metric(rows, "mean_latency_ms"),
+                }
+            )
+    return compact
+
+
+def build_compact_summary(summary: dict[str, Any]) -> list[dict[str, Any]]:
+    return _compact_rows(list(summary["breakdown"]))
 
 
 def _seed_from_run_dir(row: dict[str, str]) -> str:
@@ -315,6 +382,7 @@ def summarize_stream_epsilon(input_root: Path = DEFAULT_INPUT_ROOT) -> dict[str,
         "stream_types": sorted(EXPECTED_STREAM_TYPES),
         "epsilons": sorted(EXPECTED_EPSILONS, key=float),
         "breakdown": output_rows,
+        "compact_breakdown": _compact_rows(output_rows),
         "notes": (
             "No-inference breakdown over completed paper-candidate category "
             "shards. This does not promote paper_allowed or claim_allowed."
@@ -338,28 +406,19 @@ def write_json(summary: dict[str, Any], path: Path) -> None:
 
 def write_tex(summary: dict[str, Any], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    columns = [
-        ("dataset", "Dataset"),
-        ("baseline", "Baseline"),
-        ("stream_type", "Stream"),
-        ("epsilon", "$\\epsilon$"),
-        ("row_count", "Rows"),
-        ("mean_image_auroc", "AUROC"),
-        ("mean_aupr", "AUPR"),
-        ("mean_ece", "ECE"),
-        ("mean_latency_ms", "Lat. ms"),
-        ("mean_crd_lite", "CRD-lite"),
-    ]
+    columns = COMPACT_TEX_COLUMNS
+    compact_rows = summary.get("compact_breakdown") or _compact_rows(summary["breakdown"])
     lines = [
-        "% Auto-generated stream/epsilon breakdown for the compact evaluation slice.",
-        "\\begin{tabular}{llllrrrrrr}",
+        "% Auto-generated compact stream/epsilon summary for the paper table.",
+        "% Full 32-row breakdown remains in the paired CSV/JSON artifacts.",
+        "\\begin{tabular}{llrrrrr}",
         "\\toprule",
         " & ".join(label for _, label in columns) + r" \\",
         "\\midrule",
     ]
-    for row in summary["breakdown"]:
+    for row in compact_rows:
         lines.append(
-            " & ".join(_tex_value(row, key) for key, _ in columns) + r" \\"
+            " & ".join(_compact_tex_value(row, key) for key, _ in columns) + r" \\"
         )
     lines.extend(["\\bottomrule", "\\end{tabular}"])
     path.write_text("\n".join(lines) + "\n")

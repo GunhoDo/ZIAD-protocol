@@ -711,6 +711,19 @@ class PaperCandidateStreamEpsilonBreakdownTest(unittest.TestCase):
                 self.assertFalse(summary["claim_allowed"])
                 self.assertEqual("review_pending", summary["review_status"])
                 self.assertEqual({3}, {row["row_count"] for row in summary["breakdown"]})
+                self.assertEqual(2, len(summary["compact_breakdown"]))
+                self.assertEqual(
+                    {"Toy"},
+                    {row["dataset"] for row in summary["compact_breakdown"]},
+                )
+                self.assertEqual(
+                    {"WinCLIP", "PatchCore"},
+                    {row["baseline"] for row in summary["compact_breakdown"]},
+                )
+                self.assertEqual(
+                    {12},
+                    {row["row_count"] for row in summary["compact_breakdown"]},
+                )
 
                 csv_path, json_path, tex_path = (
                     summarize_paper_candidate_stream_epsilon.write_outputs(
@@ -723,6 +736,10 @@ class PaperCandidateStreamEpsilonBreakdownTest(unittest.TestCase):
                 self.assertTrue(csv_path.exists())
                 self.assertTrue(json_path.exists())
                 self.assertTrue(tex_path.exists())
+                tex = tex_path.read_text()
+                self.assertIn("$\\Delta$B-I", tex)
+                self.assertIn("$\\Delta\\epsilon$", tex)
+                self.assertNotIn("Bursty", tex)
         finally:
             if root.exists():
                 shutil.rmtree(root)
