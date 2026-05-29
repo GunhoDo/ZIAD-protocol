@@ -256,9 +256,8 @@ settings. Table~\ref{tab:paper-candidate-stream-epsilon-breakdown} exposes those
 axes directly by grouping the same candidate rows by dataset, baseline, stream
 type, and contamination level. This breakdown is intended to check whether the
 protocol axes are visible in the paper rather than hidden inside a single
-leaderboard row. The present study does not claim that one stream condition is
-universally harder; it reports the grouped measurements as structured evidence
-for protocol analysis.
+leaderboard row. The grouped measurements support protocol analysis while
+leaving broad conclusions about stream difficulty to larger follow-up slices.
 
 \begin{table}[t]
 \centering
@@ -353,12 +352,10 @@ explicit while preserving compatibility with established industrial datasets
 and representative zero-shot or training-light baselines. The current
 comparison across MVTec AD and VisA shows that accuracy, calibration, and
 latency expose different operational views of the same detectors, motivating
-multi-metric reporting rather than AUROC-only leaderboards. The study does not
-claim a new detector, final state-of-the-art ranking, broad stream-length
-robustness, or a completed calibration/memory-policy ablation; those remain
-subject to additional reviewed slices. By making these axes explicit, ZIAD
-offers a reproducible path for evaluating industrial anomaly detectors under
-streaming conditions.
+multi-metric reporting rather than AUROC-only leaderboards. Broader
+stream-length, calibration, and memory-policy conclusions require additional
+reviewed slices. By making these axes explicit, ZIAD offers a reproducible path
+for evaluating industrial anomaly detectors under streaming conditions.
 
 \bibliographystyle{splncs04}
 \bibliography{refs}
