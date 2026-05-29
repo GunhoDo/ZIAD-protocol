@@ -100,6 +100,20 @@ reports ECE alongside AUROC, AUPR, latency, and CRD-lite rather than treating
 AUROC as the only target.
 
 \section{Evaluation Protocol}
+Figure~\ref{fig:ziad-protocol-overview} summarizes the compact ZIAD flow. The
+figure is a protocol overview, not a result: static industrial datasets are
+converted into stream-ordered evaluation items, passed through shared baseline
+interfaces, optionally varied along protocol axes, and summarized with metrics
+plus category-sharded audit checks.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{../results/latest/figures/ziad_protocol_overview.png}
+\caption{ZIAD protocol overview. The diagram summarizes the evaluation flow and
+available protocol axes; it does not report experimental outcomes.}
+\label{fig:ziad-protocol-overview}
+\end{figure}
+
 \subsection{Stream construction}
 The protocol converts a static anomaly-detection test set into stream-ordered
 evaluation items with a common schema:
@@ -300,6 +314,19 @@ variants into the main comparison. Those axes are implemented in the
 protocol and validated elsewhere in the repository, but the safest main paper
 story is the compact calibration-none comparison plus a clear plan for
 calibration and memory ablations.
+
+\subsection{Extensions Beyond the Compact Slice}
+The compact slice in this paper is intentionally narrower than the full ZIAD
+proposal. The same protocol design extends to richer memory policies such as
+FIFO, Reservoir, CBRS, InfoRS, GDumb-online, Prototype-EMA, and oracle
+references; calibration variants such as temperature scaling, isotonic
+regression, and ensemble-entropy diagnostics; longer epsilon and prevalence
+sweeps; gradual and sudden drift; natural chronological streams such as
+BeltCrack; Real-IAD/FUIAD-style datasets; statistical uncertainty estimates
+such as signed-rank tests, ROPE analysis, and stationary bootstrap intervals;
+sliding-window ECE; mechanistic intervention analysis; and compute or energy
+disclosure. These axes are part of the protocol design but remain outside the
+current compact evidence slice.
 
 \section{Limitations}
 The present study has four important limitations. First, it reports a compact
