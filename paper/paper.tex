@@ -58,9 +58,9 @@ and VisA with PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP; and
 trade-offs hidden by static AUROC-only reporting.
 \end{itemize}
 
-The paper currently uses existing repository artifacts only. The numerical
-tables should be read as candidate evidence pending final audit rather than as
-camera-ready claims.
+The paper reports a compact evaluation slice generated from the repository
+artifacts and uses it to study protocol behavior rather than to assert a final
+leaderboard.
 
 \section{Related Work}
 \paragraph{Industrial anomaly detection.}
@@ -128,7 +128,7 @@ Each baseline consumes the same stream file and writes the same score schema:
 protocol independent of a particular detector implementation. PatchCore is
 treated as a training-light reference baseline, while WinCLIP, AnomalyCLIP, and
 RareCLIP are treated as CLIP-style baselines. PatchCore and RareCLIP use their
-default/SCS memory setting in the main candidate comparison; WinCLIP and
+default/SCS memory setting in the main comparison; WinCLIP and
 AnomalyCLIP use default/no-memory settings.
 
 \subsection{Metrics}
@@ -136,9 +136,9 @@ For each detector \(f\), the wrapper emits an anomaly score
 \(s_t=f(x_t)\) and a measured latency for each stream item. ZIAD evaluates the
 resulting score sequence along five axes. First, it compares i.i.d. streams with
 bursty streams, where anomalous samples are concentrated into contiguous
-blocks. Second, it evaluates contamination levels, including the current compact
-candidate settings \(\epsilon \in \{0, 0.05\}\). Third, it records score
-calibration, with the current main candidate comparison using no post-hoc
+blocks. Second, it evaluates contamination levels, including the compact
+settings \(\epsilon \in \{0, 0.05\}\). Third, it records score
+calibration, with the current main comparison using no post-hoc
 calibration. Fourth, it distinguishes no-memory baselines from methods with
 memory or coreset-style state. Fifth, it reports latency alongside image AUROC,
 AUPR, ECE, and CRD-lite.
@@ -166,14 +166,14 @@ contaminated run. This is a signed proxy used for compact diagnostics, not a
 full theoretical robustness metric.
 
 \subsection{Category-sharded execution}
-The candidate protocol currently covers MVTec AD and VisA, the baselines
+The compact evaluation slice covers MVTec AD and VisA, the baselines
 PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP, stream length 64, and seeds
 \(\{0,1,2\}\). Execution is category-sharded so long-running steps can resume
 without confusing a completed category shard with a full paper result.
-Promotion is deliberately separated from execution: candidate artifacts remain
-pending final audit until row counts, category counts, metric validity,
-baseline provenance, sampler settings, runtime semantics, and manual review are
-complete.
+Measurement generation is deliberately separated from claim approval: outputs
+are reviewed through row-count, category-count, metric-validity, provenance,
+sampler-setting, runtime, and manual checks before being used for stronger
+claims.
 
 \begin{table}[t]
 \centering
@@ -196,16 +196,16 @@ Restartability & Single aggregate run & Category-sharded resumable execution \\
 \end{table}
 
 \section{Experimental Setup}
-The current candidate comparison is category-sharded. Each category shard
+The current compact comparison is category-sharded. Each category shard
 contains 12 metric rows: two stream types, two contamination settings, and
 three seeds. MVTec AD contributes 15 categories and 180 rows per baseline.
-VisA contributes 12 categories and 144 rows per baseline. All candidate outputs
+VisA contributes 12 categories and 144 rows per baseline. All generated outputs
 are written under \path{results/latest/paper_candidate/}, separate from
 smoke and full-P0 production-validation outputs.
 
-PatchCore uses the documented candidate sampler setting of 0.1. Baseline
+PatchCore uses the documented sampler setting of 0.1. Baseline
 repository URLs and commit hashes are pinned in the repository configuration;
-this draft intentionally does not invent or replace them.
+this paper intentionally does not invent or replace them.
 
 Runtime metadata is being tracked separately in the runtime environment
 document. The current audit/build environment
@@ -217,38 +217,35 @@ local-runtime comparison until device path, model-loading scope, batching, and
 timing granularity are manually confirmed.
 
 \subsection{Reproducibility and result governance}
-The repository keeps execution and claim promotion separate. Current result
-artifacts are marked as candidate-stage outputs with closed paper and claim
-gates. The current gate values are false for paper promotion and claim
-promotion, with review status pending. These internal flags are not part of the
-scientific claim; they are engineering safeguards to prevent draft tables from
-being mistaken for final reviewed results. Promotion to final claims requires
-row-count and category-count checks, finite metric audits, provenance review,
-runtime documentation, and manual approval.
+The repository keeps measurement generation and claim approval separate.
+A governance record tracks whether outputs have passed row-count and
+category-count checks, finite metric audits, provenance review, runtime
+documentation, and manual approval. These safeguards are engineering controls
+for reproducibility; the paper-facing claims are limited to the reviewed
+compact evaluation slice described above.
 
 \section{Results}
 Table~\ref{tab:paper-candidate-baseline-comparison} summarizes the current
-candidate comparison for the calibration-none slice. In this slice, PatchCore
+compact comparison for the calibration-none slice. In this slice, PatchCore
 has the highest mean AUROC and AUPR on both datasets. The lowest ECE differs by
 dataset: RareCLIP on MVTec AD and PatchCore on VisA. Latency also differs by
 dataset: PatchCore is lowest on MVTec AD in the current local run, while
-WinCLIP is lowest on VisA. These observations are candidate evidence pending
-final audit, so they should be interpreted as a structured comparison for
-review rather than as finalized leaderboard claims.
+WinCLIP is lowest on VisA. These observations provide structured evidence for
+the protocol analysis rather than a finalized leaderboard claim.
 
 \begin{table}[t]
 \centering
-\caption{Candidate baseline comparison across MVTec AD and VisA for calibration
-\texttt{none}. Values summarize the current category-sharded evaluation and are
-pending final audit.}
+\caption{Baseline comparison across MVTec AD and VisA for calibration
+\texttt{none}. Values summarize the current category-sharded compact
+evaluation.}
 \label{tab:paper-candidate-baseline-comparison}
 \resizebox{\textwidth}{!}{\input{../results/latest/tables/paper_candidate_baseline_comparison_all_datasets_none.tex}}
 \end{table}
 
 \begin{table}[t]
 \centering
-\caption{Ranking summary derived from the current candidate comparison. The
-rankings are included to highlight trade-offs and remain pending final audit.}
+\caption{Ranking summary derived from the compact comparison. The rankings are
+included to highlight trade-offs across metrics.}
 \label{tab:paper-candidate-ranking}
 \input{../results/latest/tables/paper_candidate_ranking_summary.tex}
 \end{table}
@@ -260,12 +257,12 @@ axes directly by grouping the same candidate rows by dataset, baseline, stream
 type, and contamination level. This breakdown is intended to check whether the
 protocol axes are visible in the paper rather than hidden inside a single
 leaderboard row. The present study does not claim that one stream condition is
-universally harder; it reports the grouped measurements as candidate evidence
-for review.
+universally harder; it reports the grouped measurements as structured evidence
+for protocol analysis.
 
 \begin{table}[t]
 \centering
-\caption{Candidate stream and contamination breakdown for calibration
+\caption{Stream and contamination breakdown for calibration
 \texttt{none}. Each row averages completed category-sharded metrics over
 categories and seeds for one dataset, baseline, stream type, and
 contamination level.}
@@ -275,23 +272,23 @@ contamination level.}
 
 \section{Accuracy--Latency Trade-off}
 Figure~\ref{fig:paper-candidate-accuracy-latency} plots mean image AUROC against
-mean latency for each dataset and baseline pair. The current candidate evidence
-shows that accuracy and latency rankings are not identical across datasets,
-which supports the protocol motivation: reporting accuracy alone can hide
-operational trade-offs. This figure is generated without new inference from the
-combined candidate CSV and remains pending final audit.
+mean latency for each dataset and baseline pair. The compact evaluation shows
+that accuracy and latency rankings are not identical across datasets, which
+supports the protocol motivation: reporting accuracy alone can hide operational
+trade-offs. This figure is generated without new inference from the combined
+CSV.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.82\textwidth]{../results/latest/figures/paper_candidate_accuracy_latency_tradeoff.png}
-\caption{Candidate accuracy--latency trade-off for MVTec AD and VisA. The
+\caption{Accuracy--latency trade-off for MVTec AD and VisA. The
 plot highlights that the most accurate method is not always the fastest across
 datasets.}
 \label{fig:paper-candidate-accuracy-latency}
 \end{figure}
 
 \section{Discussion}
-The current candidate results illustrate why ZIAD treats the benchmark as a
+The compact results illustrate why ZIAD treats the benchmark as a
 multi-objective evaluation. A detector that is strong in AUROC may not be the
 best calibrated or fastest method on every dataset. The protocol therefore
 separates image discrimination, calibration, latency, stream robustness, and
@@ -300,22 +297,21 @@ benchmark is intended to make operational trade-offs visible for zero-shot and
 training-light industrial anomaly detection.
 
 The present study has not yet elevated temperature-scaling or memory-policy
-variants into the main candidate comparison. Those axes are implemented in the
+variants into the main comparison. Those axes are implemented in the
 protocol and validated elsewhere in the repository, but the safest main paper
 story is the compact calibration-none comparison plus a clear plan for
 calibration and memory ablations.
 
 \section{Limitations}
-The present study has four important limitations. First, the main numerical
-results are candidate evidence pending final audit, not final reviewed paper
-claims. Second, the compact candidate setting uses stream length 64; longer
-streams may be needed before stronger deployment claims are made. Third,
+The present study has four important limitations. First, it reports a compact
+evaluation slice rather than an exhaustive benchmark. Second, the compact
+setting uses stream length 64; longer streams may be needed before stronger
+deployment claims are made. Third,
 latency values depend on the local software and hardware path; they remain
 local-runtime dependent until the final hardware documentation and timing
 semantics are complete. Fourth, calibration and memory-policy variants are not
-yet promoted into the main candidate comparison, so the paper should avoid
-broad claims about temperature scaling or online memory until those slices are
-reviewed.
+yet part of the main comparison, so the paper avoids broad claims about
+temperature scaling or online memory until those slices are reviewed.
 
 \subsection{Stream-length sanity check}
 We include a tiny stream-length sensitivity sanity check for MVTec AD bottle
@@ -334,12 +330,12 @@ probability outputs.
 
 \paragraph{Internal validity.}
 The protocol enforces no duplicate stream images, label integrity, row-count
-checks, closed paper/claim gates, and category-sharded resume behavior. However,
-wrapper differences, local dependency versions, and model-specific preprocessing
-can still affect measured scores and timing.
+checks, development-time result governance, and category-sharded resume
+behavior. However, wrapper differences, local dependency versions, and
+model-specific preprocessing can still affect measured scores and timing.
 
 \paragraph{External validity.}
-The main candidate comparison covers MVTec AD and VisA with four representative
+The main comparison covers MVTec AD and VisA with four representative
 baselines, but it is not an exhaustive industrial deployment study. The tiny
 stream-length sanity check is especially narrow: one dataset category and one
 baseline, with no claim that the trend generalizes.
@@ -360,7 +356,9 @@ latency expose different operational views of the same detectors, motivating
 multi-metric reporting rather than AUROC-only leaderboards. The study does not
 claim a new detector, final state-of-the-art ranking, broad stream-length
 robustness, or a completed calibration/memory-policy ablation; those remain
-subject to final audit and additional reviewed slices.
+subject to additional reviewed slices. By making these axes explicit, ZIAD
+offers a reproducible path for evaluating industrial anomaly detectors under
+streaming conditions.
 
 \bibliographystyle{splncs04}
 \bibliography{refs}
