@@ -59,7 +59,7 @@ and VisA with PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP; and
 trade-offs hidden by static AUROC-only reporting.
 \end{itemize}
 
-The draft currently uses existing repository artifacts only. The numerical
+The paper currently uses existing repository artifacts only. The numerical
 tables should be read as candidate evidence pending final audit rather than as
 camera-ready claims.
 
@@ -258,7 +258,7 @@ settings. Table~\ref{tab:paper-candidate-stream-epsilon-breakdown} exposes those
 axes directly by grouping the same candidate rows by dataset, baseline, stream
 type, and contamination level. This breakdown is intended to check whether the
 protocol axes are visible in the paper rather than hidden inside a single
-leaderboard row. The current draft does not claim that one stream condition is
+leaderboard row. The present study does not claim that one stream condition is
 universally harder; it reports the grouped measurements as candidate evidence
 for review.
 
@@ -298,14 +298,14 @@ memory behavior. This separation is the main contribution of the paper: the
 benchmark is intended to make operational trade-offs visible for zero-shot and
 training-light industrial anomaly detection.
 
-The current draft has not yet elevated temperature-scaling or memory-policy
+The present study has not yet elevated temperature-scaling or memory-policy
 variants into the main candidate comparison. Those axes are implemented in the
 protocol and validated elsewhere in the repository, but the safest main paper
 story is the compact calibration-none comparison plus a clear plan for
 calibration and memory ablations.
 
 \section{Limitations}
-The present draft has four important limitations. First, the main numerical
+The present study has four important limitations. First, the main numerical
 results are candidate evidence pending final audit, not final reviewed paper
 claims. Second, the compact candidate setting uses stream length 64; longer
 streams may be needed before stronger deployment claims are made. Third,
@@ -316,11 +316,12 @@ yet promoted into the main candidate comparison, so the paper should avoid
 broad claims about temperature scaling or online memory until those slices are
 reviewed.
 
-Appendix placeholder: We include a tiny stream-length sensitivity sanity check
-for MVTec AD bottle with WinCLIP at stream lengths 64, 128, and 256. These
-measured rows are preliminary appendix evidence only; they do not support a
-broad stream-length robustness claim without additional categories, additional
-baselines, and manual review.
+\subsection{Stream-length sanity check}
+We include a tiny stream-length sensitivity sanity check for MVTec AD bottle
+with WinCLIP at stream lengths 64, 128, and 256. These measured rows are
+preliminary appendix evidence only; they do not support a broad stream-length
+robustness claim without additional categories, additional baselines, and
+manual review.
 
 \subsection{Threats to validity}
 \paragraph{Construct validity.}
