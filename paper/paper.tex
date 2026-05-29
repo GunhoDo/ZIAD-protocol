@@ -176,6 +176,26 @@ pending final audit until row counts, category counts, metric validity,
 baseline provenance, sampler settings, runtime semantics, and manual review are
 complete.
 
+\begin{table}[t]
+\centering
+\caption{Static industrial anomaly detection benchmark versus the ZIAD
+streaming protocol. The table summarizes protocol axes, not new model claims.}
+\label{tab:static-vs-ziad-protocol}
+\begin{tabular}{lll}
+\toprule
+Axis & Static IAD benchmark & ZIAD streaming protocol \\
+\midrule
+Sample order & Unordered test set & Explicit stream index \\
+Burstiness & Not represented & i.i.d. and bursty arrivals \\
+Contamination & Usually fixed by split & Configurable \(\epsilon\) \\
+Calibration & Often omitted & ECE reported with ranking metrics \\
+Latency & Rarely central & Per-item latency recorded \\
+Memory behavior & Implicit/offline & Memory policy recorded per baseline \\
+Restartability & Single aggregate run & Category-sharded resumable execution \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \section{Experimental Setup}
 The current candidate comparison is category-sharded. Each category shard
 contains 12 metric rows: two stream types, two contamination settings, and
@@ -297,10 +317,37 @@ broad claims about temperature scaling or online memory until those slices are
 reviewed.
 
 Appendix placeholder: We include a tiny stream-length sensitivity sanity check
-for MVTec AD bottle with WinCLIP at stream lengths 128 and 256. These measured
-rows are preliminary appendix evidence only; they do not support a broad
-stream-length robustness claim without additional categories, baselines, and
-manual review.
+for MVTec AD bottle with WinCLIP. The scaffold targets stream lengths 64, 128,
+and 256, while the current local summary contains measured aggregate rows for
+64 and 256. These measured rows are preliminary appendix evidence only; they do
+not support a broad stream-length robustness claim without the missing
+intermediate length, additional categories, additional baselines, and manual
+review.
+
+\subsection{Threats to validity}
+\paragraph{Construct validity.}
+ZIAD measures stream order, burstiness, contamination, calibration, latency, and
+memory behavior through practical proxies. CRD-lite is intentionally a compact
+signed diagnostic rather than a complete robustness theory, and ECE is computed
+after score normalization because wrapped baselines do not share calibrated
+probability outputs.
+
+\paragraph{Internal validity.}
+The protocol enforces no duplicate stream images, label integrity, row-count
+checks, closed paper/claim gates, and category-sharded resume behavior. However,
+wrapper differences, local dependency versions, and model-specific preprocessing
+can still affect measured scores and timing.
+
+\paragraph{External validity.}
+The main candidate comparison covers MVTec AD and VisA with four representative
+baselines, but it is not an exhaustive industrial deployment study. The tiny
+stream-length sanity check is especially narrow: one dataset category and one
+baseline, with no claim that the trend generalizes.
+
+\paragraph{Runtime validity.}
+Latency is local-runtime dependent. The current runtime documentation records
+the audit environment, but final latency claims require confirming device path,
+model-loading scope, batching behavior, and timing granularity.
 
 TODO before submission: verify venue-specific citation formatting, complete
 hardware/timing confirmation, decide whether a minimal temperature-scaling

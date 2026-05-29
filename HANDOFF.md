@@ -34,7 +34,7 @@
   - `results/latest/sensitivity/stream_length/summary.json`
   - `results/latest/tables/stream_length_sensitivity_summary.tex`
 - executed pilot shards:
-  - `mvtec_ad:winclip:default_no_memory:none:bottle:len_128`
+  - `mvtec_ad:winclip:default_no_memory:none:bottle:len_64`
     - row_count: `12`
     - category: `bottle`
     - baseline: `WinCLIP`
@@ -50,8 +50,10 @@
   - status: `stream_length_sensitivity_summary_complete`
   - group_count: `2`
   - error_count: `0`
+  - current groups: `stream_length=64` and `stream_length=256`
 - limitation:
-  - only two WinCLIP/bottle shards have been run; the full 18-step bounded sensitivity grid has not been run.
+  - only two WinCLIP/bottle shards are present in the current local summary; the intended `stream_length=128` aggregate from the earlier pilot is not present in the ignored local results tree and was not rerun because the latest task allowed only `len_64` inference.
+  - the full 18-step bounded sensitivity grid has not been run.
   - this remains preliminary appendix sanity-check evidence only and keeps `paper_allowed=false`, `claim_allowed=false`, `review_status=review_pending`.
 
 ## 최신 진행: paper-candidate stream/epsilon breakdown
