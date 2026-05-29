@@ -67,7 +67,7 @@ COMPACT_TEX_COLUMNS = [
     ("delta_bursty_iid_auroc", "$\\Delta$B-I"),
     ("delta_eps_0p05_0_auroc", "$\\Delta\\epsilon$"),
     ("delta_eps_0p05_0_ece", "$\\Delta$ECE"),
-    ("mean_latency_ms", "Lat. ms"),
+    ("mean_latency_ms", "Lat. (ms)"),
 ]
 
 
@@ -411,12 +411,17 @@ def write_tex(summary: dict[str, Any], path: Path) -> None:
     lines = [
         "% Auto-generated compact stream/epsilon summary for the paper table.",
         "% Full 32-row breakdown remains in the paired CSV/JSON artifacts.",
-        "\\begin{tabular}{llrrrrr}",
+        "\\begin{tabular}{@{}l@{\\hspace{0.8em}}l@{\\hspace{0.7em}}rrrrr@{}}",
         "\\toprule",
         " & ".join(label for _, label in columns) + r" \\",
         "\\midrule",
     ]
+    previous_dataset = None
     for row in compact_rows:
+        dataset = row.get("dataset")
+        if previous_dataset is not None and dataset != previous_dataset:
+            lines.append("\\addlinespace[0.18em]")
+        previous_dataset = dataset
         lines.append(
             " & ".join(_compact_tex_value(row, key) for key, _ in columns) + r" \\"
         )

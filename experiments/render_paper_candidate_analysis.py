@@ -128,9 +128,9 @@ def write_ranking_tex(summary: dict[str, Any], path: Path = DEFAULT_RANKING_TEX)
     path.parent.mkdir(parents=True, exist_ok=True)
     lines = [
         "% Auto-generated ranking summary from the compact evaluation slice.",
-        "\\begin{tabular}{lllll}",
+        "\\begin{tabular}{@{}l@{\\hspace{1.0em}}l@{\\hspace{1.0em}}l@{\\hspace{1.0em}}l@{\\hspace{1.0em}}l@{}}",
         "\\toprule",
-        "Dataset & AUROC $\\uparrow$ & AUPR $\\uparrow$ & ECE $\\downarrow$ & Latency $\\downarrow$ \\\\",
+        "Dataset & Best AUROC & Best AUPR & Best ECE & Fastest \\\\",
         "\\midrule",
     ]
     for dataset, rankings in summary["rankings"].items():

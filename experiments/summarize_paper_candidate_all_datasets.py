@@ -258,22 +258,27 @@ def write_tex(summary: dict[str, Any], path: Path) -> None:
     columns = [
         ("dataset", "Dataset"),
         ("baseline", "Baseline"),
-        ("completed_categories", "Categories"),
+        ("completed_categories", "Cat."),
         ("total_rows", "Rows"),
         ("mean_image_auroc", "AUROC"),
         ("mean_aupr", "AUPR"),
         ("mean_ece", "ECE"),
-        ("mean_latency_ms", "Lat. ms"),
+        ("mean_latency_ms", "Lat. (ms)"),
         ("mean_crd_lite", "CRD-lite"),
     ]
     lines = [
         "% Auto-generated compact evaluation table.",
-        "\\begin{tabular}{llrrrrrrr}",
+        "\\begin{tabular}{@{}l@{\\hspace{0.8em}}l@{\\hspace{0.7em}}c@{\\hspace{0.7em}}c@{\\hspace{0.7em}}rrrrr@{}}",
         "\\toprule",
         " & ".join(label for _, label in columns) + r" \\",
         "\\midrule",
     ]
+    previous_dataset = None
     for row in summary["baselines"]:
+        dataset = row.get("dataset")
+        if previous_dataset is not None and dataset != previous_dataset:
+            lines.append("\\addlinespace[0.18em]")
+        previous_dataset = dataset
         values = []
         for key, _ in columns:
             value = row.get(key)

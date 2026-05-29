@@ -17,39 +17,51 @@ def _configure_matplotlib() -> None:
     os.environ.setdefault("MPLCONFIGDIR", "/tmp/ziad_matplotlib")
 
 
-def _draw_box(ax, xy, width, height, title: str, lines: Iterable[str], color: str) -> None:
+def _draw_box(
+    ax,
+    xy,
+    width,
+    height,
+    title: str,
+    lines: Iterable[str],
+    color: str,
+    *,
+    title_size: float = 7.6,
+    body_size: float = 6.8,
+) -> None:
     import matplotlib.patches as patches
 
     x, y = xy
+    pad_x = 0.14
     box = patches.FancyBboxPatch(
         (x, y),
         width,
         height,
-        boxstyle="round,pad=0.02,rounding_size=0.04",
-        linewidth=1.1,
+        boxstyle="round,pad=0.025,rounding_size=0.045",
+        linewidth=0.9,
         edgecolor="#1f2937",
         facecolor=color,
     )
     ax.add_patch(box)
     ax.text(
-        x + width / 2,
-        y + height - 0.12,
+        x + pad_x,
+        y + height - 0.15,
         title,
-        ha="center",
+        ha="left",
         va="top",
-        fontsize=8.0,
+        fontsize=title_size,
         fontweight="bold",
         color="#111827",
     )
     ax.text(
-        x + 0.06,
-        y + height - 0.34,
+        x + pad_x,
+        y + height - 0.42,
         "\n".join(lines),
         ha="left",
         va="top",
-        fontsize=7.2,
+        fontsize=body_size,
         color="#111827",
-        linespacing=1.22,
+        linespacing=1.18,
     )
 
 
@@ -79,40 +91,55 @@ def render(output_png: Path, output_pdf: Path | None = None) -> None:
     if output_pdf is not None:
         output_pdf.parent.mkdir(parents=True, exist_ok=True)
 
-    fig, ax = plt.subplots(figsize=(7.2, 3.0), dpi=220)
-    ax.set_xlim(0, 10.6)
-    ax.set_ylim(0, 4)
+    fig, ax = plt.subplots(figsize=(7.2, 2.65), dpi=220)
+    ax.set_xlim(0, 10.2)
+    ax.set_ylim(0, 3.45)
     ax.axis("off")
 
+    main_y = 1.42
+    main_h = 1.28
+    widths = [1.78, 1.86, 2.28, 2.30]
+    xs = [0.18, 2.35, 4.65, 7.48]
     boxes = [
-        ((0.15, 1.65), 1.75, 1.35, "Static datasets", ["MVTec AD", "VisA", "category splits"], "#e0f2fe"),
-        ((2.35, 1.65), 1.95, 1.35, "Stream generator", ["iid arrivals", "bursty blocks", "epsilon contamination"], "#dcfce7"),
-        ((4.75, 1.45), 2.25, 1.75, "Baseline families", ["PatchCore", "WinCLIP / AnomalyCLIP", "RareCLIP"], "#fef3c7"),
-        ((7.55, 1.45), 2.65, 1.75, "Metrics and audit", ["AUROC, AUPR, ECE", "latency, CRD-lite", "category-sharded checks"], "#fee2e2"),
-        ((2.8, 0.35), 3.75, 0.72, "Optional protocol axes", ["memory policy   |   calibration   |   stream length"], "#fae8ff"),
+        ((xs[0], main_y), widths[0], main_h, "Static datasets", ["MVTec AD, VisA", "category splits"], "#e0f2fe"),
+        ((xs[1], main_y), widths[1], main_h, "Stream generator", ["IID arrivals", "bursty blocks", r"$\epsilon$ contamination"], "#dcfce7"),
+        ((xs[2], main_y), widths[2], main_h, "Baseline families", ["PatchCore reference", "WinCLIP, AnomalyCLIP", "RareCLIP"], "#fef3c7"),
+        ((xs[3], main_y), widths[3], main_h, "Metrics and audit", ["AUROC, AUPR, ECE", "latency, CRD-lite", "category-sharded checks"], "#fee2e2"),
+        ((2.28, 0.34), 5.55, 0.62, "Optional protocol axes", ["memory policy  |  calibration  |  stream length"], "#fae8ff"),
     ]
     for xy, width, height, title, lines, color in boxes:
         _draw_box(ax, xy, width, height, title, lines, color)
 
-    _draw_arrow(ax, (1.9, 2.32), (2.35, 2.32))
-    _draw_arrow(ax, (4.3, 2.32), (4.75, 2.32))
-    _draw_arrow(ax, (7.0, 2.32), (7.55, 2.32))
-    _draw_arrow(ax, (4.9, 1.45), (4.9, 1.07))
-    _draw_arrow(ax, (6.55, 0.71), (7.55, 1.58))
+    mid_y = main_y + main_h / 2
+    _draw_arrow(ax, (xs[0] + widths[0] + 0.04, mid_y), (xs[1] - 0.04, mid_y))
+    _draw_arrow(ax, (xs[1] + widths[1] + 0.04, mid_y), (xs[2] - 0.04, mid_y))
+    _draw_arrow(ax, (xs[2] + widths[2] + 0.04, mid_y), (xs[3] - 0.04, mid_y))
+
+    ax.plot([5.05, 5.05], [0.96, main_y - 0.09], color="#6b7280", linewidth=0.9, linestyle="--")
+    ax.text(
+        5.16,
+        1.16,
+        "configured when studied",
+        ha="left",
+        va="center",
+        fontsize=6.2,
+        color="#4b5563",
+    )
 
     ax.text(
-        5.3,
-        3.62,
+        5.1,
+        3.14,
         "ZIAD converts static IAD benchmarks into auditable streaming evaluations",
         ha="center",
         va="center",
-        fontsize=9.3,
+        fontsize=9.0,
+        fontweight="bold",
         color="#111827",
     )
 
-    fig.savefig(output_png, bbox_inches="tight", pad_inches=0.03)
+    fig.savefig(output_png, bbox_inches="tight", pad_inches=0.04)
     if output_pdf is not None:
-        fig.savefig(output_pdf, bbox_inches="tight", pad_inches=0.03)
+        fig.savefig(output_pdf, bbox_inches="tight", pad_inches=0.04)
     plt.close(fig)
 
 
