@@ -9,6 +9,8 @@
 \author{Anonymous ACCV Submission}
 \authorrunning{Anonymous ACCV Submission}
 \institute{Paper ID *****}
+\newcommand{\figref}[1]{Fig.~\ref{#1}}
+\newcommand{\tabref}[1]{Table~\ref{#1}}
 \begin{document}
 \maketitle
 \begin{abstract}
@@ -100,7 +102,7 @@ reports ECE alongside AUROC, AUPR, latency, and CRD-lite rather than treating
 AUROC as the only target.
 
 \section{Evaluation Protocol}
-Figure~\ref{fig:ziad-protocol-overview} summarizes the focused ZIAD flow. The
+\figref{fig:ziad-protocol-overview} summarizes the focused ZIAD flow. The
 figure is a protocol overview, not a result: static industrial datasets are
 converted into stream-ordered evaluation items, passed through shared baseline
 interfaces, optionally varied along protocol axes, and summarized with metrics
@@ -114,16 +116,16 @@ available protocol axes; it does not report experimental outcomes.}
 \label{fig:ziad-protocol-overview}
 \end{figure}
 
-\subsection{Stream construction}
+\subsection{Stream Construction}
 The protocol converts a static anomaly-detection test set into stream-ordered
 evaluation items with a common schema:
 \texttt{stream\_index}, \texttt{image\_path}, \texttt{label},
 \texttt{category}, \texttt{source\_split}, and \texttt{anomaly\_type}.
-For a category \(c\), a generated stream is written as
+For a category~\(c\), a generated stream is written as
 \[
 S_{c,\tau,\epsilon,r}=\{(x_t,y_t,a_t)\}_{t=1}^{T},
 \]
-where \(x_t\) is the image at stream index \(t\), \(y_t\in\{0,1\}\) is the
+where \(x_t\) is the image at stream index~\(t\), \(y_t\in\{0,1\}\) is the
 normal/anomaly label, \(a_t\) is the anomaly type, \(\tau\in\{\mathrm{iid},
 \mathrm{bursty}\}\) is the stream type, \(\epsilon\) is the contamination
 setting, and \(r\) is the random seed. The i.i.d. setting samples the requested
@@ -134,7 +136,7 @@ When requested stream prevalence, contamination, or burst layout cannot be
 matched exactly, the generator records the applied statistics and emits a
 warning rather than silently fabricating a perfect stream.
 
-\subsection{Baseline interface}
+\subsection{Baseline Interface}
 Each baseline consumes the same stream file and writes the same score schema:
 \texttt{stream\_index}, \texttt{image\_path}, \texttt{label},
 \texttt{category}, \texttt{anomaly\_score}, \texttt{latency\_ms},
@@ -146,7 +148,7 @@ default/SCS memory setting in the main comparison; WinCLIP and
 AnomalyCLIP use default/no-memory settings.
 
 \subsection{Metrics}
-For each detector \(f\), the wrapper emits an anomaly score
+For each detector~\(f\), the wrapper emits an anomaly score
 \(s_t=f(x_t)\) and a measured latency for each stream item. ZIAD evaluates the
 resulting score sequence along five axes. First, it compares i.i.d. streams with
 bursty streams, where anomalous samples are concentrated into contiguous
@@ -166,7 +168,7 @@ seed shards for each dataset/baseline slice.
 CRD-lite is the repository's lightweight contamination robustness diagnostic.
 For a fixed dataset, category, stream type, baseline, memory policy,
 calibration, prevalence, and seed, the implementation compares a contaminated
-run at \(\epsilon\) to the matching \(\epsilon=0\) run:
+run at~\(\epsilon\) to the matching \(\epsilon=0\) run:
 \[
 \mathrm{CRD\text{-}lite}(\epsilon)=
 \frac{1}{2}\left[
@@ -179,9 +181,9 @@ drop, and negative values indicate that the measured AUROC/AUPR improved in the
 contaminated run. This is a signed proxy used for compact diagnostics, not a
 full theoretical robustness metric.
 
-\subsection{Category-sharded execution}
+\subsection{Category-Sharded Execution}
 The focused evaluation covers MVTec AD and VisA, the baselines
-PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP, stream length 64, and seeds
+PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP, stream length~64, and seeds
 \(\{0,1,2\}\). Execution is category-sharded so long-running steps can resume
 without confusing a completed category shard with a full paper result.
 Measurement generation is deliberately separated from claim approval: outputs
@@ -228,7 +230,7 @@ averages of wrapper-reported \texttt{latency\_ms} values emitted for metric
 rows; they reflect the local wrapper timing path rather than a standardized
 cross-hardware benchmark.
 
-\subsection{Reproducibility and result governance}
+\subsection{Reproducibility and Result Governance}
 The repository keeps measurement generation and claim approval separate.
 A governance record tracks whether outputs have passed row-count and
 category-count checks, finite metric audits, provenance review, runtime
@@ -237,7 +239,7 @@ for reproducibility; the paper-facing claims are limited to the audited
 evaluation described above.
 
 \section{Results}
-Table~\ref{tab:paper-candidate-baseline-comparison} summarizes the current
+\tabref{tab:paper-candidate-baseline-comparison} summarizes the current
 focused comparison for the calibration-none setting. In this representative
 streaming evaluation, PatchCore
 has the highest mean AUROC and AUPR on both datasets. The lowest ECE differs by
@@ -263,12 +265,12 @@ included to highlight trade-offs across metrics.}
 \input{../results/latest/tables/paper_candidate_ranking_summary.tex}
 \end{table}
 
-\subsection{Stream and contamination breakdown}
+\subsection{Stream and Contamination Breakdown}
 The aggregate table above averages over two stream types and two contamination
-settings. Table~\ref{tab:paper-candidate-stream-epsilon-breakdown} summarizes
+settings. \tabref{tab:paper-candidate-stream-epsilon-breakdown} summarizes
 those axes with one row per dataset and baseline: the table reports the mean
 AUROC, the AUROC shift from IID to bursty streams, the AUROC shift from
-$\epsilon=0$ to $\epsilon=0.05$, the corresponding ECE shift, and mean latency.
+\(\epsilon=0\) to \(\epsilon=0.05\), the corresponding ECE shift, and mean latency.
 The full 32-row stream/epsilon breakdown remains in the generated CSV/JSON
 artifacts. This compact table keeps the protocol axes visible in the paper
 without turning the main text into a long leaderboard dump.
@@ -276,14 +278,14 @@ without turning the main text into a long leaderboard dump.
 \begin{table}[tbp]
 \centering
 \caption{Compact stream and contamination summary for calibration
-\texttt{none}. $\Delta$B-I is bursty minus IID AUROC; $\Delta\epsilon$ is
-$\epsilon=0.05$ minus $\epsilon=0$ AUROC.}
+\texttt{none}. \(\Delta\)B-I is bursty minus IID AUROC; \(\Delta\epsilon\) is
+\(\epsilon=0.05\) minus \(\epsilon=0\) AUROC.}
 \label{tab:paper-candidate-stream-epsilon-breakdown}
 \resizebox{\textwidth}{!}{\input{../results/latest/tables/paper_candidate_stream_epsilon_breakdown_none.tex}}
 \end{table}
 
-\subsection{Statistical uncertainty}
-Table~\ref{tab:focused-evaluation-ci} reports a no-inference uncertainty audit
+\subsection{Statistical Uncertainty}
+\tabref{tab:focused-evaluation-ci} reports a no-inference uncertainty audit
 over the same focused evaluation rows. The bootstrap unit is a category/seed
 stratum: stream and contamination rows are averaged within each stratum, then
 strata are resampled with replacement. These intervals should be read as
@@ -299,7 +301,7 @@ Intervals use category/seed strata and existing metric rows only.}
 \end{table}
 
 \section{Accuracy--Latency Trade-off}
-Figure~\ref{fig:paper-candidate-accuracy-latency} plots mean image AUROC against
+\figref{fig:paper-candidate-accuracy-latency} plots mean image AUROC against
 mean latency for each dataset and baseline pair. The focused evaluation shows
 that accuracy and latency rankings are not identical across datasets, which
 supports the protocol motivation: reporting accuracy alone can hide operational
@@ -351,14 +353,14 @@ and hardware path. Fourth, calibration and memory-policy variants are not yet
 part of the main comparison, so the paper avoids broad claims about temperature
 scaling or online memory until those slices are reviewed.
 
-\subsection{Stream-length sanity check}
+\subsection{Stream-Length Sanity Check}
 We include a tiny stream-length sensitivity sanity check for MVTec AD bottle
 with WinCLIP at stream lengths 64, 128, and 256. These measured rows are
 preliminary appendix evidence only; they do not support a broad stream-length
 robustness claim without additional categories, additional baselines, and
 manual review.
 
-\subsection{Threats to validity}
+\subsection{Threats to Validity}
 \paragraph{Construct validity.}
 ZIAD measures stream order, burstiness, contamination, calibration, latency, and
 memory behavior through practical proxies. CRD-lite is intentionally a compact
