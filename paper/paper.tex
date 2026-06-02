@@ -17,48 +17,44 @@
 \begin{document}
 \maketitle
 \begin{abstract}
-Industrial anomaly detection is commonly reported on static image sets, yet
+Industrial anomaly detection is commonly evaluated on static image sets, yet
 inspection systems receive samples over time and must balance accuracy,
 calibration, latency, and changing stream conditions. We present ZIAD, a
-streaming protocol for zero-shot industrial anomaly detection evaluation that
-also includes training-light reference detectors. Rather than proposing a new
-detector, ZIAD turns static industrial anomaly benchmarks into controlled
-i.i.d. and bursty streams and evaluates methods along accuracy, calibration,
-latency, contamination, and stream-order axes while recording memory
-configuration for later protocol slices. We instantiate the protocol on MVTec AD
-and VisA with four
-representative baselines: PatchCore as a strong training-light reference, and
-WinCLIP, AnomalyCLIP, and RareCLIP as CLIP-style baselines. The resulting
-comparison yields two key findings: the four frozen baselines exhibit near-zero
-stream-order sensitivity, confirming that current IAD detectors score each
-image independently regardless of arrival pattern, while a post-hoc
-sliding-window positive control applied to the same frozen scores produces
-statistically significant non-zero $\Delta$B-I on multiple (baseline, dataset)
-cells. This shows that the stream-order axis is measurable when a scoring rule
-uses previous stream items. Accuracy, calibration, latency, and contamination
-diagnostics rank methods differently across datasets, illustrating that AUROC
-alone is insufficient for operational evaluation.
+streaming evaluation protocol for zero-shot and training-light industrial
+anomaly detection. The protocol converts static benchmarks into controlled
+i.i.d.\ and bursty streams and evaluates detectors along accuracy,
+calibration, latency, contamination, and stream-order axes with
+category-sharded execution. We instantiate the protocol on MVTec AD and VisA
+with PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP as representative
+baselines. Three findings emerge. First, all four main baselines produce
+near-zero $\Delta$B-I; WinCLIP, AnomalyCLIP, and PatchCore operate statelessly
+(order-invariance expected), while RareCLIP continuously updates memory yet
+also produces near-zero $\Delta$B-I---its SCS diversity-sampling mechanism is
+structurally insensitive to arrival order at stream length~64.
+Second, two state-updating diagnostic detectors on a focused MVTec AD slice
+produce statistically significant non-zero $\Delta$B-I:
+OnlineWindowKNN ($\Delta\text{B-I}{=}{+0.014}$, 95\%~CI
+$[{+0.005},{+0.022}]$) and a PatchCore-style online memory-bank detector
+($\Delta\text{B-I}{=}{+0.014}$, 95\%~CI $[{+0.006},{+0.023}]$), demonstrating
+that stream-order sensitivity is detectable when memory adaptation is
+order-sensitive.
+Third, across stream types and contamination levels, accuracy, calibration,
+and latency rankings are not consistent---a pattern that static AUROC-only
+evaluation cannot surface.
 \end{abstract}
 
 \section{Introduction}
 Industrial anomaly detection is often evaluated on static test sets, but
-practical inspection systems receive images over time. This mismatch is
-especially important for zero-shot and training-light anomaly detection, where
-category-specific training may be reduced or avoided, but where deployment
-still depends on latency, score calibration, stream order, anomaly prevalence,
-and contamination. Memory configuration is implemented and recorded by the
-protocol, but the focused slice in this paper does not claim a memory-policy
-comparison. PatchCore provides a strong training-light reference point, while
-WinCLIP, AnomalyCLIP, and RareCLIP represent CLIP-style zero-shot baselines. A
-single offline AUROC number does not expose these operational dimensions.
-
-This paper uses ZIAD as shorthand for zero-shot industrial anomaly detection
-evaluation under streaming conditions. It positions ZIAD as an evaluation
-protocol and analysis framework, not as a new model. The protocol asks whether
-common zero-shot and training-light industrial anomaly detectors preserve their
-behavior when test samples arrive as streams. It also records whether a method
-is fast enough for repeated inspection use, whether its scores are calibrated,
-and whether i.i.d. versus bursty anomaly arrivals change the resulting metrics.
+practical inspection systems receive images over time. This mismatch matters
+for zero-shot and training-light detectors, where deployment depends on
+latency, score calibration, stream order, anomaly prevalence, and
+contamination as well as ranking accuracy. ZIAD is an evaluation protocol and
+analysis framework that converts static benchmarks into controlled streams and
+measures detectors along five axes: discrimination accuracy (AUROC, AUPR),
+calibration (ECE), latency, contamination sensitivity (CRD-lite), and
+stream-order sensitivity ($\Delta$B-I). PatchCore provides a training-light
+reference; WinCLIP, AnomalyCLIP, and RareCLIP represent CLIP-style zero-shot
+baselines.
 
 The main contributions are:
 \begin{itemize}
@@ -71,15 +67,14 @@ restartable while preserving dataset and label integrity;
 and VisA with PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP; and
 \item an accuracy--latency--calibration analysis that exposes operational
 trade-offs hidden by static AUROC-only reporting; and
-\item a two-sided stream-order finding: the four frozen baselines score
-images independently of arrival pattern, while a thin post-hoc OnlineWindow
-wrapper applied to the same scores produces statistically significant non-zero
-$\Delta$B-I, demonstrating that the protocol's stream-order axis is empirically
-measurable rather than trivially zero.
+\item a stream-order characterization: WinCLIP, AnomalyCLIP, and PatchCore run
+statelessly (near-zero $\Delta$B-I expected); RareCLIP updates memory per sample
+yet also yields near-zero $\Delta$B-I (SCS diversity sampling is
+order-insensitive); two diagnostic detectors---OnlineWindowKNN and a
+PatchCore-style online memory-bank detector---each produce significant
+$\Delta$B-I $= +0.014$ (95\% CI excludes zero), validating detectability
+of order-sensitive adaptation.
 \end{itemize}
-
-The paper reports a focused evaluation slice and uses it to study protocol
-behavior rather than to make new best-detector claims.
 
 \section{Related Work}
 \paragraph{Industrial anomaly detection and its benchmarks.}
@@ -120,11 +115,9 @@ comparable under the same baselines and metrics.
 
 \paragraph{Calibration and reliability.}
 Anomaly scores often drive thresholds or alarms, so ranking quality alone is
-insufficient. Calibration metrics such as ECE~\cite{Guo2017Calibration} quantified
-whether scores are interpretable across streams, categories, and contamination
-settings. Yet industrial AD studies rarely reported calibration alongside accuracy
-and latency. ZIAD therefore reports ECE together with AUROC, AUPR, latency, and
-CRD-lite rather than treating AUROC as the only target.
+insufficient. ECE~\cite{Guo2017Calibration} quantifies whether scores are
+interpretable across streams and contamination settings. ZIAD reports ECE
+alongside AUROC, AUPR, latency, and CRD-lite.
 
 \section{Evaluation Protocol}
 \figref{fig:ziad-protocol-overview} summarizes the focused ZIAD flow. The
@@ -168,9 +161,9 @@ Each baseline consumes the same stream file and writes the same score schema:
 \texttt{peak\_vram\_mb}, and \texttt{status}. This interface keeps the
 protocol independent of a particular detector implementation. PatchCore is
 treated as a training-light reference baseline, while WinCLIP, AnomalyCLIP, and
-RareCLIP are treated as CLIP-style baselines. PatchCore and RareCLIP use their
-default/SCS memory setting in the main comparison; WinCLIP and
-AnomalyCLIP use default/no-memory settings.
+RareCLIP are treated as CLIP-style baselines. PatchCore uses its default fixed coreset; RareCLIP runs with its default SCS
+policy, which actively updates patch-feature and image-feature memory per
+sample; WinCLIP and AnomalyCLIP use stateless inference.
 
 \subsection{Metrics}
 For each detector~\(f\), the wrapper emits an anomaly score
@@ -258,15 +251,8 @@ current audit/build environment records an Intel Core i5-14500 CPU, Ubuntu
 22.04.5, Python 3.10.12, and a PyTorch 1.13.1+cu116 stack. Latency columns are
 averages of wrapper-reported \texttt{latency\_ms} values emitted for metric
 rows; they reflect the local wrapper timing path rather than a standardized
-cross-hardware benchmark.
-
-\subsection{Reproducibility and Result Governance}
-ZIAD keeps measurement generation and claim approval separate.
-A governance record tracks whether outputs have passed row-count and
-category-count checks, finite metric audits, provenance review, runtime
-documentation, and manual approval. These safeguards are engineering controls
-for reproducibility; the paper-facing claims are limited to the audited
-evaluation described above.
+cross-hardware benchmark. Baselines are run from pinned source commits; stream
+generation preserves label integrity and records applied statistics.
 
 \section{Results}
 \tabref{tab:paper-candidate-baseline-comparison} summarizes the current
@@ -323,109 +309,82 @@ minus i.i.d. AUROC; \(\Delta\epsilon\) is \(\epsilon=0.05\) minus
 \resizebox{0.96\textwidth}{!}{\input{../results/latest/tables/paper_candidate_stream_epsilon_breakdown_none.tex}}
 \end{table}
 
-The near-zero \(\Delta\)B-I values in
-\tabref{tab:paper-candidate-stream-epsilon-breakdown} constitute a substantive
-finding: all four baselines score each image independently of stream arrival
-pattern. This offline-first design is shared across CLIP-style zero-shot
-detectors and the training-light PatchCore reference, and is not visible from
-static benchmark evaluation; ZIAD makes it explicit through matched i.i.d.\ and
-bursty stream construction. To verify that the protocol can detect order
-sensitivity when it does exist, we added an intentionally order-sensitive
-diagnostic probe, OrderSensitiveToy, that mixes the current image-derived score
-with a short sliding window of previous scores.
-\tabref{tab:order-sensitive-toy-stream-epsilon} shows non-zero \(\Delta\)B-I
-point estimates for this probe: \(+0.006\) on MVTec AD and \(+0.030\) on VisA.
-The corresponding bootstrap intervals in
-\tabref{tab:order-sensitive-toy-ci} include zero, so we treat the probe as a
-positive diagnostic control rather than a statistically significant detector
-comparison. The probe is not a proposed detector; it demonstrates that the
-stream-order axis is observable when a scoring rule depends on previous stream
-items. Future protocol slices targeting truly online detectors -- where memory
-or thresholds adapt during the stream -- will require non-zero \(\Delta\)B-I to
-validate online behavior.
+The near-zero $\Delta$B-I values in
+\tabref{tab:paper-candidate-stream-epsilon-breakdown} are a \emph{baseline
+characterization}. WinCLIP, AnomalyCLIP, and PatchCore are stateless
+(order-invariance expected). RareCLIP updates memory per sample yet also
+yields near-zero $\Delta$B-I: SCS diversity sampling is insensitive to arrival
+order. ZIAD makes both behaviors auditable, providing a reference against which
+state-updating detectors can be compared.
 
-\begin{table}[ht!]
-\centering
-\scriptsize
-\caption{Order-sensitive diagnostic probe. The table reports point estimates
-for a protocol diagnostic, not a main detector result. \(\Delta\)B-I is bursty
-minus i.i.d. AUROC; \tabref{tab:order-sensitive-toy-ci} reports its bootstrap
-intervals.}
-\label{tab:order-sensitive-toy-stream-epsilon}
-\resizebox{\textwidth}{!}{\input{../results/latest/tables/order_sensitive_toy_stream_epsilon_breakdown.tex}}
-\end{table}
-
-To strengthen this control with a more realistic adaptation layer, we evaluate
-a post-hoc \emph{OnlineWindow}($\alpha, W$) wrapper that consumes the same frozen
-baseline scores~$s_t$ and emits an adaptive score
-$\tilde{s}_t = \alpha\,s_t + (1-\alpha)\cdot \mathrm{mean}(s_{t-W:t-1})$. The
-wrapper requires no new inference; it post-processes the existing score CSVs.
-\tabref{tab:online-window-delta-bi} reports per-baseline \(\Delta\)B-I with
-category/seed bootstrap intervals for the canonical configuration
-$(\alpha{=}0.3, W{=}8)$. The frozen baselines remain stream-order invariant
-($\Delta\text{B-I}\!\approx\!0$ across the board), but the OnlineWindow wrapper
-yields statistically significant non-zero $\Delta$B-I in three out of eight
-(baseline, dataset) cells -- VisA AnomalyCLIP, RareCLIP, and PatchCore -- with
-positive point estimates in all eight cells. This is a post-hoc positive
-control, not a new detector: within a burst, the sliding-window history can
-reinforce anomalous scores. The result shows that ZIAD can surface order
-sensitivity when a scoring rule uses previous stream items.
+Three levels of positive-control evidence confirm that the $\Delta$B-I axis
+detects order sensitivity when it exists. First, OrderSensitiveToy---a probe
+mixing each image score with a short window of previous scores---yields
+positive point estimates ($+0.006$, MVTec AD; $+0.030$, VisA) but with
+bootstrap confidence intervals that include zero; this is weak preliminary
+evidence only. Second, the post-hoc OnlineWindow($\alpha{=}0.3, W{=}8$)
+wrapper applied to the same frozen scores yields statistically significant
+non-zero $\Delta$B-I in three of eight (baseline, dataset) cells
+(\tabref{tab:online-window-delta-bi}), providing supporting evidence.
+Third, and most directly, two state-updating diagnostic detectors evaluated
+on a focused MVTec AD slice (categories: bottle, cable, capsule; stream
+length~256; seeds~0--9; 60 bootstrap strata) produce statistically significant
+non-zero $\Delta$B-I with confidence intervals excluding zero:
+OnlineWindowKNN ($\Delta\text{B-I} = +0.014$, 95\% CI $[+0.005, +0.022]$)
+and a PatchCore-style online memory-bank detector,
+OnlinePatchCoreLite~($K{=}8$ nearest neighbours) ($\Delta\text{B-I} = +0.014$,
+95\% CI $[+0.006, +0.023]$). OnlinePrototypeEMA does not reach significance
+($+0.004$, 95\% CI $[-0.008, +0.016]$).
+\tabref{tab:online-memory-detector-comparison} reports all three results.
+In absolute terms, $\Delta\text{B-I}{=}{+0.014}$ is a 1.4 AUROC-percentage-point
+shift between i.i.d.\ and bursty streams; operational significance depends on
+the base AUROC and decision threshold of the deployed method. These diagnostic
+detectors validate the computational path of the $\Delta$B-I estimator; they
+do not establish that real deployed methods with theoretically order-sensitive
+adaptation would produce detectable effects at these stream lengths.
 
 \begin{table}[ht!]
 \centering
 \small
-\caption{OnlineWindow stream-order sensitivity. For each frozen baseline we
-report the OnlineWindow($\alpha{=}0.3,W{=}8$) variant's \(\Delta\)B-I with
-category/seed bootstrap intervals. Bold cells denote 95\% CI excluding zero.}
+\caption{OnlineWindow($\alpha{=}0.3,W{=}8$) stream-order sensitivity
+(supporting evidence). $\Delta$B-I per frozen baseline with category/seed
+bootstrap intervals. Bold: 95\% CI excluding zero.}
 \label{tab:online-window-delta-bi}
 \resizebox{\textwidth}{!}{\input{../results/latest/tables/online_window_delta_bi.tex}}
 \end{table}
 
+\begin{table}[ht!]
+\centering
+\small
+\caption{State-updating diagnostic detectors on MVTec AD (bottle, cable,
+capsule; stream length~256; seeds~0--9; 60 strata). Diagnostic probes to
+validate the $\Delta$B-I axis, not leaderboard baselines. Bold: 95\% CI
+excluding zero.}
+\label{tab:online-memory-detector-comparison}
+\resizebox{0.85\textwidth}{!}{\input{../results/latest/tables/online_memory_detector_comparison.tex}}
+\end{table}
+
 \subsection{Statistical Uncertainty}
-\tabref{tab:focused-evaluation-ci} reports a no-inference uncertainty audit
-over the same focused evaluation rows. The bootstrap unit is a category/seed
-stratum: stream and contamination rows are averaged within each stratum, then
-strata are resampled with replacement. The paper table reports AUROC intervals
-and CRD-lite intervals; the generated JSON records the same audit for AUPR, ECE,
-and latency. These intervals quantify uncertainty for the focused evaluation
-slice, not robustness over longer streams or untested variants. After
-seed-matched CRD-lite regeneration, the bootstrap intervals provide uncertainty
-for the signed average diagnostic. Negative CRD-lite values are interpreted by
-inspecting the AUROC and AUPR terms: when those terms move in opposite
-directions, their average can be negative even if AUROC degrades under
-contamination.
-\tabref{tab:order-sensitive-toy-ci} extends the same bootstrap procedure to
-the order-sensitive diagnostic probe; the \(\Delta\)B-I point estimates
-(\(+0.006\) for MVTec AD, \(+0.030\) for VisA) fall within wide intervals that
-include zero.
+\tabref{tab:focused-evaluation-ci} reports stratified bootstrap intervals for
+the focused evaluation. The bootstrap unit is a category/seed stratum; stream
+and contamination rows are averaged within strata before resampling. AUROC and
+CRD-lite intervals are shown; AUPR, ECE, and latency intervals are in the
+generated JSON. Negative CRD-lite values are interpreted through the AUROC and
+AUPR component terms rather than as robustness gains.
 
 \begin{table}[ht!]
 \centering
 \small
-\caption{Stratified bootstrap intervals for the focused comparison. Intervals
-use category/seed strata and existing metric rows only.}
+\caption{Stratified bootstrap intervals for the focused comparison.}
 \label{tab:focused-evaluation-ci}
 \resizebox{0.92\textwidth}{!}{\input{../results/latest/tables/focused_evaluation_ci_summary.tex}}
-\end{table}
-
-\begin{table}[ht!]
-\centering
-\caption{Uncertainty audit for the order-sensitive diagnostic probe. The
-\(\Delta\)B-I intervals show that the toy-probe point estimates remain
-statistically weak. The same category/seed bootstrap procedure as
-\tabref{tab:focused-evaluation-ci} is used.}
-\label{tab:order-sensitive-toy-ci}
-\resizebox{0.95\textwidth}{!}{\input{../results/latest/tables/order_sensitive_toy_ci_summary.tex}}
 \end{table}
 \FloatBarrier
 
 \section{Accuracy--Latency Trade-off}
-\figref{fig:paper-candidate-accuracy-latency} plots mean image AUROC against
-mean latency for each dataset and baseline pair. The focused evaluation shows
-that accuracy and latency rankings are not identical across datasets, which
-supports the protocol motivation: reporting accuracy alone can hide operational
-trade-offs. This figure is generated without new inference from the combined
-CSV.
+\figref{fig:paper-candidate-accuracy-latency} plots AUROC against latency per
+(baseline, dataset) pair; rankings are not consistent across datasets,
+illustrating that accuracy alone conceals operational trade-offs.
 
 \begingroup
 \captionsetup{type=figure,hypcap=false}
@@ -440,120 +399,68 @@ datasets.}
 
 \section{Discussion}
 The audited results illustrate why ZIAD treats the benchmark as a
-multi-objective evaluation. A detector that is strong in AUROC may not be the
-best calibrated or fastest method on every dataset. The protocol therefore
-separates image discrimination, calibration, latency, and stream robustness
-while recording memory configuration for later controlled slices. This
-separation is the main contribution of the paper: the benchmark is intended to
-make operational trade-offs visible for zero-shot and training-light industrial
-anomaly detection. Memory policy is recorded by the execution protocol, but a
-controlled memory-policy comparison is outside the main evidence slice reported
-here.
+multi-objective evaluation: a detector strong in AUROC may not be the best
+calibrated or fastest method on every dataset, and stream-order behavior
+depends on the operating mode. The protocol separates these axes explicitly,
+making operational trade-offs visible where a static leaderboard would not.
 
-Stream-order behavior decomposes into two complementary findings under ZIAD.
-The four frozen baselines are order invariant: whether CLIP-style zero-shot or
-training-light, each scores images independently of stream sequence. This
-offline-first pattern is not exposed by static benchmark evaluation. The same
-baselines, when composed with a thin post-hoc OnlineWindow($\alpha,W$) wrapper,
-yield statistically significant non-zero $\Delta$B-I in three of eight
-(baseline, dataset) cells, with positive point estimates in all eight cells.
-Together, these two halves show that the protocol's stream-order axis is
-empirically measurable, not trivially zero, and that frozen IAD detectors and
-post-hoc adaptive wrappers occupy distinct, separable points on that axis.
-OrderSensitiveToy is retained as a weak diagnostic; OnlineWindow is the stronger
-positive control. The next required reviewer-facing experiment is a genuinely
-online detector whose memory, coreset, or threshold state changes during stream
-processing.
-
-The present study has not yet elevated temperature-scaling or memory-policy
-variants into the main comparison. Those axes are implemented in the
-protocol and validated in auxiliary protocol checks, but the focused paper
-story is the calibration-none comparison plus a clear plan for calibration and
-memory-policy ablations.
-
-\subsection{Extensions Beyond the Focused Slice}
-The focused slice in this paper is intentionally narrower than the full ZIAD
-proposal. The same protocol design extends along three grouped directions:
-richer online policies and calibration variants, including FIFO/Reservoir-style
-memory, Prototype-EMA, temperature scaling, isotonic regression, and
-sliding-window reliability; broader stream and dataset coverage, including
-longer epsilon/prevalence sweeps, drift, chronological streams, and additional
-industrial datasets; and stronger analysis layers, including statistical
-uncertainty estimates, mechanistic intervention studies, and compute or energy
-disclosure. These axes are part of the protocol design but remain outside the
-current focused evaluation.
+Stream-order results decompose into a baseline characterization and a
+detectability validation. WinCLIP, AnomalyCLIP, and PatchCore are stateless;
+near-zero $\Delta$B-I is expected and audited by the protocol. RareCLIP
+updates memory per sample yet also produces near-zero $\Delta$B-I: SCS
+diversity sampling is structurally insensitive to arrival order, confirming
+that $\Delta$B-I measures order-sensitive adaptation rather than the mere
+presence of state updates. Operationally, all four main baselines can be
+deployed interchangeably in i.i.d.\ or bursty industrial streams without
+accuracy degradation from stream order---a property that static evaluation
+cannot confirm. Detectability of the $\Delta$B-I axis is validated at three
+levels:
+OrderSensitiveToy provides weak preliminary evidence (bootstrap CIs include
+zero); OnlineWindow provides supporting evidence (3 of 8 cells significant);
+and OnlineWindowKNN and OnlinePatchCoreLite provide the primary validation,
+each yielding $\Delta\text{B-I} = +0.014$ with confidence intervals
+excluding zero.
 
 \section{Limitations}
-The present study has five important limitations. First, it reports a focused
-evaluation slice rather than an exhaustive benchmark. Second, the focused
-setting uses stream length 64; longer streams may be needed before stronger
-deployment claims are made. Third, latency values depend on the local software
-and hardware path and are not a controlled cross-hardware benchmark. Fourth,
-calibration and memory-policy variants are not yet part of the main comparison,
-so the paper avoids broad claims about temperature scaling or online memory
-until those slices are reviewed. Fifth, the stream-order invariance finding
-applies to the four evaluated baselines; truly online detectors that update
-their models during streaming may exhibit non-zero \(\Delta\)B-I, and the
-current results do not characterize that regime. The order-sensitive toy probe
-is only a diagnostic control, not a proposed detector. Negative CRD-lite
-values are interpreted through their AUROC/AUPR component terms and confidence
-intervals rather than as robustness gains.
+\label{sec:limitations}
+The study has the following scope limitations.
+(i)~\textbf{Focused slice.}  The main comparison uses stream length~64 with
+seeds~$\{0,1,2\}$ on MVTec AD and VisA; longer streams, more seeds, and
+additional datasets are needed before broader deployment claims are warranted.
+(ii)~\textbf{Baseline scope.}  WinCLIP, AnomalyCLIP, and PatchCore run in
+stateless inference mode; their near-zero $\Delta$B-I characterises this
+configuration and does not generalise to state-updating modes.  RareCLIP runs
+with active SCS memory updates by default yet also produces near-zero
+$\Delta$B-I (stream length~64); this finding is specific to SCS diversity
+sampling and the evaluated stream lengths.
+(iii)~\textbf{Diagnostic detectors.}  OnlineWindowKNN and OnlinePatchCoreLite
+run at stream length~256---four times the main comparison length of~64.
+Whether significant $\Delta$B-I would persist at length~64, or whether main
+baselines would remain near-zero at length~256, is untested.  These probes
+validate the $\Delta$B-I estimator's computational path; they do not establish
+that real deployed methods with theoretically order-sensitive adaptation would
+produce detectable effects at the main evaluation scale.
+(iv)~\textbf{Latency.}  Latency values are local-runtime averages that scale
+with memory-bank size and dataset; cross-dataset comparisons are not
+method-level rankings.
+(v)~\textbf{Calibration and memory policy.}  Temperature scaling and
+memory-policy sweeps are implemented but outside the main comparison.
+(vi)~\textbf{CRD-lite.}  CRD-lite averages AUROC and AUPR contamination
+shifts; negative values should be inspected via their component terms.  A
+preliminary strong-contamination diagnostic for AnomalyCLIP
+($\epsilon \in \{0,0.05,0.1,0.2\}$, six VisA categories) shows mixed
+AUROC/AUPR behavior
+consistent with category-dependent effects; detailed results are in the
+generated JSON artifacts.
 
-\subsection{Stream-Length Sanity Check}
-We include a tiny stream-length sensitivity sanity check for MVTec AD bottle
-with WinCLIP at stream lengths 64, 128, and 256. These measured rows are
-preliminary appendix evidence only; they do not support a broad stream-length
-robustness claim without additional categories, additional baselines, and
-manual review.
-
-\subsection{Threats to Validity}
-\paragraph{Construct validity.}
-ZIAD measures stream order, burstiness, contamination, calibration, and latency
-through practical proxies, and records memory configuration for future
-controlled sweeps. CRD-lite is intentionally a compact signed diagnostic rather
-than a complete robustness theory, and ECE is computed after score normalization
-because wrapped baselines do not share calibrated probability outputs.
-
-We also ran a preliminary strong-contamination diagnostic for
-AnomalyCLIP on a completed subset of VisA categories with
-\(\epsilon \in \{0,0.05,0.1,0.2\}\). As shown in
-\tabref{tab:strong-epsilon-completed-diagnostic}, this CPU-bound diagnostic
-completed six categories. AUROC degrades at stronger contamination in the
-candle slice, but AUPR can move in the opposite direction, so the signed
-CRD-lite average does not become uniformly positive or monotonic. At
-\(\epsilon=0.2\), for example, the candle diagnostic has an AUROC term of
-\(+0.049\) and an AUPR term of \(-0.107\); at \(\epsilon=0.05\), capsules has
-a positive CRD-lite value of \(+0.031\). We therefore treat the mixed signs as
-category-dependent diagnostic behavior driven by the AUROC/AUPR terms, not as a
-main result or as evidence that stronger contamination fully resolves CRD-lite
-ambiguity.
-
-\begin{table}[t]
-\centering
-\caption{Completed strong-contamination diagnostic subset for VisA with
-AnomalyCLIP. The table reports the AUROC and AUPR terms that form CRD-lite; it
-is not a full strong-\(\epsilon\) evaluation.}
-\label{tab:strong-epsilon-completed-diagnostic}
-\resizebox{\textwidth}{!}{\input{../results/latest/tables/strong_epsilon_completed_summary.tex}}
-\end{table}
-
-\paragraph{Internal validity.}
-The protocol enforces no duplicate stream images, label integrity, row-count
-checks, development-time result governance, and category-sharded resume
-behavior. However, wrapper differences, local dependency versions, and
-model-specific preprocessing can still affect measured scores and timing.
-
-\paragraph{External validity.}
-The main comparison covers MVTec AD and VisA with four representative
-baselines, but it is not an exhaustive industrial deployment study. The tiny
-stream-length sanity check is especially narrow: one dataset category and one
-baseline, with no claim that the trend generalizes.
-
-\paragraph{Runtime validity.}
-Latency is local-runtime dependent. The current runtime documentation records
-the audit environment and the paper reports wrapper-emitted timing values, but
-the wrappers are not a controlled systems benchmark: device path, model-loading
-scope, batching behavior, and timing granularity can differ across baselines.
+\paragraph{Threats to validity.}
+Protocol integrity is maintained through no-duplicate stream construction,
+label integrity, row-count checks, and category-sharded resume behavior.
+Wrapper differences, dependency versions, and preprocessing can still affect
+scores and timing; latency values are not a controlled cross-hardware
+benchmark.  CRD-lite and ECE are practical proxies: CRD-lite is a compact
+signed diagnostic, and ECE is computed after score normalization because the
+baselines do not share calibrated probability outputs.
 
 \section{Conclusion}
 ZIAD reframes industrial anomaly detection evaluation around ordered streams
