@@ -238,13 +238,10 @@ Restartability & Single aggregate run & Category-sharded resumable execution \\
 The current focused comparison is category-sharded. Each category shard
 contains 12 metric rows: two stream types, two contamination settings, and
 three seeds. MVTec AD contributes 15 categories and 180 rows per baseline.
-VisA contributes 12 categories and 144 rows per baseline. All generated outputs
-are kept in a dedicated paper-evaluation output root, separate from smoke and
-full-P0 production-validation outputs.
+VisA contributes 12 categories and 144 rows per baseline.
 
-PatchCore uses the documented sampler setting of 0.1. Baseline source URLs and
-commit hashes are pinned in the experiment configuration;
-this paper intentionally does not invent or replace them.
+PatchCore uses sampler percentage 0.1; baseline source commits are pinned in
+the experiment configuration.
 
 Runtime metadata is tracked separately in the runtime environment document. The
 current audit/build environment records an Intel Core i5-14500 CPU, Ubuntu
@@ -256,21 +253,12 @@ generation preserves label integrity and records applied statistics.
 
 \section{Results}
 \tabref{tab:paper-candidate-baseline-comparison} summarizes the current
-focused comparison for the calibration-none setting. In this representative
-streaming evaluation, PatchCore
-has the highest mean AUROC and AUPR on both datasets. The lowest ECE differs by
-dataset: RareCLIP on MVTec AD and PatchCore on VisA. Latency also differs by
-dataset: PatchCore is lowest on MVTec AD in the current local run, while
-WinCLIP is lowest on VisA. These observations support the protocol analysis
-without asserting a universal detector ranking.
-
-Two dataset-level patterns warrant note. WinCLIP's lower mean AUROC on VisA
-(0.639 vs.\ 0.716 on MVTec AD) likely reflects the greater structural diversity
-of VisA categories -- electronic components and food items -- where generic
-text prompts are less discriminative than for MVTec AD manufacturing surfaces.
-AnomalyCLIP's higher ECE on VisA (0.461 vs.\ 0.233 on MVTec AD) reflects
-dataset-dependent score distributions after per-baseline min--max normalization;
-ECE values are therefore not directly comparable across datasets.
+focused comparison for the calibration-none setting. PatchCore has the
+highest mean AUROC and AUPR on both datasets; ECE and latency leaders differ
+by dataset. ECE values are not directly comparable across datasets because
+scores are min--max normalized per baseline before computing ECE. These
+observations support the protocol analysis without asserting a universal
+detector ranking.
 
 \begin{table}[t]
 \centering
@@ -342,6 +330,8 @@ the base AUROC and decision threshold of the deployed method. These diagnostic
 detectors validate the computational path of the $\Delta$B-I estimator; they
 do not establish that real deployed methods with theoretically order-sensitive
 adaptation would produce detectable effects at these stream lengths.
+A length-64 replication of OnlineWindowKNN yields $\Delta\text{B-I}{=}{+0.021}$
+(95\% CI $[{+0.002},{+0.039}]$), confirming detectability at the main scale.
 
 \begin{table}[ht!]
 \centering
@@ -433,13 +423,14 @@ configuration and does not generalise to state-updating modes.  RareCLIP runs
 with active SCS memory updates by default yet also produces near-zero
 $\Delta$B-I (stream length~64); this finding is specific to SCS diversity
 sampling and the evaluated stream lengths.
-(iii)~\textbf{Diagnostic detectors.}  OnlineWindowKNN and OnlinePatchCoreLite
-run at stream length~256---four times the main comparison length of~64.
-Whether significant $\Delta$B-I would persist at length~64, or whether main
-baselines would remain near-zero at length~256, is untested.  These probes
-validate the $\Delta$B-I estimator's computational path; they do not establish
-that real deployed methods with theoretically order-sensitive adaptation would
-produce detectable effects at the main evaluation scale.
+(iii)~\textbf{Diagnostic detectors.}  A length-64 replication confirms
+OnlineWindowKNN is significant at both scales (length~64: $+0.021$,
+CI $[{+0.002},{+0.039}]$; length~256: $+0.014$, CI $[{+0.005},{+0.022}]$).
+OnlinePatchCoreLite~($K{=}8$) yields $+0.021$ at length~64 but
+CI $[{-0.001},{+0.042}]$ includes zero; its length-256 result remains valid.
+These probes validate the $\Delta$B-I estimator's computational path but do
+not establish that real deployed methods produce detectable effects at either
+scale.
 (iv)~\textbf{Latency.}  Latency values are local-runtime averages that scale
 with memory-bank size and dataset; cross-dataset comparisons are not
 method-level rankings.
@@ -458,9 +449,7 @@ Protocol integrity is maintained through no-duplicate stream construction,
 label integrity, row-count checks, and category-sharded resume behavior.
 Wrapper differences, dependency versions, and preprocessing can still affect
 scores and timing; latency values are not a controlled cross-hardware
-benchmark.  CRD-lite and ECE are practical proxies: CRD-lite is a compact
-signed diagnostic, and ECE is computed after score normalization because the
-baselines do not share calibrated probability outputs.
+benchmark.
 
 \section{Conclusion}
 ZIAD reframes industrial anomaly detection evaluation around ordered streams
