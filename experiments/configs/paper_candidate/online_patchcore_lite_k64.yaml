@@ -1,0 +1,42 @@
+# Diagnostic paper-candidate profile for OnlinePatchCoreLite with FIFO K=64.
+run_tier: paper_candidate
+paper_allowed: false
+claim_allowed: false
+review_status: review_pending
+output_root: results/latest/paper_candidate/diagnostic_online_patchcore_lite/k64
+paper_candidate_stream_length: 256
+patchcore_sampler_percentage: 0.1
+candidate_scope: category_shard
+datasets:
+  - MVTec AD
+baselines:
+  - OnlinePatchCoreLite
+stream_types:
+  - iid
+  - bursty
+contamination_epsilon:
+  - 0
+  - 0.05
+calibration:
+  - none
+seeds:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  - 9
+memory_policies:
+  OnlinePatchCoreLite:
+    - FIFO
+baseline_config:
+  memory_size: 64
+  descriptor_size: 16
+  distance_metric: l2
+  startup_score: 0.0
+source_tier: paper_candidate
+source_tier_notes: Lightweight true-online PatchCore-style diagnostic; outputs remain paper_allowed=false and claim_allowed=false.

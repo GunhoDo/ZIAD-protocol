@@ -52,6 +52,7 @@ DEFAULT_BASELINE_PATHS = {
     "OrderSensitiveToy": ".",
     "OnlinePrototypeEMA": ".",
     "OnlineWindowKNN": ".",
+    "OnlinePatchCoreLite": ".",
 }
 DEFAULT_VALIDATION_CATEGORIES = {
     "MVTec AD": "bottle",
@@ -87,6 +88,7 @@ ALLOWED_PRODUCTION_STEP_IDS = {
     "visa:ordersensitivetoy:sliding_window:none",
     "mvtec_ad:onlineprototypeema:prototype_ema:none",
     "mvtec_ad:onlinewindowknn:fifo:none",
+    "mvtec_ad:onlinepatchcorelite:fifo:none",
 }
 CommandRunner = Callable[[list[str]], int]
 
@@ -546,7 +548,12 @@ def _execute_production_step(
             command_runner=command_runner,
         )
         return
-    if baseline in {"OrderSensitiveToy", "OnlinePrototypeEMA", "OnlineWindowKNN"}:
+    if baseline in {
+        "OrderSensitiveToy",
+        "OnlinePrototypeEMA",
+        "OnlineWindowKNN",
+        "OnlinePatchCoreLite",
+    }:
         _execute_production_step_with_commands(
             step,
             stream_length=stream_length,
@@ -617,6 +624,7 @@ def _execute_production_step_with_commands(
                             "runner_memory_policy": _runner_memory_policy(step),
                         },
                     }
+                    smoke_config.update(dict(step.get("baseline_config", {})))
                     if baseline == "PatchCore":
                         smoke_config.update(
                             {

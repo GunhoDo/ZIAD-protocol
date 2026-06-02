@@ -180,6 +180,7 @@ def build_manifest(config_path: Path = DEFAULT_CONFIG) -> dict[str, Any]:
                             "patchcore_sampler_percentage": float(
                                 config["patchcore_sampler_percentage"]
                             ),
+                            "baseline_config": dict(config.get("baseline_config", {})),
                             "candidate_scope": str(config.get("candidate_scope", "full_category")),
                             "full_p0_category_count": len(p0_full._full_categories(dataset)),
                             "output_root": str(step_root),
@@ -250,6 +251,7 @@ def build_execution_plan(config_path: Path = DEFAULT_CONFIG) -> dict[str, Any]:
                 ],
                 "paper_candidate_stream_length": stream_length,
                 "patchcore_sampler_percentage": step["patchcore_sampler_percentage"],
+                "baseline_config": step.get("baseline_config", {}),
                 "candidate_scope": step["candidate_scope"],
                 "full_p0_category_count": step["full_p0_category_count"],
                 "output_root": step["output_root"],
