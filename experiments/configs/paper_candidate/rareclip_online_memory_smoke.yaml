@@ -1,0 +1,31 @@
+# Tiny GPU-path smoke for the true online-memory diagnostic.
+# This file is only for checking that the RareCLIP Reservoir category-shard
+# runner completes in a GPU-visible environment before launching the larger
+# pilot. It is not a paper result.
+run_tier: paper_candidate
+paper_allowed: false
+claim_allowed: false
+review_status: review_pending
+output_root: results/latest/paper_candidate/diagnostic_online_memory_smoke
+paper_candidate_stream_length: 32
+patchcore_sampler_percentage: 0.1
+candidate_scope: category_shard
+datasets:
+  - MVTec AD
+baselines:
+  - RareCLIP
+stream_types:
+  - iid
+  - bursty
+contamination_epsilon:
+  - 0
+  - 0.05
+calibration:
+  - none
+seeds:
+  - 0
+memory_policies:
+  RareCLIP:
+    - Reservoir
+source_tier: paper_candidate
+source_tier_notes: Tiny diagnostic smoke only; outputs remain paper_allowed=false and claim_allowed=false.

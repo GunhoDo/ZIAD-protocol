@@ -1,0 +1,36 @@
+# Diagnostic paper-candidate profile for stream-order sensitivity.
+# This is not a model contribution and must not be promoted as a leaderboard
+# baseline. It exists to show that ZIAD surfaces order sensitivity when a
+# baseline actually depends on arrival order.
+run_tier: paper_candidate
+paper_allowed: false
+claim_allowed: false
+review_status: review_pending
+output_root: results/latest/paper_candidate/diagnostic_order_sensitivity
+paper_candidate_stream_length: 64
+patchcore_sampler_percentage: 0.1
+candidate_scope: category_shard
+datasets:
+  - MVTec AD
+  - VisA
+baselines:
+  - OrderSensitiveToy
+stream_types:
+  - iid
+  - bursty
+contamination_epsilon:
+  - 0
+  - 0.05
+  - 0.1
+  - 0.2
+calibration:
+  - none
+seeds:
+  - 0
+  - 1
+  - 2
+memory_policies:
+  OrderSensitiveToy:
+    - sliding_window
+source_tier: paper_candidate
+source_tier_notes: Diagnostic order-sensitive baseline; outputs remain paper_allowed=false and claim_allowed=false.

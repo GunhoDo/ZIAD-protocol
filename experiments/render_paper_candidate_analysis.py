@@ -199,49 +199,37 @@ def write_tradeoff_figure(
     ax.set_xlabel("Mean latency (ms)")
     ax.set_ylabel("Mean image AUROC")
     ax.grid(True, linestyle=":", linewidth=0.6, alpha=0.7)
-    ax.margins(x=0.08, y=0.08)
+    ax.margins(x=0.08)
+    ax.set_ylim(0.5, 1.02)
 
-    baseline_handles = [
-        Line2D(
-            [0],
-            [0],
-            marker="o",
-            color="w",
-            label=baseline,
-            markerfacecolor=colors.get(baseline, "#555555"),
-            markeredgecolor="black",
-            markersize=6,
-        )
-        for baseline in baselines
-    ]
-    dataset_handles = [
-        Line2D(
-            [0],
-            [0],
-            marker=markers[index % len(markers)],
-            color="#374151",
-            label=dataset,
-            linestyle="None",
-            markersize=6,
-        )
-        for index, dataset in enumerate(datasets)
-    ]
-    first_legend = ax.legend(
-        handles=baseline_handles,
-        fontsize=7,
-        loc="lower right",
-        title="Baseline",
-        title_fontsize=7,
-        frameon=True,
-    )
-    ax.add_artist(first_legend)
+    combo_handles = []
+    for dataset_index, dataset in enumerate(datasets):
+        for baseline in baselines:
+            combo_handles.append(
+                Line2D(
+                    [0],
+                    [0],
+                    marker=markers[dataset_index % len(markers)],
+                    color="w",
+                    label=f"{dataset} / {baseline}",
+                    markerfacecolor=colors.get(baseline, "#555555"),
+                    markeredgecolor="black",
+                    markersize=6.0,
+                    linestyle="None",
+                )
+            )
     ax.legend(
-        handles=dataset_handles,
-        fontsize=7,
-        loc="upper left",
-        title="Dataset",
-        title_fontsize=7,
+        handles=combo_handles,
+        fontsize=6.6,
+        loc="lower right",
+        title="Dataset / baseline",
+        title_fontsize=6.9,
         frameon=True,
+        ncol=2,
+        columnspacing=1.08,
+        handletextpad=0.50,
+        borderpad=0.58,
+        labelspacing=0.36,
     )
 
     output_png.parent.mkdir(parents=True, exist_ok=True)

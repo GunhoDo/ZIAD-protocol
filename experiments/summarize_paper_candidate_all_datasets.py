@@ -253,6 +253,18 @@ def _tex_metric(row: dict[str, Any], key: str) -> str:
     return f"{float(value):.3f}"
 
 
+def _dataset_row_spans(rows: list[dict[str, Any]]) -> dict[str, int]:
+    spans: dict[str, int] = {}
+    for row in rows:
+        dataset = str(row.get("dataset"))
+        spans[dataset] = spans.get(dataset, 0) + 1
+    return spans
+
+
+def _multirow_dataset_value(value: Any, span: int) -> str:
+    return "\\multirow{" + str(span) + "}{*}{" + _tex_escape(value) + "}"
+
+
 def write_tex(summary: dict[str, Any], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     columns = [
@@ -273,23 +285,37 @@ def write_tex(summary: dict[str, Any], path: Path) -> None:
         " & ".join(label for _, label in columns) + r" \\",
         "\\midrule",
     ]
+    row_spans = _dataset_row_spans(list(summary["baselines"]))
     previous_dataset = None
     for row in summary["baselines"]:
         dataset = row.get("dataset")
         if previous_dataset is not None and dataset != previous_dataset:
             lines.append("\\addlinespace[0.18em]")
-        previous_dataset = dataset
         values = []
         for key, _ in columns:
             value = row.get(key)
-            if key == "completed_categories":
+            if key == "dataset":
+                if dataset != previous_dataset:
+                    values.append(_multirow_dataset_value(value, row_spans[str(dataset)]))
+                else:
+                    values.append("")
+            elif key == "completed_categories":
                 value = f"{row.get('completed_categories')}/{row.get('expected_categories')}"
-                values.append(_tex_escape(value))
+                if dataset != previous_dataset:
+                    values.append(_multirow_dataset_value(value, row_spans[str(dataset)]))
+                else:
+                    values.append("")
+            elif key == "total_rows":
+                if dataset != previous_dataset:
+                    values.append(_multirow_dataset_value(value, row_spans[str(dataset)]))
+                else:
+                    values.append("")
             elif key.startswith("mean_"):
                 values.append(_tex_metric(row, key))
             else:
                 values.append(_tex_escape(value))
         lines.append(" & ".join(values) + r" \\")
+        previous_dataset = dataset
     lines.extend(["\\bottomrule", "\\end{tabular}", ""])
     for dataset, rankings in summary["rankings"].items():
         lines.append(

@@ -29,6 +29,8 @@ REQUIRED_COLUMNS = {
     "memory_policy",
     "calibration",
     "category",
+    "stream_type",
+    "contamination_epsilon",
     "run_dir",
     "status",
     *METRIC_COLUMNS,
@@ -189,6 +191,34 @@ def _bootstrap_ci(
     return observed, _percentile(estimates, 0.025), _percentile(estimates, 0.975)
 
 
+def _delta_b_i_strata_from_rows(rows: list[dict[str, str]]) -> list[dict[str, Any]]:
+    by_stratum: dict[tuple[str, str], dict[str, list[float]]] = defaultdict(
+        lambda: {"iid": [], "bursty": []}
+    )
+    for row in rows:
+        stream_type = row.get("stream_type", "")
+        if stream_type not in {"iid", "bursty"}:
+            continue
+        key = (row["category"], _parse_seed(row))
+        by_stratum[key][stream_type].append(
+            _parse_float(row["image_auroc"], field="image_auroc")
+        )
+
+    delta_strata: list[dict[str, Any]] = []
+    for (category, seed), stream_values in sorted(by_stratum.items()):
+        if not stream_values["iid"] or not stream_values["bursty"]:
+            continue
+        delta_strata.append(
+            {
+                "category": category,
+                "seed": seed,
+                "delta_bursty_iid_auroc": _mean(stream_values["bursty"])
+                - _mean(stream_values["iid"]),
+            }
+        )
+    return delta_strata
+
+
 def summarize_ci(
     *,
     input_root: Path = DEFAULT_INPUT_ROOT,
@@ -241,6 +271,17 @@ def summarize_ci(
             row[f"mean_{metric}"] = mean
             row[f"ci95_low_{metric}"] = low
             row[f"ci95_high_{metric}"] = high
+        delta_strata = _delta_b_i_strata_from_rows(metric_rows)
+        if delta_strata:
+            mean, low, high = _bootstrap_ci(
+                delta_strata,
+                "delta_bursty_iid_auroc",
+                iterations=iterations,
+                rng=rng,
+            )
+            row["delta_bursty_iid_auroc"] = mean
+            row["ci95_low_delta_bursty_iid_auroc"] = low
+            row["ci95_high_delta_bursty_iid_auroc"] = high
         output_rows.append(row)
 
     output_rows.sort(key=lambda row: (row["dataset"], row["baseline"]))
@@ -293,7 +334,27 @@ def _ci_text(row: dict[str, Any], metric: str, *, digits: int = 3) -> str:
     mean = _format_float(row[f"mean_{metric}"], digits=digits)
     low = _format_float(row[f"ci95_low_{metric}"], digits=digits)
     high = _format_float(row[f"ci95_high_{metric}"], digits=digits)
+    return f"{mean} [{low}--{high}]"
+
+
+def _signed_ci_text(row: dict[str, Any], metric: str, *, digits: int = 3) -> str:
+    mean = f"{float(row[metric]):+.{digits}f}"
+    low = f"{float(row[f'ci95_low_{metric}']):+.{digits}f}"
+    high = f"{float(row[f'ci95_high_{metric}']):+.{digits}f}"
     return f"{mean} [{low}, {high}]"
+
+
+def _dataset_row_spans(rows: list[dict[str, Any]]) -> dict[str, int]:
+    spans: dict[str, int] = {}
+    for row in rows:
+        dataset = str(row.get("dataset"))
+        spans[dataset] = spans.get(dataset, 0) + 1
+    return spans
+
+
+def _multirow_dataset_value(value: Any, span: int) -> str:
+    rendered = _tex_escape(value)
+    return "\\multirow{" + str(span) + "}{*}{" + rendered + "}"
 
 
 def write_json(summary: dict[str, Any], path: Path = DEFAULT_OUTPUT_JSON) -> Path:
@@ -304,28 +365,86 @@ def write_json(summary: dict[str, Any], path: Path = DEFAULT_OUTPUT_JSON) -> Pat
 
 def write_tex(summary: dict[str, Any], path: Path = DEFAULT_OUTPUT_TEX) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
+    diagnostic_delta_table = all(
+        row.get("baseline") == "OrderSensitiveToy"
+        and "delta_bursty_iid_auroc" in row
+        for row in summary["rows"]
+    )
+    if diagnostic_delta_table:
+        lines = [
+            "% Auto-generated focused-evaluation bootstrap CI table for the paper.",
+            "% The paired JSON retains ECE, latency, and AUPR intervals.",
+            "\\begin{tabular}{@{}l@{\\hspace{0.7em}}l@{\\hspace{0.7em}}c@{\\hspace{0.7em}}l@{\\hspace{0.7em}}l@{\\hspace{0.7em}}l@{}}",
+            "\\toprule",
+            "Dataset & Baseline & Strata & $\\Delta$B-I [95\\% CI] & AUROC [95\\% CI] & CRD-lite [95\\% CI] \\\\",
+            "\\midrule",
+        ]
+        previous_dataset = None
+        row_spans = _dataset_row_spans(list(summary["rows"]))
+        for row in summary["rows"]:
+            dataset = row["dataset"]
+            if previous_dataset is not None and dataset != previous_dataset:
+                lines.append("\\addlinespace[0.18em]")
+            dataset_value = (
+                _multirow_dataset_value(dataset, row_spans[str(dataset)])
+                if dataset != previous_dataset
+                else ""
+            )
+            values = [
+                dataset_value,
+                _tex_escape(row["baseline"]),
+                str(row["stratum_count"]),
+                _signed_ci_text(row, "delta_bursty_iid_auroc"),
+                _ci_text(row, "image_auroc"),
+                _ci_text(row, "crd_lite"),
+            ]
+            lines.append(" & ".join(values) + r" \\")
+            previous_dataset = dataset
+        lines.extend(["\\bottomrule", "\\end{tabular}"])
+        path.write_text("\n".join(lines) + "\n")
+        return path
+
     lines = [
-        "% Auto-generated focused-evaluation bootstrap CI table.",
-        "\\begin{tabular}{@{}l@{\\hspace{0.7em}}l@{\\hspace{0.7em}}c@{\\hspace{0.7em}}lll@{}}",
+        "% Auto-generated focused-evaluation bootstrap CI table for the paper.",
+        "% The paired JSON retains ECE, latency, and AUPR intervals.",
+        "\\begin{tabular}{@{}l@{\\hspace{0.65em}}l@{\\hspace{0.55em}}c@{\\hspace{0.55em}}r@{\\hspace{0.5em}}r@{\\hspace{0.5em}}r@{\\hspace{0.65em}}r@{\\hspace{0.5em}}r@{\\hspace{0.5em}}r@{}}",
         "\\toprule",
-        "Dataset & Baseline & Strata & AUROC 95\\% CI & ECE 95\\% CI & Lat. 95\\% CI \\\\",
+        "Dataset & Baseline & Strata & AUROC & 95\\% low & 95\\% high & CRD-lite & 95\\% low & 95\\% high \\\\",
         "\\midrule",
     ]
     previous_dataset = None
+    row_spans = _dataset_row_spans(list(summary["rows"]))
     for row in summary["rows"]:
         dataset = row["dataset"]
         if previous_dataset is not None and dataset != previous_dataset:
             lines.append("\\addlinespace[0.18em]")
-        previous_dataset = dataset
+        dataset_value = (
+            _multirow_dataset_value(dataset, row_spans[str(dataset)])
+            if dataset != previous_dataset
+            else ""
+        )
+        strata_value = (
+            "\\multirow{"
+            + str(row_spans[str(dataset)])
+            + "}{*}{"
+            + str(row["stratum_count"])
+            + "}"
+            if dataset != previous_dataset
+            else ""
+        )
         values = [
-            _tex_escape(dataset),
+            dataset_value,
             _tex_escape(row["baseline"]),
-            str(row["stratum_count"]),
-            _ci_text(row, "image_auroc"),
-            _ci_text(row, "ece"),
-            _ci_text(row, "latency_ms", digits=1),
+            strata_value,
+            _format_float(row["mean_image_auroc"]),
+            _format_float(row["ci95_low_image_auroc"]),
+            _format_float(row["ci95_high_image_auroc"]),
+            _format_float(row["mean_crd_lite"]),
+            _format_float(row["ci95_low_crd_lite"]),
+            _format_float(row["ci95_high_crd_lite"]),
         ]
         lines.append(" & ".join(values) + r" \\")
+        previous_dataset = dataset
     lines.extend(["\\bottomrule", "\\end{tabular}"])
     path.write_text("\n".join(lines) + "\n")
     return path

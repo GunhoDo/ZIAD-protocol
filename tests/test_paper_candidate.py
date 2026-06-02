@@ -904,7 +904,9 @@ class FocusedEvaluationCITest(unittest.TestCase):
             self.assertTrue(json_path.exists())
             self.assertTrue(tex_path.exists())
             tex = tex_path.read_text()
-            self.assertIn("AUROC 95\\% CI", tex)
+            self.assertIn("AUROC", tex)
+            self.assertIn("95\\% low", tex)
+            self.assertIn("95\\% high", tex)
             self.assertIn("Strata", tex)
         finally:
             if root.exists():

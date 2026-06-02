@@ -216,14 +216,28 @@ def _epsilon(row: dict[str, str]) -> float | None:
     return _float_or_none(row.get("contamination_epsilon"))
 
 
-def _crd_group_key(row: dict[str, str]) -> tuple[str, str, str, str, str, str]:
+def _seed_from_row(row: dict[str, str]) -> str:
+    for key in ("seed", "stream_seed"):
+        value = row.get(key)
+        if value not in {None, ""}:
+            return str(value)
+    run_dir = row.get("run_dir", "")
+    match = re.search(r"(?:^|_)seed_?([^/_]+)", run_dir)
+    if match:
+        return match.group(1)
+    return "unknown"
+
+
+def _crd_group_key(row: dict[str, str], *, category: str) -> tuple[str, str, str, str, str, str, str, str]:
     return (
         row.get("dataset", "unknown"),
+        row.get("category") or category,
         row.get("stream_type", "unknown"),
         row.get("baseline", "unknown"),
         row.get("memory_policy", "unknown"),
         row.get("calibration", "unknown"),
         row.get("prevalence", "unknown"),
+        _seed_from_row(row),
     )
 
 
@@ -236,21 +250,21 @@ def compute_crd_lite(
 
         mean((AUROC at ε=0 - AUROC at ε), (AUPR at ε=0 - AUPR at ε))
 
-    Positive values indicate degradation under contamination, zero indicates no
-    measured drop, and negative values indicate an improvement in the measured
-    smoke metric. The value is derived only from measured aggregate rows and is
-    not a paper-ready full-P0 metric.
+    Positive values indicate that the average AUROC/AUPR term dropped under
+    contamination. Negative values are possible when the two terms move in
+    opposite directions or when the average measured metric improves. The value
+    is a signed compact diagnostic, not a full robustness theory.
     """
-    baselines: dict[tuple[str, str, str, str, str, str], dict[str, str]] = {}
+    baselines: dict[tuple[str, str, str, str, str, str, str, str], dict[str, str]] = {}
     for row in rows:
         epsilon = _epsilon(row)
         if epsilon is not None and math.isclose(epsilon, 0.0):
-            baselines[_crd_group_key(row)] = row
+            baselines[_crd_group_key(row, category=category)] = row
 
     summary_rows: list[dict[str, str]] = []
     crd_by_run_dir: dict[str, str] = {}
     for row in rows:
-        baseline_row = baselines.get(_crd_group_key(row))
+        baseline_row = baselines.get(_crd_group_key(row, category=category))
         auroc_base = _float_or_none(
             baseline_row.get("image_auroc") if baseline_row else None
         )
@@ -289,6 +303,10 @@ def compute_crd_lite(
                 "status": (
                     "derived_smoke"
                     if row.get("status") == "measured_smoke" and crd is not None
+                    else "derived_paper_candidate"
+                    if row.get("status") == "measured_paper_candidate" and crd is not None
+                    else "derived"
+                    if crd is not None
                     else "not_available"
                 ),
                 "run_dir": run_dir,

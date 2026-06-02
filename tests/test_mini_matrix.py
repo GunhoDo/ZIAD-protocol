@@ -246,6 +246,56 @@ class MiniMatrixTest(unittest.TestCase):
         self.assertEqual(summary[1]["status"], "derived_smoke")
         self.assertEqual(summary[2]["status"], "not_available")
 
+    def test_compute_crd_lite_matches_epsilon_zero_by_seed(self):
+        rows = []
+        for seed, auroc_base, aupr_base, auroc_eps, aupr_eps in [
+            (0, "0.900000", "0.800000", "0.850000", "0.740000"),
+            (1, "0.700000", "0.600000", "0.650000", "0.660000"),
+        ]:
+            rows.extend(
+                [
+                    {
+                        "dataset": "MVTec AD",
+                        "category": "bottle",
+                        "stream_type": "iid",
+                        "prevalence": "0.05",
+                        "contamination_epsilon": "0.0",
+                        "baseline": "WinCLIP",
+                        "memory_policy": "default/SCS",
+                        "calibration": "none",
+                        "image_auroc": auroc_base,
+                        "aupr": aupr_base,
+                        "crd_lite": "NA",
+                        "status": "measured_smoke",
+                        "run_dir": f"bottle_iid_eps_0_seed_{seed}",
+                    },
+                    {
+                        "dataset": "MVTec AD",
+                        "category": "bottle",
+                        "stream_type": "iid",
+                        "prevalence": "0.05",
+                        "contamination_epsilon": "0.05",
+                        "baseline": "WinCLIP",
+                        "memory_policy": "default/SCS",
+                        "calibration": "none",
+                        "image_auroc": auroc_eps,
+                        "aupr": aupr_eps,
+                        "crd_lite": "NA",
+                        "status": "measured_smoke",
+                        "run_dir": f"bottle_iid_eps_0p05_seed_{seed}",
+                    },
+                ]
+            )
+
+        summary, by_run_dir = mini_matrix.compute_crd_lite(rows, category="bottle")
+
+        epsilon_zero_rows = [row for row in summary if row["contamination_epsilon"] == "0.0"]
+        self.assertEqual([row["crd_lite"] for row in epsilon_zero_rows], ["0.000000", "0.000000"])
+        self.assertEqual(by_run_dir["bottle_iid_eps_0_seed_0"], "0.000000")
+        self.assertEqual(by_run_dir["bottle_iid_eps_0_seed_1"], "0.000000")
+        self.assertEqual(by_run_dir["bottle_iid_eps_0p05_seed_0"], "0.055000")
+        self.assertEqual(by_run_dir["bottle_iid_eps_0p05_seed_1"], "-0.005000")
+
 
 if __name__ == "__main__":
     unittest.main()
