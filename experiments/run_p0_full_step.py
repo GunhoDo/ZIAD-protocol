@@ -49,6 +49,9 @@ DEFAULT_BASELINE_PATHS = {
     "WinCLIP": "external/WinClip",
     "AnomalyCLIP": "external/AnomalyCLIP",
     "RareCLIP": "external/RareCLIP",
+    "OrderSensitiveToy": ".",
+    "OnlinePrototypeEMA": ".",
+    "OnlineWindowKNN": ".",
 }
 DEFAULT_VALIDATION_CATEGORIES = {
     "MVTec AD": "bottle",
@@ -80,6 +83,10 @@ ALLOWED_PRODUCTION_STEP_IDS = {
     "visa:rareclip:reservoir:temperature_scaling",
     "visa:winclip:default_no_memory:none",
     "visa:winclip:default_no_memory:temperature_scaling",
+    "mvtec_ad:ordersensitivetoy:sliding_window:none",
+    "visa:ordersensitivetoy:sliding_window:none",
+    "mvtec_ad:onlineprototypeema:prototype_ema:none",
+    "mvtec_ad:onlinewindowknn:fifo:none",
 }
 CommandRunner = Callable[[list[str]], int]
 
@@ -533,6 +540,13 @@ def _execute_production_step(
         _execute_rareclip_production_step(step, stream_length=stream_length)
         return
     if baseline in {"PatchCore", "RareCLIP"}:
+        _execute_production_step_with_commands(
+            step,
+            stream_length=stream_length,
+            command_runner=command_runner,
+        )
+        return
+    if baseline in {"OrderSensitiveToy", "OnlinePrototypeEMA", "OnlineWindowKNN"}:
         _execute_production_step_with_commands(
             step,
             stream_length=stream_length,
