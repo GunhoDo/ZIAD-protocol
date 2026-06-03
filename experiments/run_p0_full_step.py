@@ -89,6 +89,7 @@ ALLOWED_PRODUCTION_STEP_IDS = {
     "mvtec_ad:onlineprototypeema:prototype_ema:none",
     "mvtec_ad:onlinewindowknn:fifo:none",
     "mvtec_ad:onlinepatchcorelite:fifo:none",
+    "visa:onlinepatchcorelite:fifo:none",
 }
 CommandRunner = Callable[[list[str]], int]
 
@@ -773,6 +774,7 @@ def _execute_rareclip_production_step(step: dict[str, Any], *, stream_length: in
         "calibration": str(step.get("calibration", "none")),
         "scoring_mode": "stream_ordered_full_p0_production",
         "latency_semantics": "wrapper_reported",
+        **dict(step.get("baseline_config", {})),
     }
     memory_policy, _ = rareclip.validate_execution_contract(
         config,

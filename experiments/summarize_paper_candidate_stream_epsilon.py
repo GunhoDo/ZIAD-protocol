@@ -617,15 +617,8 @@ def write_tex(summary: dict[str, Any], path: Path) -> None:
             ("mean_latency_ms", "Lat. (ms)"),
         ]
     compact_rows = summary.get("compact_breakdown") or _compact_rows(summary["breakdown"])
-    align = (
-        "@{}c@{\\hspace{0.75em}}l"
-        + "@{\\hspace{0.55em}}r" * (len(columns) - 2)
-        + "@{}"
-    )
     lines = [
-        "% Auto-generated compact stream/epsilon summary for the paper table.",
-        "% Full breakdown remains in the paired CSV/JSON artifacts.",
-        f"\\begin{{tabular}}{{{align}}}",
+        "\\begin{tabular}{llrrrrr}",
         "\\toprule",
         " & ".join(label for _, label in columns) + r" \\",
         "\\midrule",
@@ -635,7 +628,7 @@ def write_tex(summary: dict[str, Any], path: Path) -> None:
     for row in compact_rows:
         dataset = row.get("dataset")
         if previous_dataset is not None and dataset != previous_dataset:
-            lines.append("\\addlinespace[0.18em]")
+            lines.append("\\addlinespace[0.3em]")
         values = []
         for key, _ in columns:
             if key == "dataset":

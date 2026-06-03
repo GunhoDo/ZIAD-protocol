@@ -1,0 +1,47 @@
+# RareCLIP default/SCS delta-B-I measurement at stream length 64 (replication).
+#
+# Companion to rareclip_scs_delta_bi_sl256.yaml — provides length-64 results
+# with seeds 0-9 (vs the existing 3-seed data) so that CI width at L=64
+# can be compared against L=256 for the same detector and conditions.
+#
+# Same constraints as sl256 version: default/SCS, GPU, ε=0 only, seeds 0-9.
+run_tier: paper_candidate
+paper_allowed: false
+claim_allowed: false
+review_status: review_pending
+output_root: results/latest/paper_candidate/diagnostic_rareclip_scs_sl64
+paper_candidate_stream_length: 64
+patchcore_sampler_percentage: 0.1
+candidate_scope: category_shard
+datasets:
+  - MVTec AD
+baselines:
+  - RareCLIP
+stream_types:
+  - iid
+  - bursty
+contamination_epsilon:
+  - 0
+calibration:
+  - none
+seeds:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  - 9
+memory_policies:
+  RareCLIP:
+    - default/SCS
+baseline_config:
+  use_cpu: false
+  gpu: 0
+source_tier: paper_candidate
+source_tier_notes: >
+  RareCLIP default/SCS delta-B-I at stream length 64 with 10 seeds,
+  companion to sl256 run for length-sensitivity analysis.

@@ -1,0 +1,44 @@
+# RareCLIP default/SCS ΔB-I @ L=256 on VisA pcb3/pcb4.
+# VisA pcb3/pcb4 have 201 test images; applied_stream_length ~201 when requested=256.
+# This is the powered condition: OPCLite K=8 confirms L=256 detects order effects
+# on this same slice (see opc_visa_pcb_sl256.yaml).
+run_tier: paper_candidate
+paper_allowed: false
+claim_allowed: false
+review_status: review_pending
+output_root: results/latest/paper_candidate/diagnostic_rareclip_scs_visa_pcb_sl256
+paper_candidate_stream_length: 256
+patchcore_sampler_percentage: 0.1
+candidate_scope: category_shard
+datasets:
+  - VisA
+baselines:
+  - RareCLIP
+stream_types:
+  - iid
+  - bursty
+contamination_epsilon:
+  - 0
+calibration:
+  - none
+seeds:
+  - 0
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  - 6
+  - 7
+  - 8
+  - 9
+memory_policies:
+  RareCLIP:
+    - default/SCS
+baseline_config:
+  use_cpu: false
+  gpu: 0
+source_tier: paper_candidate
+source_tier_notes: >
+  RareCLIP default/SCS ΔB-I at L=256 (applied ~201) on VisA pcb3/pcb4.
+  Powered condition matched to OPCLite positive control on same slice.

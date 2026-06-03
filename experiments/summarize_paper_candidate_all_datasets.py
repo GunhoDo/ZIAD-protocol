@@ -279,8 +279,7 @@ def write_tex(summary: dict[str, Any], path: Path) -> None:
         ("mean_crd_lite", "CRD-lite"),
     ]
     lines = [
-        "% Auto-generated compact evaluation table.",
-        "\\begin{tabular}{@{}l@{\\hspace{0.8em}}l@{\\hspace{0.7em}}c@{\\hspace{0.7em}}c@{\\hspace{0.7em}}rrrrr@{}}",
+        "\\begin{tabular}{llccrrrrr}",
         "\\toprule",
         " & ".join(label for _, label in columns) + r" \\",
         "\\midrule",
@@ -290,7 +289,7 @@ def write_tex(summary: dict[str, Any], path: Path) -> None:
     for row in summary["baselines"]:
         dataset = row.get("dataset")
         if previous_dataset is not None and dataset != previous_dataset:
-            lines.append("\\addlinespace[0.18em]")
+            lines.append("\\addlinespace[0.3em]")
         values = []
         for key, _ in columns:
             value = row.get(key)
@@ -316,22 +315,7 @@ def write_tex(summary: dict[str, Any], path: Path) -> None:
                 values.append(_tex_escape(value))
         lines.append(" & ".join(values) + r" \\")
         previous_dataset = dataset
-    lines.extend(["\\bottomrule", "\\end{tabular}", ""])
-    for dataset, rankings in summary["rankings"].items():
-        lines.append(
-            "% "
-            + _tex_escape(dataset)
-            + " rankings: AUROC="
-            + _tex_escape(rankings["best_auroc"]["baseline"])
-            + ", AUPR="
-            + _tex_escape(rankings["best_aupr"]["baseline"])
-            + ", ECE="
-            + _tex_escape(rankings["lowest_ece"]["baseline"])
-            + ", latency="
-            + _tex_escape(rankings["lowest_latency"]["baseline"])
-        )
-    for note in summary["accuracy_latency_tradeoff_notes"]:
-        lines.append("% " + _tex_escape(note))
+    lines.extend(["\\bottomrule", "\\end{tabular}"])
     path.write_text("\n".join(lines) + "\n")
 
 

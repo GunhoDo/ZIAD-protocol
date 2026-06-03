@@ -357,6 +357,20 @@ def _multirow_dataset_value(value: Any, span: int) -> str:
     return "\\multirow{" + str(span) + "}{*}{" + rendered + "}"
 
 
+def _paper_table_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    dataset_order = {"MVTec AD": 0, "VisA": 1}
+    baseline_order = {"WinCLIP": 0, "AnomalyCLIP": 1, "RareCLIP": 2, "PatchCore": 3}
+    return sorted(
+        rows,
+        key=lambda row: (
+            dataset_order.get(str(row.get("dataset")), 999),
+            baseline_order.get(str(row.get("baseline")), 999),
+            str(row.get("dataset")),
+            str(row.get("baseline")),
+        ),
+    )
+
+
 def write_json(summary: dict[str, Any], path: Path = DEFAULT_OUTPUT_JSON) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(summary, indent=2, ensure_ascii=False) + "\n")
@@ -404,20 +418,21 @@ def write_tex(summary: dict[str, Any], path: Path = DEFAULT_OUTPUT_TEX) -> Path:
         path.write_text("\n".join(lines) + "\n")
         return path
 
+    rows = _paper_table_rows(list(summary["rows"]))
     lines = [
-        "% Auto-generated focused-evaluation bootstrap CI table for the paper.",
-        "% The paired JSON retains ECE, latency, and AUPR intervals.",
-        "\\begin{tabular}{@{}l@{\\hspace{0.65em}}l@{\\hspace{0.55em}}c@{\\hspace{0.55em}}r@{\\hspace{0.5em}}r@{\\hspace{0.5em}}r@{\\hspace{0.65em}}r@{\\hspace{0.5em}}r@{\\hspace{0.5em}}r@{}}",
+        "\\begin{tabular}{llcrrrrrr}",
         "\\toprule",
-        "Dataset & Baseline & Strata & AUROC & 95\\% low & 95\\% high & CRD-lite & 95\\% low & 95\\% high \\\\",
+        "& & & \\multicolumn{3}{c}{AUROC (95\\% CI)} & \\multicolumn{3}{c}{CRD-lite (95\\% CI)} \\\\",
+        "\\cmidrule(lr){4-6} \\cmidrule(lr){7-9}",
+        "Dataset & Baseline & Strata & Mean & Lower & Upper & Mean & Lower & Upper \\\\",
         "\\midrule",
     ]
     previous_dataset = None
-    row_spans = _dataset_row_spans(list(summary["rows"]))
-    for row in summary["rows"]:
+    row_spans = _dataset_row_spans(rows)
+    for row in rows:
         dataset = row["dataset"]
         if previous_dataset is not None and dataset != previous_dataset:
-            lines.append("\\addlinespace[0.18em]")
+            lines.append("\\addlinespace[0.3em]")
         dataset_value = (
             _multirow_dataset_value(dataset, row_spans[str(dataset)])
             if dataset != previous_dataset

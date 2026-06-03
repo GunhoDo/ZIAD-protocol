@@ -23,7 +23,9 @@ CI excludes zero: `True`.
 |---|---:|---:|---:|---:|---:|---:|
 | OnlinePrototypeEMA | +0.003971 | [-0.008195, +0.015609] | False | 60 | 30 | 23.444812 |
 | OnlineWindowKNN | +0.013522 | [+0.005100, +0.021573] | True | 120 | 60 | 23.460406 |
+| OnlineWindowKNN | +0.020612 | [+0.002181, +0.038793] | True | 120 | 60 | 24.019646 |
 | OnlinePatchCoreLite K=8 | +0.014361 | [+0.005801, +0.023007] | True | 120 | 60 | 23.876073 |
+| OnlinePatchCoreLite K=8 | +0.020506 | [-0.000991, +0.042193] | False | 120 | 60 | 23.833642 |
 
 ## Reviewer-Facing Conclusion
 

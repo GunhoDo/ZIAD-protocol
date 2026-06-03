@@ -42,11 +42,13 @@ def _read_json(path: Path) -> dict[str, Any]:
 
 def _summary_row(summary: dict[str, Any], *, detector: str) -> dict[str, Any]:
     ci_width = float(summary["delta_b_i_ci_high"]) - float(summary["delta_b_i_ci_low"])
+    stream_lengths = summary.get("stream_lengths") or []
     return {
         "detector": detector,
         "dataset": summary["dataset"],
         "memory_policy": summary["memory_policy"],
         "categories": "|".join(summary["categories"]),
+        "stream_length": int(stream_lengths[0]) if stream_lengths else "",
         "rows": summary["row_count"],
         "strata": summary["strata_count"],
         "delta_b_i": summary["delta_b_i_mean"],
@@ -175,13 +177,52 @@ def build_comparison_rows(best_patchcore: dict[str, Any]) -> list[dict[str, Any]
         Path("results/latest/paper_candidate/diagnostic_online_window_knn/"
              "online_memory_delta_bi_summary.json")
     )
+    window_sl64 = _read_json(
+        Path("results/latest/paper_candidate/diagnostic_online_window_knn_sl64/"
+             "online_memory_delta_bi_summary.json")
+    )
+    patchcore_sl64 = _read_json(
+        Path("results/latest/paper_candidate/diagnostic_online_patchcore_lite_sl64/k8/"
+             "online_memory_delta_bi_summary.json")
+    )
     rows: list[dict[str, Any]] = []
     if prototype:
         rows.append(_summary_row(prototype, detector="OnlinePrototypeEMA"))
     if window:
         rows.append(_summary_row(window, detector="OnlineWindowKNN"))
-    rows.append({**best_patchcore, "detector": f"OnlinePatchCoreLite K={best_patchcore['memory_size']}"})
+    if window_sl64:
+        rows.append(_summary_row(window_sl64, detector="OnlineWindowKNN"))
+    rows.append(
+        {
+            **best_patchcore,
+            "detector": f"OnlinePatchCoreLite K={best_patchcore['memory_size']}",
+            "stream_length": int(best_patchcore.get("stream_length") or 256),
+        }
+    )
+    if patchcore_sl64:
+        rows.append(_summary_row(patchcore_sl64, detector="OnlinePatchCoreLite K=8"))
     return rows
+
+
+def _comparison_detector_tex(detector: str) -> str:
+    if detector.startswith("OnlinePatchCoreLite K="):
+        k_value = detector.split("K=", 1)[1]
+        return f"OnlinePatchCoreLite $K{{=}}{_escape_latex(k_value)}$"
+    return _escape_latex(detector)
+
+
+def _comparison_mean_tex(row: dict[str, Any]) -> str:
+    value = f"{float(row['delta_b_i']):+.3f}"
+    if row["ci_excludes_zero"]:
+        return r"\textbf{" + value + "}"
+    return value
+
+
+def _comparison_ci_tex(row: dict[str, Any]) -> str:
+    value = f"[{float(row['ci_low']):+.3f}, {float(row['ci_high']):+.3f}]"
+    if row["ci_excludes_zero"]:
+        return r"\textbf{" + value + "}"
+    return "$" + value + "$"
 
 
 def write_comparison_outputs(
@@ -196,6 +237,7 @@ def write_comparison_outputs(
     columns = [
         "detector",
         "dataset",
+        "stream_length",
         "rows",
         "strata",
         "delta_b_i",
@@ -226,20 +268,25 @@ def write_comparison_outputs(
     )
 
     lines = [
-        r"\begin{tabular}{lccccc}",
+        r"\begin{tabular}{lccccccr}",
         r"\toprule",
-        r"Detector & Rows & Strata & $\Delta$B-I [95\% CI] & Sig. & Lat. (ms) \\",
+        r"Detector & Len & Rows & Strata & \multicolumn{2}{c}{$\Delta$B-I} & Sig. & Lat. (ms) \\",
+        r"\cmidrule(lr){5-6}",
+        r"& & & & Mean & 95\% CI & & \\",
         r"\midrule",
     ]
-    for row in rows:
-        delta = _format_ci(row["delta_b_i"], row["ci_low"], row["ci_high"])
-        if row["ci_excludes_zero"]:
-            delta = r"\textbf{" + delta + "}"
+    previous_family = ""
+    for index, row in enumerate(rows):
+        family = str(row["detector"]).split()[0]
+        if index > 0 and family != previous_family:
+            lines.append(r"\midrule")
         lines.append(
-            f"{_escape_latex(row['detector'])} & {row['rows']} & {row['strata']} & "
-            f"{delta} & {'yes' if row['ci_excludes_zero'] else 'no'} & "
+            f"{_comparison_detector_tex(row['detector'])} & {row['stream_length']} & "
+            f"{row['rows']} & {row['strata']} & {_comparison_mean_tex(row)} & "
+            f"{_comparison_ci_tex(row)} & {'yes' if row['ci_excludes_zero'] else 'no'} & "
             f"{row['mean_latency_ms']:.2f} \\\\"
         )
+        previous_family = family
     lines.extend([r"\bottomrule", r"\end{tabular}", ""])
     tex_path.write_text("\n".join(lines))
 
