@@ -262,7 +262,10 @@ def _dataset_row_spans(rows: list[dict[str, Any]]) -> dict[str, int]:
 
 
 def _multirow_dataset_value(value: Any, span: int) -> str:
-    return "\\multirow{" + str(span) + "}{*}{" + _tex_escape(value) + "}"
+    rendered = _tex_escape(value)
+    if rendered == "MVTec AD":
+        rendered = "\\shortstack[c]{MVTec\\\\AD}"
+    return "\\multirow{" + str(span) + "}{*}{" + rendered + "}"
 
 
 def write_tex(summary: dict[str, Any], path: Path) -> None:
