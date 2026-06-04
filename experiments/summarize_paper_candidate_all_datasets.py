@@ -279,6 +279,12 @@ def write_tex(summary: dict[str, Any], path: Path) -> None:
         ("mean_aupr", "AUPR"),
         ("mean_ece", "ECE"),
         ("mean_latency_ms", "Lat. (ms)"),
+        # NOTE: The CRD-lite column is intentionally excluded from the paper
+        # table (deliberately removed by hand from the generated .tex; must be
+        # re-removed after any regeneration). Rationale: CRD-lite is a
+        # non-interpretable composite proxy; the main contamination signal is
+        # the AUROC/AUPR shift. See Limitation 6 in paper/paper.tex. This emit
+        # is left unchanged so the artifact/data path stays intact.
         ("mean_crd_lite", "CRD-lite"),
     ]
     lines = [

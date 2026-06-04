@@ -27,7 +27,7 @@ reliability, and latency. We present ZIAD, a streaming
 evaluation protocol for industrial anomaly detection. ZIAD converts static
 benchmarks into controlled i.i.d.\ and bursty streams, executes
 category-sharded evaluations, and reports discrimination, ECE, latency,
-CRD-lite, and stream-order sensitivity. On MVTec AD and VisA with PatchCore,
+contamination sensitivity, and stream-order sensitivity. On MVTec AD and VisA with PatchCore,
 WinCLIP, AnomalyCLIP, and RareCLIP, ZIAD yields three observations. First, the
 four main baselines are nearly order invariant, making an implicit property of
 static scoring measurable. Second, state-updating diagnostic memory-bank
@@ -47,7 +47,7 @@ shorthand for a streaming evaluation framework targeting zero-shot and
 training-light industrial anomaly detection. It converts static benchmarks
 into controlled streams and reports detectors along five diagnostics:
 discrimination accuracy (AUROC, AUPR), score reliability (ECE), latency,
-contamination sensitivity (CRD-lite), and stream-order sensitivity
+contamination sensitivity (the AUROC/AUPR shift under added contamination), and stream-order sensitivity
 ($\Delta$B-I, the bursty-minus-i.i.d.\ AUROC shift). The protocol also records
 baseline state and memory metadata, with memory-policy sweeps left to future
 work. PatchCore provides a training-light reference; WinCLIP,
@@ -110,7 +110,7 @@ comparable under the same baselines and metrics.
 Anomaly scores often drive thresholds or alarms, so ranking quality alone is
 insufficient. ECE~\cite{Guo2017Calibration} quantifies whether scores are
 interpretable across streams and contamination settings. ZIAD reports ECE
-alongside AUROC, AUPR, latency, and CRD-lite.
+alongside AUROC, AUPR, latency, and the contamination-induced AUROC/AUPR shift.
 
 \section{Evaluation Protocol}
 \figref{fig:ziad-protocol-overview} summarizes the focused ZIAD flow. The
@@ -173,7 +173,9 @@ settings \(\epsilon \in \{0, 0.05\}\). Third, it records score
 reliability through ECE, with the current main comparison using no post-hoc
 calibration transform. Fourth, it records memory or coreset-style state where a
 baseline uses it (memory-policy sweeps are future work). Fifth,
-it reports latency alongside image AUROC, AUPR, ECE, and CRD-lite.
+it reports latency alongside image AUROC, AUPR, and ECE. CRD-lite is retained
+only as a secondary contamination-robustness proxy (see Metrics and
+Limitations); the main contamination signal is read from the AUROC/AUPR shift.
 
 Image AUROC and AUPR are computed from \(\{(y_t,s_t)\}_{t=1}^{T}\) for each
 stream. ECE is computed as a diagnostic after min--max normalizing emitted
@@ -359,7 +361,7 @@ the focused evaluation; the bootstrap unit is a category/seed stratum.
 Bootstrap unit: category/seed stratum; AUPR, ECE, and latency intervals
 are in the generated JSON.}
 \label{tab:focused-evaluation-ci}
-\resizebox{\textwidth}{!}{\input{../results/latest/tables/focused_evaluation_ci_summary.tex}}
+\resizebox{0.6\textwidth}{!}{\input{../results/latest/tables/focused_evaluation_ci_summary.tex}}
 \end{table}
 
 \section{Accuracy--Latency Trade-off}
@@ -367,7 +369,7 @@ are in the generated JSON.}
 (baseline, dataset) pair; rankings are not consistent across datasets,
 illustrating that accuracy alone conceals operational trade-offs.
 
-\begin{figure}[ht]
+\begin{figure}[!ht]
 \centering
 % Prefer PDF for crisp lines/text in plots
 \includegraphics[width=0.72\textwidth]{../results/latest/figures/paper_candidate_accuracy_latency_tradeoff.pdf}
@@ -430,15 +432,31 @@ at either scale.
 with memory-bank size and dataset; cross-dataset comparisons are not
 method-level rankings.
 
-\item \textbf{Calibration and memory.} Temperature scaling and
-memory-policy sweeps are implemented in the protocol but are outside the main
-comparison reported here.
+\item \textbf{Calibration and memory.} Memory-policy sweeps and post-hoc
+calibration are implemented in the protocol but are outside the main comparison
+reported here. The available temperature-scaling outputs are smoke-only
+postprocessing with a hard-coded temperature ($T{=}2.0$), not
+calibration-set-fitted evidence, so they are retained only as a diagnostic
+artifact and are not used to revise the main ECE results, which remain
+min--max-normalized within-dataset diagnostics.
 
-\item \textbf{CRD-lite.} CRD-lite is a signed proxy, not a standalone
-robustness score, and its negative values must be read with the component
-AUROC and AUPR terms as defined in the Metrics section. A preliminary
-strong-$\epsilon$ diagnostic for AnomalyCLIP is available in the generated
-artifacts and is not analysed further here.
+\item \textbf{CRD-lite.} CRD-lite is reported as a secondary
+contamination-robustness proxy rather than a main metric: it is a signed
+quantity, not a standalone robustness score, and its negative values must be
+read with the component AUROC and AUPR terms as defined in the Metrics section,
+so the main contamination signal is reported as the AUROC/AUPR shift. A
+preliminary strong-$\epsilon$ diagnostic (AnomalyCLIP on six VisA categories at
+$\epsilon \in \{0, 0.05, 0.1, 0.2\}$) is available in the generated artifacts
+but is not analysed in the main text: in three of the six categories (cashew,
+chewinggum, fryum) the $\epsilon \in \{0, 0.05, 0.1\}$ cells are bit-for-bit
+identical to $\epsilon=0$. Each of these categories has only 50 normal test
+images, so a no-duplicate length-64 stream must contain at least $64-50=14$
+anomalies---already above the requested low-$\epsilon$ anomaly targets---and the
+requested contamination is therefore not realized (only $\epsilon=0.2$ clears
+this floor). This is the small per-category test-pool constraint of the
+length-bound limitation above, not a baseline effect, so the diagnostic does
+not pass the metric-validity and sampler-setting checks required for a reported
+claim.
 \end{enumerate}
 
 \paragraph{Threats to validity.}
