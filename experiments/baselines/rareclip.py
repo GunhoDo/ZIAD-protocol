@@ -658,6 +658,78 @@ def _rareclip_args(config: dict[str, Any], checkpoint_path: Path) -> SimpleNames
     )
 
 
+_BANK_TRACE_FIELDS = [
+    "stream_index",
+    "label",
+    "pfm_size",
+    "pfm_centroid_l2_delta",
+    "score_mem_mean_delta",
+]
+
+
+def _bank_trace_step(
+    model: Any,
+    item: dict[str, Any],
+    prev_centroid: Any,
+    prev_score_mean: float | None,
+) -> tuple[dict[str, Any], Any, float | None]:
+    """Read-only summary snapshot of the upstream SCS bank for one stream step.
+
+    Diagnostic only; never mutates model state and is called *after* the latency
+    timer so it cannot affect measured score or latency. See
+    docs/bank_trace_instrumentation_design.md.
+
+    LOCKED RULE 1 (interpretation ceiling): ``pfm_centroid_l2_delta`` -> 0 (and a
+    near-zero final-centroid distance between two stream orderings) is only a
+    NECESSARY condition for the "SCS converges to an order-invariant fixed point"
+    hypothesis. It is NOT sufficient proof -- the centroid is a lossy summary and
+    identical centroids can hide different coreset membership. Claiming an actual
+    fixed point requires the membership-hash upgrade. Do not report "convergence
+    proven" from this field.
+    """
+    centroid = None
+    pfm_size = 0
+    pfm = getattr(model, "PFM", None)
+    try:
+        tensor = pfm[0][0]
+        if getattr(tensor, "ndim", 0) >= 2 and int(tensor.shape[0]) > 0:
+            pfm_size = int(tensor.shape[0])
+            centroid = tensor.detach().float().mean(dim=0).cpu()
+    except Exception:  # pragma: no cover - defensive; never break scoring
+        centroid = None
+
+    if (
+        centroid is not None
+        and prev_centroid is not None
+        and tuple(centroid.shape) == tuple(prev_centroid.shape)
+    ):
+        drift: Any = float((centroid - prev_centroid).norm().item())
+    else:
+        drift = ""  # undefined before the bank is first populated
+
+    cur_mean: float | None = None
+    score_delta: Any = ""
+    score_memory = getattr(model, "score_memory", None)
+    try:
+        if score_memory is not None and int(score_memory.numel()) > 0:
+            cur_mean = float(score_memory.detach().float().mean().item())
+            if prev_score_mean is not None:
+                score_delta = cur_mean - prev_score_mean
+    except Exception:  # pragma: no cover - defensive
+        cur_mean = None
+
+    row = {
+        "stream_index": int(item["stream_index"]),
+        "label": int(item["label"]),
+        "pfm_size": pfm_size,
+        "pfm_centroid_l2_delta": drift,
+        "score_mem_mean_delta": score_delta,
+    }
+    new_prev_centroid = centroid if centroid is not None else prev_centroid
+    new_prev_score_mean = cur_mean if cur_mean is not None else prev_score_mean
+    return row, new_prev_centroid, new_prev_score_mean
+
+
 class RareCLIPWrapper(BaselineWrapper):
     def run(self, stream_path: str, dataset_root: str, output_csv: str, config: dict) -> None:
         if not os.path.isdir(LOCAL_PATH):
@@ -705,6 +777,12 @@ class RareCLIPWrapper(BaselineWrapper):
             int,
         )
         prototype_ema_alpha = _cfg(config, "prototype_ema_alpha", 0.1, float)
+        bank_trace = _cfg(config, "diagnostic_bank_trace", False, bool)
+        bank_trace_path = (
+            Path(output_csv).with_name(Path(output_csv).stem + "_banktrace.csv")
+            if bank_trace
+            else None
+        )
 
         cache_dir = _resolve_repo_path(str(_cfg(config, "clip_cache_dir", DEFAULT_CLIP_CACHE)))
         _prepare_openai_clip_cache(cache_dir)
@@ -738,6 +816,8 @@ class RareCLIPWrapper(BaselineWrapper):
                 ),
                 memory_seed=reservoir_seed,
                 memory_alpha=prototype_ema_alpha,
+                bank_trace=bank_trace,
+                bank_trace_path=bank_trace_path,
             )
 
         output_path = Path(output_csv)
@@ -761,8 +841,14 @@ class RareCLIPWrapper(BaselineWrapper):
         memory_limit: int | None = None,
         memory_seed: int = 0,
         memory_alpha: float = 0.1,
+        bank_trace: bool = False,
+        bank_trace_path: Any = None,
     ) -> list[dict[str, Any]]:
         rows: list[dict[str, Any]] = []
+        trace_rows: list[dict[str, Any]] = []
+        prev_centroid: Any = None
+        prev_score_mean: float | None = None
+        final_centroid: Any = None
         device_obj = torch.device(device)
         for item in stream_items:
             image_path = _resolve_stream_image_path(str(item["image_path"]), dataset_root)
@@ -799,6 +885,16 @@ class RareCLIPWrapper(BaselineWrapper):
                 peak_vram_mb = 0.0
             latency_ms = (time.perf_counter() - start) * 1000
 
+            # Diagnostic-only, read-only snapshot AFTER the latency timer so it
+            # cannot perturb measured score/latency (see design note).
+            if bank_trace:
+                trace_row, prev_centroid, prev_score_mean = _bank_trace_step(
+                    model, item, prev_centroid, prev_score_mean
+                )
+                trace_rows.append(trace_row)
+                if prev_centroid is not None:
+                    final_centroid = prev_centroid
+
             rows.append(
                 {
                     "stream_index": item["stream_index"],
@@ -811,6 +907,26 @@ class RareCLIPWrapper(BaselineWrapper):
                     "status": "measured",
                 }
             )
+
+        if bank_trace and bank_trace_path is not None and trace_rows:
+            trace_path = Path(bank_trace_path)
+            trace_path.parent.mkdir(parents=True, exist_ok=True)
+            with trace_path.open("w", newline="") as handle:
+                writer = csv.DictWriter(
+                    handle, fieldnames=_BANK_TRACE_FIELDS, lineterminator="\n"
+                )
+                writer.writeheader()
+                writer.writerows(trace_rows)
+            # LOCKED RULE 3: store the final coreset centroid ONCE per run (final
+            # step only), as the single approved exception to "no tensor dumps".
+            if final_centroid is not None:
+                centroid_path = trace_path.with_name(
+                    trace_path.stem + "_final_centroid.csv"
+                )
+                with centroid_path.open("w", newline="") as handle:
+                    csv.writer(handle, lineterminator="\n").writerow(
+                        [float(value) for value in final_centroid.tolist()]
+                    )
         return rows
 
 
