@@ -23,9 +23,13 @@ import numpy as np
 from scipy import stats
 
 ROOT = Path(__file__).resolve().parents[1]
+# Defaults reproduce the MVTec slice exactly (no-arg run is byte-unchanged).
 D = ROOT / "results/latest/paper_candidate/diagnostic_rareclip_scs_banktrace_gate2"
 OUT = D / "order_mechanism_gate.json"
 CATS = ["bottle", "cable", "capsule"]
+DATASET_NAME = "MVTec AD"
+TABLE_PATH = ROOT / "results/latest/tables/order_mechanism_summary.tex"
+STUDY = "rareclip_scs_order_mechanism"
 SEEDS = list(range(10))
 EXPECT_ROWS = 64  # L=64 stream
 
@@ -123,14 +127,14 @@ def main() -> None:
         commit = "unknown"
 
     gate = {
-        "study": "rareclip_scs_order_mechanism",
+        "study": STUDY,
         "paper_allowed": False,
         "claim_allowed": False,
         "review_status": "review_pending",
         "scope": {
-            "dataset": "MVTec AD", "categories": ["bottle", "cable", "capsule"],
+            "dataset": DATASET_NAME, "categories": list(CATS),
             "seeds": SEEDS, "contamination_epsilon": 0.0, "stream_length": 64,
-            "memory_policy": "default/SCS", "visa_included": False,
+            "memory_policy": "default/SCS", "visa_included": DATASET_NAME == "VisA",
             "n_cell_groups": 30, "n_runs": len(cells),
         },
         "gate_1_row_count": {"pass": rc_pass, "present": present, "expected": len(cells),
@@ -175,7 +179,7 @@ def main() -> None:
 
     # Paper table (.tex), emitted read-only into the generated-tables dir. It is
     # used in the paper only after the gate is reviewed/promoted.
-    tbl = ROOT / "results/latest/tables/order_mechanism_summary.tex"
+    tbl = TABLE_PATH
     score_floor = 0.0  # gate 2: per-image bursty-vs-repeat score diff is exactly 0
     tbl.write_text("\n".join([
         "\\begin{tabular}{lccc}",
@@ -210,4 +214,24 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Order-mechanism gate/summary (default = MVTec slice).")
+    parser.add_argument("--dir", default=str(D), help="bank-trace output dir")
+    parser.add_argument("--cats", default=",".join(CATS), help="comma-separated categories")
+    parser.add_argument("--dataset", default=DATASET_NAME, help="dataset label, e.g. 'VisA'")
+    parser.add_argument("--table", default=str(TABLE_PATH), help="output .tex table path")
+    parser.add_argument("--study", default=STUDY, help="study name in gate JSON")
+    args = parser.parse_args()
+
+    def _abs(p: str) -> Path:
+        path = Path(p)
+        return path if path.is_absolute() else (ROOT / path)
+
+    D = _abs(args.dir)
+    OUT = D / "order_mechanism_gate.json"
+    CATS = [c.strip() for c in args.cats.split(",") if c.strip()]
+    DATASET_NAME = args.dataset
+    TABLE_PATH = _abs(args.table)
+    STUDY = args.study
     main()

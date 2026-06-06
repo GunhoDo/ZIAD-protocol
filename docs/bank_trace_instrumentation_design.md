@@ -160,3 +160,26 @@ but the perturbation is RANK-PRESERVING, so AUROC (hence ΔB-I) is invariant.** 
 per-sample memory updates" is explained by order-invariant **ranking**, not order-invariant
 memory. Rule 1 vindicated: within-run drift decay alone would have wrongly implied an invariant
 fixed point; the pre-registered cross-order centroid test disproved invariance.
+
+## LOCKED RULE 6 — VisA replication, rank-preservation conditional (pre-registered, before VisA data)
+Second-dataset replication on VisA {candle, macaroni1, macaroni2} (normal=100,
+length-64 floor=0; PCB excluded because its positive control is non-significant;
+small-pool categories cashew/chewinggum/fryum/pipe_fryum excluded). Path (A):
+mechanism only, **no positive control** is run on these non-PCB VisA categories.
+Pre-registered acceptance, fixed before any VisA number is seen:
+- **If d_ord >= 3x the same-order floor d_rep** (MVTec-grade order perturbation):
+  the bank-trace itself proves stream order perturbs the SCS memory, so the
+  rank-preservation claim (order-sensitive memory/scores, invariant AUROC) holds
+  **without** a positive control. The paper must then state explicitly that
+  VisA non-PCB has no positive control and that the bank-trace directly
+  demonstrates the order perturbation.
+- **If d_ord ~ d_rep** (order perturbation weak): **do NOT claim rank-preservation.**
+  Report honestly that order perturbation is itself weak on this VisA slice, and
+  record the positive-control absence as a limitation.
+Rationale for path (A): the bank-trace replaces the positive control's role
+(estimator detectability) by measuring order perturbation independently of the
+ΔB-I estimator --- but the substitution is valid only when that perturbation is
+actually strong (first branch). Same-environment determinism (d_rep=0) is
+required and re-checked per Rule 4/5; Rule 1 (necessary != sufficient) still
+binds. VisA outputs use a SEPARATE directory and their own gate JSON
+(paper_allowed=false until author sign-off); flags are never auto-flipped.

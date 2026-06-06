@@ -34,8 +34,8 @@ implicit property of static scoring measurable. Second, state-updating diagnosti
 memory-bank detectors produce statistically significant non-zero $\Delta$B-I,
 showing that the protocol detects order-sensitive adaptation when it is present.
 Third, accuracy, ECE, and latency rankings differ within datasets, so
-AUROC-only reporting hides operational trade-offs. Fourth, on a focused MVTec AD
-slice a read-only memory diagnostic shows the near-zero $\Delta$B-I for RareCLIP
+AUROC-only reporting hides operational trade-offs. Fourth, on focused MVTec AD and VisA
+slices a read-only memory diagnostic shows the near-zero $\Delta$B-I for RareCLIP
 is order-invariant \emph{ranking}, not order-invariant memory: its SCS coreset
 and per-image scores shift with stream order while its AUROC does not.
 \end{abstract}
@@ -69,8 +69,8 @@ and VisA with PatchCore, WinCLIP, AnomalyCLIP, and RareCLIP;
 trade-offs hidden by static AUROC-only reporting; and
 \item a stream-order characterization showing measured order-invariance for the
 four main baselines and measurable non-zero $\Delta$B-I for state-updating
-positive controls; and a read-only memory diagnostic showing that, on a focused
-MVTec AD slice, RareCLIP's SCS memory and per-image scores are order-sensitive
+positive controls; and a read-only memory diagnostic showing that, on focused
+MVTec AD and VisA slices, RareCLIP's SCS memory and per-image scores are order-sensitive
 while its AUROC ($\Delta$B-I) is invariant (order-sensitive memory,
 order-invariant ranking).
 \end{itemize}
@@ -384,21 +384,34 @@ the centroid drift decays $6.9\times$ from the first to the last third of the
 stream (all 30 runs): the coreset stabilises quickly, but to an
 order-\emph{dependent} state.
 
+The same pattern replicates on a focused VisA slice
+(candle/macaroni1/macaroni2; same seeds, $\epsilon=0$, length~64, default SCS),
+itself deterministic (zero same-order floor across all 30 pairs). Order again
+moves the memory ($L_2 = 0.012$; all 30 pairs, $p < 10^{-9}$) and shifts
+per-image scores (mean $|\Delta| = 0.020$), while image AUROC is unchanged
+($0.865$ i.i.d.\ vs $0.867$ bursty; $\Delta$B-I $= +0.001$, $p = 0.63$) and the
+within-run drift decays $5.7\times$. These VisA categories have no significant
+positive control (\secref{sec:limitations}); here the bank-trace
+itself---not a positive control---establishes that order perturbs the system,
+and because that perturbation is large relative to the zero floor the
+rank-preservation reading still holds.
+
 The mechanism is thus not order-invariant memory but order-invariant
 \emph{ranking}: SCS produces an order-sensitive coreset and order-sensitive
 per-image scores whose perturbation is rank-preserving, leaving the AUROC-based
 $\Delta$B-I invariant. This explains how a detector can update memory every
 sample yet register $\Delta$B-I $\approx 0$, and it is precisely the behaviour
-separation that single-number reporting hides. The result is specific to this
-slice and to SCS diversity sampling; broader categories, lengths, and datasets
-are future work.
+separation that single-number reporting hides. The result holds on both focused
+slices and is specific to SCS diversity sampling; broader categories, lengths,
+and datasets are future work.
 
 \begin{table}[t]
 \centering
 \small
-\caption{RareCLIP SCS order-sensitivity on the focused MVTec AD slice
-(bottle/cable/capsule, seeds 0--9, $\epsilon=0$, length~64, default SCS).
-Same-order repeats give a zero noise floor; memory and per-image scores are
+\caption{RareCLIP SCS order-sensitivity on focused MVTec AD
+(bottle/cable/capsule) and VisA (candle/macaroni1/macaroni2) slices (seeds
+0--9, $\epsilon=0$, length~64, default SCS). Same-order repeats give a zero
+noise floor; on both datasets the memory and per-image scores are
 order-sensitive while AUROC ($\Delta$B-I) is invariant.}
 \label{tab:order-mechanism}
 \input{../results/latest/tables/order_mechanism_summary.tex}
@@ -470,7 +483,7 @@ per-category test sets.
 stateless inference mode; their near-zero $\Delta$B-I characterises this
 configuration and does not generalise to state-updating modes. RareCLIP runs
 with active SCS memory updates by default yet still produces near-zero
-$\Delta$B-I on the focused MVTec AD slice (the with-CI result is given in
+$\Delta$B-I on the focused MVTec AD and VisA slices (the with-CI result is given in
 \secref{sec:stream-contamination}). The bank-trace diagnostic
 (\secref{sec:order-mechanism}) shows this is order-invariant \emph{ranking}, not
 order-invariant memory: the SCS coreset and per-image scores do shift with
@@ -485,8 +498,10 @@ categories (201 test images each), OPCLite does not reach significance at
 either length, so the detectability boundary cannot be established there.
 The near-zero result for RareCLIP---and the order-sensitive-memory,
 order-invariant-ranking mechanism behind it (\secref{sec:order-mechanism})---is
-therefore conditioned on the MVTec AD bottle/cable/capsule slice where the
-positive control is itself significant.
+conditioned on the evaluated slices: the MVTec AD bottle/cable/capsule slice,
+where the positive control is itself significant, and the VisA
+candle/macaroni1/macaroni2 slice, where no positive control is available and the
+bank-trace instead directly establishes the order perturbation.
 These probes validate the $\Delta$B-I estimator's computational path but do
 not establish that all online deployed methods will produce detectable effects
 at either scale.
