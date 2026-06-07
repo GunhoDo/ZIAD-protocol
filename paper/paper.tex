@@ -5,6 +5,8 @@
 \usepackage{accvabbrv}
 \usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{matrix}
 \usepackage{multirow}
 % Prevent floats (figures/tables) from drifting across section boundaries
 \usepackage[section]{placeins}
@@ -28,16 +30,17 @@ evaluation protocol for industrial anomaly detection. ZIAD converts static
 benchmarks into controlled i.i.d.\ and bursty streams, executes
 category-sharded evaluations, and reports discrimination, ECE, latency,
 contamination sensitivity, and stream-order sensitivity. On MVTec AD and VisA with PatchCore,
-WinCLIP, AnomalyCLIP, and RareCLIP, ZIAD yields four observations. First, the
-four main baselines are nearly order invariant in $\Delta$B-I (AUROC), making an
-implicit property of static scoring measurable. Second, state-updating diagnostic
-memory-bank detectors produce statistically significant non-zero $\Delta$B-I,
-showing that the protocol detects order-sensitive adaptation when it is present.
-Third, accuracy, ECE, and latency rankings differ within datasets, so
-AUROC-only reporting hides operational trade-offs. Fourth, on focused MVTec AD and VisA
-slices a read-only memory diagnostic shows the near-zero $\Delta$B-I for RareCLIP
-is order-invariant \emph{ranking}, not order-invariant memory: its SCS coreset
-and per-image scores shift with stream order while its AUROC does not.
+WinCLIP, AnomalyCLIP, and RareCLIP, ZIAD's diagnostics expose behaviour a single
+AUROC hides. The four main baselines are nearly order-invariant in $\Delta$B-I---a
+measurable but expected property of frozen scoring---and accuracy, ECE, and
+latency rankings differ within datasets. The non-trivial case is RareCLIP: a
+read-only memory diagnostic shows its near-zero $\Delta$B-I is order-invariant
+\emph{ranking}, not order-invariant memory (its SCS coreset and per-image scores
+shift with order while AUROC does not within a stationary stream), and this
+invariance is \emph{stationarity-conditional}---under category-boundary
+distribution shift (concatenated streams) the within-category ranking collapses.
+State-updating positive controls confirm the $\Delta$B-I estimator detects order
+effects when present.
 \end{abstract}
 
 \section{Introduction}
@@ -55,6 +58,9 @@ contamination sensitivity (the AUROC/AUPR shift under added contamination), and 
 baseline state and memory metadata, with memory-policy sweeps left to future
 work. PatchCore provides a training-light reference; WinCLIP,
 AnomalyCLIP, and RareCLIP represent CLIP-style zero-shot baselines.
+\figref{fig:concept} previews the central finding: whether a single AUROC
+reading reveals a detector's online-memory order- and distribution-shift
+sensitivity depends on the regime.
 
 The main contributions are:
 \begin{itemize}
@@ -119,11 +125,10 @@ interpretable across streams and contamination settings. ZIAD reports ECE
 alongside AUROC, AUPR, latency, and the contamination-induced AUROC/AUPR shift.
 
 \section{Evaluation Protocol}
-\figref{fig:ziad-protocol-overview} summarizes the focused ZIAD flow. The
-figure is a protocol overview, not a result: static industrial datasets are
-converted into stream-ordered evaluation items, passed through shared baseline
-interfaces, optionally varied along protocol axes, and summarized with metrics
-plus category-sharded audit checks.
+The focused ZIAD flow converts static industrial datasets into stream-ordered
+evaluation items, passes them through shared baseline interfaces, optionally
+varies them along protocol axes, and summarizes them with metrics plus
+category-sharded audit checks.
 
 ZIAD follows four design principles: controlled stream construction, matched
 stream/contamination/category/seed comparisons, category/seed-stratified
@@ -132,10 +137,37 @@ principles make order and contamination effects measurable rather than assumed.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\textwidth]{../results/latest/figures/ziad_protocol_overview.pdf}
-\caption{ZIAD protocol overview. The diagram summarizes the evaluation flow and
-available protocol axes; it does not report experimental outcomes.}
-\label{fig:ziad-protocol-overview}
+\begin{tikzpicture}[font=\small,
+  ax/.style={anchor=east,font=\bfseries},
+  hd/.style={font=\bfseries,align=center},
+  cell/.style={draw,rounded corners,align=center,text width=3.2cm,
+               minimum height=0.95cm,inner sep=3pt}]
+  \node[hd] at (0,2.5){Stream order\\(i.i.d.\,$\leftrightarrow$\,bursty)};
+  \node[hd] at (4.4,2.5){Distribution shift\\(category boundary)};
+  \node[ax] at (-2.1,1.4){SCS memory};
+  \node[ax] at (-2.1,0.0){Per-image score};
+  \node[ax] at (-2.1,-1.4){AUROC ($\Delta$B-I)};
+  \node[cell] at (0,1.4){$d_{\mathrm{ord}}>0$ ($L_2\!\approx\!0.01$)};
+  \node[cell] at (0,0.0){per-image $|\Delta|\!\approx\!0.02$--$0.03$};
+  \node[cell,fill=gray!15] at (0,-1.4){$\Delta$B-I $\approx 0$ (invariant)};
+  \node[cell] at (4.4,1.4){boundary drift $\times4.3$--$8.2$ interior};
+  \node[cell] at (4.4,0.0){scores reorder};
+  \node[cell,fill=gray!15] at (4.4,-1.4){within-cat AUROC $\downarrow\!\approx\!0.22$};
+  \node[align=center,text width=3.6cm,font=\itshape] at (0,-2.8)
+       {stationary: AUROC flat, hides memory sensitivity};
+  \node[align=center,text width=3.8cm,font=\itshape] at (4.4,-2.8)
+       {non-stationary: AUROC collapses, sensitivity exposed};
+\end{tikzpicture}
+\caption{A single AUROC's reading depends on the regime. ZIAD's bank-trace
+separates three axes (SCS memory, per-image score, AUROC) under two stressors.
+Stream order moves the memory and per-image scores but not the AUROC ranking
+(left, $\Delta$B-I$\approx$0): a single AUROC hides this sensitivity.
+Category-boundary distribution shift moves the memory more (boundary drift
+$\times4.3$--$8.2$ the interior) and now collapses the within-category ranking
+(right, AUROC $\downarrow\approx0.22$): the hidden sensitivity is exposed.
+See \tabref{tab:order-mechanism} (stationary, left) and
+\secref{sec:order-mechanism} (concatenated, right).}
+\label{fig:concept}
 \end{figure}
 
 \subsection{Stream Construction}
@@ -179,30 +211,14 @@ settings \(\epsilon \in \{0, 0.05\}\). Third, it records score
 reliability through ECE, with the current main comparison using no post-hoc
 calibration transform. Fourth, it records memory or coreset-style state where a
 baseline uses it (memory-policy sweeps are future work). Fifth,
-it reports latency alongside image AUROC, AUPR, and ECE. CRD-lite is retained
-only as a secondary contamination-robustness proxy (see Metrics and
-Limitations); the main contamination signal is read from the AUROC/AUPR shift.
+it reports latency alongside image AUROC, AUPR, and ECE. Contamination robustness
+is reported as the AUROC/AUPR shift from $\epsilon{=}0$ to $\epsilon{=}0.05$.
 
 Image AUROC and AUPR are computed from \(\{(y_t,s_t)\}_{t=1}^{T}\) for each
 stream. ECE is computed as a diagnostic after min--max normalizing emitted
 anomaly scores, because the wrapped baselines do not all output calibrated
 probabilities. Aggregate tables report means over the completed category and
 seed shards for each dataset/baseline slice.
-
-CRD-lite is a signed contamination robustness proxy. For matched
-$\epsilon$-vs-$\epsilon{=}0$ run pairs:
-\[
-\mathrm{CRD\text{-}lite}(\epsilon)=
-\tfrac{1}{2}\bigl[
-(\mathrm{AUROC}_{0}-\mathrm{AUROC}_{\epsilon})+
-(\mathrm{AUPR}_{0}-\mathrm{AUPR}_{\epsilon})
-\bigr].
-\]
-Positive values indicate average discrimination degraded under contamination;
-negative values are not interpreted as a robustness gain by themselves; they
-indicate that the AUROC and AUPR terms moved in opposite directions or that the
-AUPR term dominated the signed average, so the component metrics must be read
-alongside CRD-lite.
 
 \subsection{Category-Sharded Execution}
 The focused evaluation covers MVTec AD and VisA, the baselines
@@ -261,11 +277,10 @@ answers the latter two with controlled positive probes.
 focused comparison for the calibration-none setting (the no-post-hoc-calibration
 configuration of the Metrics section). PatchCore has the
 highest mean AUROC and AUPR on both datasets; ECE and latency leaders differ
-by dataset. ECE values are not directly comparable across datasets because
-scores are min--max normalized per baseline before computing ECE; calibration
-diagnostics are therefore read \emph{within} a dataset rather than across
-datasets. These observations support the protocol analysis without asserting a
-universal detector ranking.
+by dataset. ECE is a secondary within-dataset diagnostic only---scores are
+min--max normalized per baseline, so it is not comparable across datasets.
+These observations support the protocol analysis without asserting a universal
+detector ranking.
 
 \begin{table}[t]
 \centering
@@ -310,19 +325,13 @@ per-image scores do shift with order, yet its AUROC does not
 (\secref{sec:order-mechanism}).
 
 {\sloppy
-Detectability of the $\Delta$B-I axis is tested with two state-updating
-positive controls evaluated on a focused MVTec AD slice (categories: bottle,
-cable, capsule; requested length~256, applied~83 samples per run---the full
-available test set for these categories; configuration~(b) above).
-OnlineWindowKNN and OnlinePatchCoreLite~($K{=}8$) each use
-seeds~0--9 and $\epsilon \in \{0,0.05\}$ (60 bootstrap strata).
-At requested length~256, both produce significant non-zero $\Delta$B-I with CIs excluding zero:
-OnlineWindowKNN ($+0.014$, 95\% CI $[+0.005, +0.022]$) and
-OnlinePatchCoreLite~$K{=}8$ ($+0.014$, 95\% CI $[+0.006, +0.023]$).
-OnlinePrototypeEMA, pilot run seeds~0--4 (30~strata), does not
-reach significance ($+0.004$, 95\% CI $[-0.008, +0.016]$).
-\tabref{tab:online-memory-detector-comparison} reports these runs together
-with length~64 replications for OnlineWindowKNN and OnlinePatchCoreLite.
+Detectability of the $\Delta$B-I axis is confirmed with two state-updating
+positive controls on a focused MVTec AD slice (bottle/cable/capsule, seeds~0--9,
+$\epsilon \in \{0,0.05\}$): at requested length~256 both OnlineWindowKNN and
+OnlinePatchCoreLite~($K{=}8$) produce significant non-zero $\Delta$B-I (CIs
+excluding zero), while an OnlinePrototypeEMA pilot does not reach significance.
+\tabref{tab:online-memory-detector-comparison} gives the effect sizes, CIs, and
+length~64 replications.
 \par}
 
 \begin{table}[t]
@@ -335,12 +344,6 @@ pilot. Bold denotes a 95\% CI excluding zero.}
 \label{tab:online-memory-detector-comparison}
 \resizebox{0.85\textwidth}{!}{\input{../results/latest/tables/online_memory_detector_comparison.tex}}
 \end{table}
-
-Two additional probes (an OrderSensitiveToy score-mixing probe and a post-hoc
-OnlineWindow wrapper) were also run but are underpowered and inconclusive:
-point estimates are directionally positive yet their bootstrap intervals
-largely include zero. We report them only for completeness; the full
-per-cell breakdown is in the generated JSON artifacts.
 
 A corroborating replication (configuration~(b); see \secref{sec:setup})
 confirms the RareCLIP finding where the estimator is known to detect order
@@ -401,9 +404,33 @@ The mechanism is thus not order-invariant memory but order-invariant
 per-image scores whose perturbation is rank-preserving, leaving the AUROC-based
 $\Delta$B-I invariant. This explains how a detector can update memory every
 sample yet register $\Delta$B-I $\approx 0$, and it is precisely the behaviour
-separation that single-number reporting hides. The result holds on both focused
-slices and is specific to SCS diversity sampling; broader categories, lengths,
-and datasets are future work.
+separation that single-number reporting hides. This rank-preservation, however,
+is a property of a \emph{stationary} stream.
+
+To stress it, we concatenate categories into longer streams whose boundaries
+inject distribution shift. Using \textbf{3 cyclic permutations} of the VisA
+candle/macaroni1/macaroni2 blocks (each category once at each position; per-block
+prevalence 0.05, concatenated length~315, default SCS; runs again deterministic,
+zero same-order floor), we read each category's \emph{within-category} AUROC
+(block items only, which removes the cross-category score-mean confound) as a
+function of its position. Rank-preservation does \emph{not} survive: a category's
+within-category AUROC falls sharply from the first position to later positions
+(mean position-$\Delta \approx 0.22$; e.g.\ candle $0.96 \to 0.60$; monotone in
+14 of 15 category/seed cells, all three categories on average, paired
+$p < 10^{-9}$; $\approx 6.8\times$ the within-category tolerance floor of
+$0.011$). The centroid drift spikes at each category boundary---on average
+$8.2\times$ the interior median at the candle$\to$macaroni1 boundary and
+$4.3\times$ at the macaroni1$\to$macaroni2 boundary---confirming the memory
+responds to the shift. Because each block is byte-identical across positions,
+this is a genuine ranking change rather than a score-scale shift: the same
+anomaly images rank lower within the block once the coreset has been populated by
+other categories and loses discrimination for the current one. The magnitude is
+approximate---each block has only 5 anomalies, so within-category AUROC is
+coarse---but the direction and consistency (14 of 15 monotone, $p<10^{-9}$,
+$6.8\times$ the floor) are not explained by small-sample noise. Rank-preservation
+is therefore \emph{stationarity-conditional}: stream order alone leaves the
+ranking intact, but category-boundary distribution shift lets the order-sensitive
+memory corrupt it.
 
 \begin{table}[t]
 \centering
@@ -412,7 +439,9 @@ and datasets are future work.
 (bottle/cable/capsule) and VisA (candle/macaroni1/macaroni2) slices (seeds
 0--9, $\epsilon=0$, length~64, default SCS). Same-order repeats give a zero
 noise floor; on both datasets the memory and per-image scores are
-order-sensitive while AUROC ($\Delta$B-I) is invariant.}
+order-sensitive while AUROC ($\Delta$B-I) is invariant. Under category-boundary
+distribution shift (concatenated streams) this rank-invariance breaks
+(\secref{sec:order-mechanism}, in text).}
 \label{tab:order-mechanism}
 \input{../results/latest/tables/order_mechanism_summary.tex}
 \end{table}
@@ -431,7 +460,8 @@ are in the generated JSON.}
 \resizebox{0.6\textwidth}{!}{\input{../results/latest/tables/focused_evaluation_ci_summary.tex}}
 \end{table}
 
-\section{Accuracy--Latency Trade-off}
+\subsection{Accuracy--Latency Trade-off}
+\label{sec:acc-latency}
 \figref{fig:paper-candidate-accuracy-latency} plots AUROC against latency per
 (baseline, dataset) pair; rankings are not consistent across datasets,
 illustrating that accuracy alone conceals operational trade-offs.
@@ -447,6 +477,9 @@ datasets.}
 \end{figure}
 
 \section{Discussion}
+A single AUROC hides two behaviours ZIAD surfaces: (a) the order- and
+distribution-shift sensitivity of online memory (\secref{sec:order-mechanism}),
+and (b) operational accuracy--latency trade-offs (\secref{sec:acc-latency}).
 For practitioners, the value of separating these axes is operational: a
 deployment can pick an operating point on the accuracy--latency--reliability
 surface rather than inheriting whichever detector tops a static AUROC
@@ -474,10 +507,19 @@ uses stream length~64 with seeds~$\{0,1,2\}$ on MVTec AD and VisA. Longer
 single-category streams are not merely undone but structurally bounded by
 dataset size: no category in either benchmark has more than 201 test images
 (MVTec AD peaks at 167; VisA at 201), so a requested length of~256 is always
-capped to the full per-category test set. Stream-length conclusions are
-therefore limited to the achievable range, and broader claims would require
-either multi-category concatenation or additional datasets with larger
-per-category test sets.
+capped to the full per-category test set. Multi-category concatenation reaches
+longer streams (length~315 here), but it is not a free extension: category
+boundaries inject distribution shift, under which the within-category ranking
+degrades (\secref{sec:order-mechanism}), so concatenated streams probe a
+different (non-stationary) regime rather than simply lengthening the stationary
+one. Stream-length conclusions are therefore limited to the achievable stationary
+range. The same small per-category pools also bound contamination: a preliminary
+strong-$\epsilon$ diagnostic (AnomalyCLIP, six VisA categories, $\epsilon \in
+\{0,0.05,0.1,0.2\}$) is not analysed because three categories have only 50 normal
+test images, so a no-duplicate length-64 stream already forces $\geq 64-50=14$
+anomalies---above the low-$\epsilon$ targets---so the requested low contamination
+is never realized (only $\epsilon=0.2$ clears the floor); it is retained in
+artifacts only.
 
 \item \textbf{Baseline scope.} WinCLIP, AnomalyCLIP, and PatchCore run in
 stateless inference mode; their near-zero $\Delta$B-I characterises this
@@ -518,23 +560,6 @@ calibration-set-fitted evidence, so they are retained only as a diagnostic
 artifact and are not used to revise the main ECE results, which remain
 min--max-normalized within-dataset diagnostics.
 
-\item \textbf{CRD-lite.} CRD-lite is reported as a secondary
-contamination-robustness proxy rather than a main metric: it is a signed
-quantity, not a standalone robustness score, and its negative values must be
-read with the component AUROC and AUPR terms as defined in the Metrics section,
-so the main contamination signal is reported as the AUROC/AUPR shift. A
-preliminary strong-$\epsilon$ diagnostic (AnomalyCLIP on six VisA categories at
-$\epsilon \in \{0, 0.05, 0.1, 0.2\}$) is available in the generated artifacts
-but is not analysed in the main text: in three of the six categories (cashew,
-chewinggum, fryum) the $\epsilon \in \{0, 0.05, 0.1\}$ cells are bit-for-bit
-identical to $\epsilon=0$. Each of these categories has only 50 normal test
-images, so a no-duplicate length-64 stream must contain at least $64-50=14$
-anomalies---already above the requested low-$\epsilon$ anomaly targets---and the
-requested contamination is therefore not realized (only $\epsilon=0.2$ clears
-this floor). This is the small per-category test-pool constraint of the
-length-bound limitation above, not a baseline effect, so the diagnostic does
-not pass the metric-validity and sampler-setting checks required for a reported
-claim.
 \end{enumerate}
 
 \paragraph{Threats to validity.}

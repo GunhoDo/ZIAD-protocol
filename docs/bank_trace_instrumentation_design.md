@@ -183,3 +183,58 @@ actually strong (first branch). Same-environment determinism (d_rep=0) is
 required and re-checked per Rule 4/5; Rule 1 (necessary != sufficient) still
 binds. VisA outputs use a SEPARATE directory and their own gate JSON
 (paper_allowed=false until author sign-off); flags are never auto-flipped.
+
+## LOCKED RULE 7 — multi-category concatenation: rank-preservation under distribution shift (pre-registered, before data)
+Concatenation is a STRESS-TEST of the Rule-6 / sec:order-mechanism rank-preservation
+claim under a harder ordering: category boundaries = distribution shift. It is
+absorbed into sec:order-mechanism (NO new section, NO new contribution bullet); the
+longer streams it enables are reported only as a partial resolution of Limitation 1
+("length bound"), never as a new "long-stream" or "distribution-shift measurement"
+capability. Paper wording uses "3 cyclic permutations" exactly; never "all permutations".
+
+Design (VisA candle/macaroni1/macaroni2, default SCS, eps=0, prevalence 0.05,
+per-block ~105 so concatenated length ~315 > the 201 cap; within-block iid):
+- **3 cyclic permutations** [A,B,C],[B,C,A],[C,A,B] place each category once in each
+  position (1/2/3). 5 seeds first (30 cells = 3 perm x 5 seed x {base, same-order
+  repeat}); extend to 10 seeds (60 cells) ONLY if the 5-seed position signal sits near
+  the noise floor (power decision deferred, not pre-committed).
+
+Verdict statistic = **within-category AUROC** (per-block, block items only), which removes
+the cross-category score-mean confound. Whole-mixed AUROC is reported as context only
+(confounded) and is NOT used for the verdict.
+
+Floor caveat: the same-order repeat AUROC floor is **0** (runs are deterministic, d_rep=0),
+so "3x floor" cannot use the repeat floor directly. The operative floor is the
+**sec:order-mechanism within-category rank-preservation tolerance** = the §5.4 VisA
+single-category **median |ΔB-I|**, taken from the VisA gate JSON field
+`summary_stats.delta_b_i.median_abs` = **0.01093** (the sign-cancellation-free absolute
+median; NOT the mean, 0.0013). MVTec analog = 0.0031. VisA is used because concatenation
+is on VisA. 3x floor ≈ **0.033**.
+
+Pre-registered decision, fixed before any concatenation number is seen. Position-Δ =
+within-category AUROC(category at a later position) − within-category AUROC(same category
+at first position), over 3 categories x 5 seeds. Criterion is **effect size FIRST,
+significance SECOND (tiered, not AND)**:
+- **PRIMARY (effect size)**: mean |position-Δ| clearly ≤ 3x floor (≈0.033) → **(A) robust**;
+  clearly > 0.033 → **(B) stationarity-conditional**.
+- **SECONDARY (only if mean |position-Δ| is in the ambiguous zone around 0.033)**: a paired
+  test of position-Δ vs the §5.4 within-category |ΔB-I| baseline (is the shift materially
+  LARGER than ordinary within-category order variation?) breaks the tie.
+- **If still ambiguous**: extend to seeds 0-9 to resolve; do not force a verdict.
+- **Statistical-zero is NOT a criterion**: the single-category baseline is itself 0.011 != 0,
+  so "distinguishable from zero" is meaningless here; we test "materially larger than the
+  established within-category tolerance", never "different from zero".
+
+(A) → sec:order-mechanism extended to "robust across category-boundary distribution shift
+in length-~315 concatenated streams"; abstract obs4 + Limitation 1 updated accordingly.
+(B, SHARPENING not a weakness) → claim refined to "holds within a stationary stream; under
+category-boundary distribution shift the ranking shifts" --- a more precise, more on-theme
+statement of when/what a single metric hides. Folded into sec:order-mechanism as a
+conditional; Limitation 1 length addressed but reveals the boundary effect.
+- **Boundary memory signal (common to A and B)**: the centroid drift
+  `pfm_centroid_l2_delta` is expected to SPIKE in a ±k window at each category boundary
+  (memory responds to distribution shift). This is the mix-IMMUNE memory-perturbation
+  signal; it does NOT decide A vs B. A = memory spikes + ranking preserved;
+  B = memory spikes + ranking shifts.
+Same environment pin (acb7481; scoring path unchanged), d_rep=0 re-checked per Rule 4/5;
+Rule 1 still binds. Gate JSON paper_allowed=false until sign-off; flags never auto-flipped.

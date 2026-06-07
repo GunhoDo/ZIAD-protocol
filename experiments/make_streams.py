@@ -455,6 +455,140 @@ def build_stream(
     return {"metadata": metadata, "items": items}
 
 
+def build_concatenated_stream(
+    *,
+    dataset_root: str | Path,
+    categories: list[str],
+    dataset: str = "MVTec AD",
+    stream_type: str = "iid",
+    prevalence: Any,
+    contamination_epsilon: Any,
+    seed: Any,
+    per_block_length: Any = None,
+    burst_length: Any = 1,
+) -> dict[str, Any]:
+    """Concatenate one per-category block per entry of ``categories`` into one long
+    stream. Each block reuses the single-category selection/ordering, seeded by
+    (seed, category) so a category's block content and within-block order are IDENTICAL
+    regardless of its position --- the only thing that changes with position is the
+    preceding memory (the category-boundary distribution shift). Items carry
+    ``block_index``; metadata records ``category_sequence`` and ``block_boundaries``.
+    ``build_stream`` and the rest of make_streams are unchanged.
+    """
+    if not categories:
+        raise ValueError("categories must be a non-empty list")
+    stream_type = str(stream_type)
+    if stream_type not in {"iid", "bursty"}:
+        raise ValueError(f"stream_type must be 'iid' or 'bursty', got {stream_type!r}")
+    prevalence_dec = _validate_fraction(prevalence, "prevalence")
+    epsilon_dec = _decimal(contamination_epsilon, "contamination_epsilon")
+    target = prevalence_dec + epsilon_dec
+    if target < 0 or target > 1:
+        raise ValueError(f"prevalence + contamination_epsilon must be in [0, 1], got {target}")
+    seed_int = _validate_int(seed, "stream.seed")
+    block_length = (
+        None if per_block_length in {None, ""}
+        else _validate_int(per_block_length, "per_block_length", positive=True)
+    )
+    burst_length_int = _validate_int(burst_length, "stream.burst_length", positive=True)
+
+    items: list[dict[str, Any]] = []
+    block_boundaries: list[int] = []
+    blocks_meta: list[dict[str, Any]] = []
+    warnings: list[dict[str, Any]] = []
+    cursor = 0
+    for block_index, category in enumerate(categories):
+        samples = enumerate_dataset_samples(dataset_root, category, dataset)
+        normals_all = [s for s in samples if s.label == 0]
+        anomalies_all = [s for s in samples if s.label == 1]
+        sel_n, sel_a, block_warn = choose_counts(
+            len(normals_all), len(anomalies_all), target, block_length
+        )
+        # Position-INDEPENDENT selection and ordering: keyed by (seed, category) only,
+        # so this category's block is identical at any position in any permutation.
+        rng_n = random.Random(f"{seed_int}:{category}:select:normals")
+        rng_a = random.Random(f"{seed_int}:{category}:select:anomalies")
+        npool = list(normals_all)
+        apool = list(anomalies_all)
+        rng_n.shuffle(npool)
+        rng_a.shuffle(apool)
+        sel_normals = npool[:sel_n]
+        sel_anoms = apool[:sel_a]
+        ordered, burst_stats, order_warn = order_items(
+            sel_normals, sel_anoms, stream_type, f"{seed_int}:{category}", burst_length_int
+        )
+        for raw in block_warn + order_warn:
+            tagged = dict(raw)
+            tagged["block_index"] = block_index
+            tagged["category"] = category
+            warnings.append(tagged)
+        block_boundaries.append(cursor)
+        for sample in ordered:
+            items.append(
+                {
+                    "stream_index": cursor,
+                    "image_path": sample.rel_path,
+                    "label": sample.label,
+                    "category": sample.category,
+                    "source_split": sample.source_split,
+                    "anomaly_type": sample.anomaly_type,
+                    "block_index": block_index,
+                }
+            )
+            cursor += 1
+        blocks_meta.append(
+            {
+                "block_index": block_index,
+                "category": category,
+                "start_index": block_boundaries[-1],
+                "length": len(ordered),
+                "available_normal_count": len(normals_all),
+                "available_anomaly_count": len(anomalies_all),
+                "selected_normal_count": sel_n,
+                "selected_anomaly_count": sel_a,
+                **{f"block_{k}": v for k, v in burst_stats.items()},
+            }
+        )
+
+    portable_config = {
+        "dataset": dataset,
+        "category_sequence": list(categories),
+        "stream_type": stream_type,
+        "prevalence": str(prevalence_dec),
+        "contamination_epsilon": str(epsilon_dec),
+        "target_anomaly_fraction": str(target),
+        "seed": seed_int,
+        "per_block_length": block_length,
+        "burst_length": burst_length_int,
+    }
+    metadata = {
+        "stream_type": stream_type,
+        "dataset": dataset,
+        "dataset_root_name": Path(dataset_root).name,
+        "category_sequence": list(categories),
+        "seed": seed_int,
+        "generator_version": GENERATOR_VERSION,
+        "selection_policy_version": SELECTION_POLICY_VERSION,
+        "config_hash": _config_hash(portable_config),
+        "requested_prevalence": _decimal_float(prevalence_dec),
+        "requested_contamination_epsilon": _decimal_float(epsilon_dec),
+        "target_anomaly_fraction": _decimal_float(target),
+        "requested_per_block_length": block_length,
+        "applied_stream_length": len(items),
+        "n_blocks": len(categories),
+        "block_boundaries": block_boundaries,
+        "requested_burst_length": burst_length_int if stream_type == "bursty" else None,
+        "blocks": blocks_meta,
+        "warnings": warnings,
+        "scoring_mode": "stream_ordered_offline",
+        "training_source": "train/good",
+        "stream_source": "test/*",
+        "latency_semantics": "offline_batch_amortized",
+        "concatenated": True,
+    }
+    return {"metadata": metadata, "items": items}
+
+
 def validate_stream_payload(payload: dict[str, Any]) -> None:
     required_item_fields = {
         "stream_index",
