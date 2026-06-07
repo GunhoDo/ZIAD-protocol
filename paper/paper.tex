@@ -28,10 +28,11 @@ inspection systems receive ordered samples and must handle contamination,
 reliability, and latency. We present ZIAD, a streaming
 evaluation protocol for industrial anomaly detection. ZIAD converts static
 benchmarks into controlled i.i.d.\ and bursty streams, executes
-category-sharded evaluations, and reports discrimination, ECE, latency,
-contamination sensitivity, and stream-order sensitivity. On MVTec AD and VisA with PatchCore,
+category-sharded evaluations, and reports discrimination, expected calibration
+error (ECE), latency, contamination sensitivity, and stream-order sensitivity.
+On MVTec AD and VisA with PatchCore,
 WinCLIP, AnomalyCLIP, and RareCLIP, ZIAD's diagnostics expose behaviour a single
-AUROC hides. The four main baselines are nearly order-invariant in $\Delta$B-I---a
+AUROC (area under the ROC curve) hides. The four main baselines are nearly order-invariant in $\Delta$B-I---a
 measurable but expected property of frozen scoring---and accuracy, ECE, and
 latency rankings differ within datasets. The non-trivial case is RareCLIP: a
 read-only memory diagnostic shows its near-zero $\Delta$B-I is order-invariant
@@ -52,7 +53,8 @@ contamination as well as ranking accuracy. We call this protocol ZIAD,
 shorthand for a streaming evaluation framework targeting zero-shot and
 training-light industrial anomaly detection. It converts static benchmarks
 into controlled streams and reports detectors along five diagnostics:
-discrimination accuracy (AUROC, AUPR), score reliability (ECE), latency,
+discrimination accuracy (areas under the ROC and precision--recall curves,
+AUROC and AUPR), score reliability (expected calibration error, ECE), latency,
 contamination sensitivity (the AUROC/AUPR shift under added contamination), and stream-order sensitivity
 ($\Delta$B-I, the bursty-minus-i.i.d.\ AUROC shift). The protocol also records
 baseline state and memory metadata, with memory-policy sweeps left to future
@@ -152,7 +154,7 @@ principles make order and contamination effects measurable rather than assumed.
   \node[cell,fill=gray!15] at (0,-1.4){$\Delta$B-I $\approx 0$ (invariant)};
   \node[cell] at (4.4,1.4){boundary drift $\times4.3$--$8.2$ interior};
   \node[cell] at (4.4,0.0){scores reorder};
-  \node[cell,fill=gray!15] at (4.4,-1.4){within-cat AUROC $\downarrow\!\approx\!0.22$};
+  \node[cell,fill=gray!15] at (4.4,-1.4){within-cat AUROC $\downarrow\!\approx\!0.2$};
   \node[align=center,text width=3.6cm,font=\itshape] at (0,-2.8)
        {stationary: AUROC flat, hides memory sensitivity};
   \node[align=center,text width=3.8cm,font=\itshape] at (4.4,-2.8)
@@ -164,7 +166,7 @@ Stream order moves the memory and per-image scores but not the AUROC ranking
 (left, $\Delta$B-I$\approx$0): a single AUROC hides this sensitivity.
 Category-boundary distribution shift moves the memory more (boundary drift
 $\times4.3$--$8.2$ the interior) and now collapses the within-category ranking
-(right, AUROC $\downarrow\approx0.22$): the hidden sensitivity is exposed.
+(right, AUROC $\downarrow\approx0.2$ aggregate): the hidden sensitivity is exposed.
 See \tabref{tab:order-mechanism} (stationary, left) and
 \secref{sec:order-mechanism} (concatenated, right).}
 \label{fig:concept}
@@ -376,28 +378,50 @@ default SCS), runs are deterministic: a same-ordering repeat reproduces both the
 final coreset centroid and every score exactly, giving a zero run-to-run noise
 floor (verified across all 30 category/seed pairs).
 
-Against that zero floor, stream order \emph{does} move the memory
-(\tabref{tab:order-mechanism}). For the same image multiset, an i.i.d.\ and a
-bursty ordering reach final SCS coreset centroids that differ
-($L_2 = 0.011$; all 30 pairs, paired Wilcoxon $p < 10^{-9}$), and the \emph{same}
-image receives a different score depending on order (mean $|\Delta| = 0.030$).
-Yet image AUROC is essentially unchanged ($0.986$ i.i.d.\ vs $0.984$ bursty;
-$\Delta$B-I $= -0.002$, not distinguishable from zero, $p = 0.72$). Within a run
-the centroid drift decays $6.9\times$ from the first to the last third of the
+Against that zero floor, stream order \emph{does} move the memory and the
+per-image scores (\tabref{tab:order-mechanism}), yet image AUROC is essentially
+unchanged ($0.986$ i.i.d.\ vs $0.984$ bursty; $\Delta$B-I $= -0.002$). Within a
+run the centroid drift decays $6.9\times$ from the first to the last third of the
 stream (all 30 runs): the coreset stabilises quickly, but to an
 order-\emph{dependent} state.
 
 The same pattern replicates on a focused VisA slice
 (candle/macaroni1/macaroni2; same seeds, $\epsilon=0$, length~64, default SCS),
-itself deterministic (zero same-order floor across all 30 pairs). Order again
-moves the memory ($L_2 = 0.012$; all 30 pairs, $p < 10^{-9}$) and shifts
-per-image scores (mean $|\Delta| = 0.020$), while image AUROC is unchanged
-($0.865$ i.i.d.\ vs $0.867$ bursty; $\Delta$B-I $= +0.001$, $p = 0.63$) and the
+itself deterministic (zero same-order floor across all 30 pairs): image AUROC is
+unchanged ($0.865$ i.i.d.\ vs $0.867$ bursty; $\Delta$B-I $= +0.001$) and the
 within-run drift decays $5.7\times$. These VisA categories have no significant
-positive control (\secref{sec:limitations}); here the bank-trace
-itself---not a positive control---establishes that order perturbs the system,
-and because that perturbation is large relative to the zero floor the
-rank-preservation reading still holds.
+positive control (\secref{sec:limitations}); here the bank-trace itself---not a
+positive control---establishes that order perturbs the system.
+
+Expressed as effect sizes (\tabref{tab:order-effect-size}), stream order moves
+the memory by $2$--$3\times$ a typical within-run per-step drift and shifts the
+per-image score by $0.23$--$0.36\times$ the per-stream score std---a sub-std
+perturbation that exceeds the cross-environment reproducibility floor
+($\approx$1e-3) by $7$--$11\times$ yet is small enough to leave the ranking
+intact ($\Delta$B-I$\approx$0). Same-environment runs (fixed commit, libraries,
+and hardware) are deterministic, with a zero run-to-run floor.
+
+\begin{table}[t]\centering\small
+\caption{Order-induced perturbation in the stationary single-category regime
+(mean over 30 category/seed cells; i.i.d.\ vs.\ bursty). Same-environment runs are
+deterministic (run-to-run floor $=0$; emitted scores bit-identical, 0/1920
+mismatches under a fixed commit, libraries, and hardware). The cross-environment
+reproducibility floor ($\approx$1.3e-3, MVTec, $n{=}64$) is reported only to show
+the order effect exceeds version-level noise, not as an effect-size scale.}
+\label{tab:order-effect-size}
+\begin{tabular}{lcc}
+\toprule
+ & MVTec AD & VisA \\
+\midrule
+\multicolumn{3}{l}{\emph{Effect magnitude (vs.\ meaningful scale)}}\\
+Memory shift $/$ within-run step drift        & 2.3$\times$  & 3.4$\times$ \\
+Per-image score shift $/$ stream score std    & 0.23$\times$ & 0.36$\times$ \\
+\midrule
+\multicolumn{3}{l}{\emph{Not-noise check (vs.\ reproducibility floor)}}\\
+Per-image score shift $/$ cross-env floor     & 11$\times$   & 7$\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 The mechanism is thus not order-invariant memory but order-invariant
 \emph{ranking}: SCS produces an order-sensitive coreset and order-sensitive
@@ -414,20 +438,25 @@ prevalence 0.05, concatenated length~315, default SCS; runs again deterministic,
 zero same-order floor), we read each category's \emph{within-category} AUROC
 (block items only, which removes the cross-category score-mean confound) as a
 function of its position. Rank-preservation does \emph{not} survive: a category's
-within-category AUROC falls sharply from the first position to later positions
-(mean position-$\Delta \approx 0.22$; e.g.\ candle $0.96 \to 0.60$; monotone in
-14 of 15 category/seed cells, all three categories on average, paired
-$p < 10^{-9}$; $\approx 6.8\times$ the within-category tolerance floor of
-$0.011$). The centroid drift spikes at each category boundary---on average
+within-category AUROC falls at later positions. Aggregated over the 15
+category/seed cells, the position effect is mean $\Delta \approx 0.20$ (95\% CI
+$[0.14, 0.26]$, bootstrap over cells; 14 of 15 positive), $\approx 6.8\times$ the
+within-category tolerance floor of $0.011$. The centroid drift spikes at each category boundary---on average
 $8.2\times$ the interior median at the candle$\to$macaroni1 boundary and
 $4.3\times$ at the macaroni1$\to$macaroni2 boundary---confirming the memory
 responds to the shift. Because each block is byte-identical across positions,
 this is a genuine ranking change rather than a score-scale shift: the same
 anomaly images rank lower within the block once the coreset has been populated by
-other categories and loses discrimination for the current one. The magnitude is
-approximate---each block has only 5 anomalies, so within-category AUROC is
-coarse---but the direction and consistency (14 of 15 monotone, $p<10^{-9}$,
-$6.8\times$ the floor) are not explained by small-sample noise. Rank-preservation
+other categories and loses discrimination for the current one. A same-category-fill
+control isolates this cause (\tabref{tab:concat-control}): with matched prefix length
+and composition and only the prefix's category identity varied, it leaves within-block
+AUROC flat ($0.92$, indistinguishable from the $0.90$ baseline), while cross-category
+fill collapses it to $0.73$ ($\Delta = 0.17$, 95\% CI $[0.14, 0.20]$, 15/15 cells),
+isolating cross-category coreset contamination from position/saturation effects.
+Per-cell precision is limited: each block has only 5 anomalies, so the
+within-category AUROC bootstrap intervals are wide and single-cell drops are not
+individually significant (only 8 of 15 paired-position bootstrap CIs exclude
+zero). The collapse is therefore established at the aggregate level, not per cell. Rank-preservation
 is therefore \emph{stationarity-conditional}: stream order alone leaves the
 ranking intact, but category-boundary distribution shift lets the order-sensitive
 memory corrupt it.
@@ -446,6 +475,28 @@ distribution shift (concatenated streams) this rank-invariance breaks
 \input{../results/latest/tables/order_mechanism_summary.tex}
 \end{table}
 
+\begin{table}[t]
+\centering
+\small
+\caption{Same-category-fill control isolating the \emph{cause} of the concatenation
+collapse (VisA; target block 50 normal + 25 anomaly held identical across conditions;
+normal-only prefix of length~50; 3 categories $\times$ 5 seeds; within-block AUROC, mean
+and 95\% CI by bootstrap over the 15 cells). Same-cat and cross-cat differ only in the
+prefix's category identity. Absolute AUROC and $\Delta$ are not directly comparable to the
+concatenated-stream setting (different block prevalence, length, and anomaly count); this
+control isolates causation, not effect magnitude.}
+\label{tab:concat-control}
+\begin{tabular}{lc}
+\toprule
+Prefix condition & within-block AUROC (mean, 95\% CI) \\
+\midrule
+None (baseline)     & 0.90 [0.85, 0.94] \\
+Same-category fill  & 0.92 [0.88, 0.95] \\
+Cross-category fill & 0.73 [0.70, 0.76] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{Statistical Uncertainty}
 \tabref{tab:focused-evaluation-ci} reports stratified bootstrap intervals for
 the focused evaluation; the bootstrap unit is a category/seed stratum.
@@ -460,7 +511,7 @@ are in the generated JSON.}
 \resizebox{0.6\textwidth}{!}{\input{../results/latest/tables/focused_evaluation_ci_summary.tex}}
 \end{table}
 
-\subsection{Accuracy--Latency Trade-off}
+\subsection{Accuracy--Latency Trade-Off}
 \label{sec:acc-latency}
 \figref{fig:paper-candidate-accuracy-latency} plots AUROC against latency per
 (baseline, dataset) pair; rankings are not consistent across datasets,

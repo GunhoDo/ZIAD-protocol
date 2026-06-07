@@ -589,6 +589,98 @@ def build_concatenated_stream(
     return {"metadata": metadata, "items": items}
 
 
+def build_prefix_target_stream(
+    *,
+    dataset_root: str | Path,
+    target_category: str,
+    prefix_kind: str,                 # "none" | "same" | "cross"
+    other_categories: list[str],
+    dataset: str = "VisA",
+    seed: Any,
+    target_normal: int = 50,
+    target_anom: int = 25,
+    prefix_len: int = 50,
+) -> dict[str, Any]:
+    """Control for the concatenation collapse: a fixed target block (target_category,
+    target_normal + target_anom, position-invariantly seeded so it is IDENTICAL across
+    all three prefix kinds) preceded by a normal-only prefix of length ``prefix_len``.
+
+    prefix_kind: "none" (baseline, no prefix), "same" (prefix drawn from target_category
+    normals, disjoint from the target), or "cross" (prefix split evenly over the two
+    other categories' normals). Same-vs-cross differ ONLY in the prefix's category
+    identity; length and normal-only composition are matched, so the contrast isolates
+    cross-category coreset contamination from position/saturation. build_stream and
+    build_concatenated_stream are unchanged.
+    """
+    if prefix_kind not in {"none", "same", "cross"}:
+        raise ValueError(f"prefix_kind must be none|same|cross, got {prefix_kind!r}")
+    seed_int = _validate_int(seed, "stream.seed")
+
+    def normals_anoms(cat):
+        s = enumerate_dataset_samples(dataset_root, cat, dataset)
+        return [x for x in s if x.label == 0], [x for x in s if x.label == 1]
+
+    tnorm_all, tanom_all = normals_anoms(target_category)
+    # Deterministic, condition-independent target selection: shuffle the target pool once
+    # by (seed, category); target = first target_normal normals + first target_anom anomalies.
+    rn = random.Random(f"{seed_int}:{target_category}:pool:normals"); tn = list(tnorm_all); rn.shuffle(tn)
+    ra = random.Random(f"{seed_int}:{target_category}:pool:anoms");   ta = list(tanom_all); ra.shuffle(ta)
+    target_normals = tn[:target_normal]
+    target_anoms = ta[:target_anom]
+    same_prefix_pool = tn[target_normal:target_normal + prefix_len]  # disjoint from target
+    # Target block ordering (i.i.d.), seeded position-invariantly.
+    target_items = target_normals + target_anoms
+    random.Random(f"{seed_int}:{target_category}:target:order").shuffle(target_items)
+
+    # Prefix (normal-only).
+    if prefix_kind == "none":
+        prefix_items = []
+    elif prefix_kind == "same":
+        prefix_items = list(same_prefix_pool)
+        random.Random(f"{seed_int}:{target_category}:same:order").shuffle(prefix_items)
+    else:  # cross: split prefix_len across the two other categories
+        per = prefix_len // len(other_categories)
+        rem = prefix_len - per * len(other_categories)
+        prefix_items = []
+        for i, oc in enumerate(other_categories):
+            onorm, _ = normals_anoms(oc)
+            k = per + (1 if i < rem else 0)
+            r = random.Random(f"{seed_int}:{oc}:xprefix:normals"); pool = list(onorm); r.shuffle(pool)
+            prefix_items.extend(pool[:k])
+        random.Random(f"{seed_int}:{target_category}:cross:order").shuffle(prefix_items)
+
+    ordered = prefix_items + target_items
+    items = []
+    for idx, sample in enumerate(ordered):
+        items.append({
+            "stream_index": idx,
+            "image_path": sample.rel_path,
+            "label": sample.label,
+            "category": sample.category,
+            "source_split": sample.source_split,
+            "anomaly_type": sample.anomaly_type,
+            "block_index": 0 if idx < len(prefix_items) else 1,   # 0=prefix, 1=target
+        })
+    portable = {"dataset": dataset, "target_category": target_category, "prefix_kind": prefix_kind,
+                "other_categories": list(other_categories), "seed": seed_int,
+                "target_normal": target_normal, "target_anom": target_anom, "prefix_len": prefix_len}
+    metadata = {
+        "stream_type": "control_prefix_target", "dataset": dataset,
+        "dataset_root_name": Path(dataset_root).name, "target_category": target_category,
+        "prefix_kind": prefix_kind, "other_categories": list(other_categories), "seed": seed_int,
+        "generator_version": GENERATOR_VERSION, "selection_policy_version": SELECTION_POLICY_VERSION,
+        "config_hash": _config_hash(portable),
+        "prefix_length": len(prefix_items), "target_length": len(target_items),
+        "target_normal_count": len(target_normals), "target_anom_count": len(target_anoms),
+        "target_boundary": len(prefix_items),
+        "applied_stream_length": len(items),
+        "scoring_mode": "stream_ordered_offline", "training_source": "train/good",
+        "stream_source": "test/*", "latency_semantics": "offline_batch_amortized",
+        "control": True,
+    }
+    return {"metadata": metadata, "items": items}
+
+
 def validate_stream_payload(payload: dict[str, Any]) -> None:
     required_item_fields = {
         "stream_index",

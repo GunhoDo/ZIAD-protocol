@@ -238,3 +238,30 @@ conditional; Limitation 1 length addressed but reveals the boundary effect.
   B = memory spikes + ranking shifts.
 Same environment pin (acb7481; scoring path unchanged), d_rep=0 re-checked per Rule 4/5;
 Rule 1 still binds. Gate JSON paper_allowed=false until sign-off; flags never auto-flipped.
+
+## LOCKED RULE 8 — concat collapse: causal control + aggregate reporting (pre-registered, before Part-B data)
+The concat within-category AUROC collapse (Rule 7, scenario B) is reported and tested as
+follows; fixed before the Part-B control runs.
+
+Reporting (Part A, applied):
+- The collapse is quantified ONLY at the aggregate level: mean position-Δ ≈ 0.20
+  (95% CI [0.14, 0.26], bootstrap over the 15 category/seed cells; 14/15 positive). The
+  single-cell example (candle 0.96→0.60) is removed from the abstract, Fig 1, and §5.2.
+- Per-cell precision is stated proactively as limited: 5 anomalies/block → wide bootstrap
+  CIs; only 8/15 paired-position CIs exclude zero; collapse claimed at aggregate, not per cell.
+
+Causal control (Part B): same-category-fill. Fixed target block (50 normal + 25 anomaly,
+position-invariant, identical across conditions) preceded by a normal-only prefix of
+length 50; three conditions baseline(no prefix) / same-cat / cross-cat (prefix = the two
+OTHER categories, mixed). The ONLY variable between same-cat and cross-cat is the prefix's
+category identity (length 50 and normal-only composition matched and asserted in stream
+validation). 3 cats × seeds 0–4 × 3 conditions = 45 cells; VisA checkpoint; per-position
+within-block AUROC with 25-anomaly bootstrap CIs, per-cell and 15-cell aggregate.
+
+Pre-registered decision (locked):
+- **cross-cat fill drops below baseline AND same-cat fill stays flat vs baseline** →
+  the collapse is caused by cross-category coreset contamination (not position/saturation);
+  the §5.2 causal claim STANDS.
+- **same-cat fill ALSO drops** → it is a position/saturation effect → RETRACT the
+  cross-contamination causal claim and reframe §5.2 accordingly.
+No outcome-dependent §5.2 rewrite until the Part-B numbers are in and reviewed.
