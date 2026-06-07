@@ -161,14 +161,12 @@ principles make order and contamination effects measurable rather than assumed.
        {non-stationary: AUROC collapses, sensitivity exposed};
 \end{tikzpicture}
 \caption{A single AUROC's reading depends on the regime. ZIAD's bank-trace
-separates three axes (SCS memory, per-image score, AUROC) under two stressors.
-Stream order moves the memory and per-image scores but not the AUROC ranking
-(left, $\Delta$B-I$\approx$0): a single AUROC hides this sensitivity.
-Category-boundary distribution shift moves the memory more (boundary drift
-$\times4.3$--$8.2$ the interior) and now collapses the within-category ranking
-(right, AUROC $\downarrow\approx0.2$ aggregate): the hidden sensitivity is exposed.
-See \tabref{tab:order-mechanism} (stationary, left) and
-\secref{sec:order-mechanism} (concatenated, right).}
+separates memory, per-image score, and AUROC under two stressors. Stream order
+moves memory and scores but not the AUROC ranking (left, $\Delta$B-I$\approx$0):
+the sensitivity is hidden. Category-boundary distribution shift moves memory more
+(boundary drift $\times4.3$--$8.2$) and collapses the within-category ranking
+(right, AUROC $\downarrow\approx0.2$): the sensitivity is exposed.
+See \tabref{tab:order-mechanism} and \secref{sec:order-mechanism}.}
 \label{fig:concept}
 \end{figure}
 
@@ -282,10 +280,9 @@ highest mean AUROC and AUPR on both datasets; latency leaders differ by dataset.
 ECE is reported only as a secondary within-dataset diagnostic and is omitted from
 \tabref{tab:paper-candidate-baseline-comparison}: it is computed after per-baseline
 min--max normalization, so it is a within-dataset diagnostic, not
-cross-dataset-comparable calibration evidence (\secref{sec:limitations}). The
-protocol still measures ECE as one of its diagnostic axes; we simply do not place
-it in the main comparison. These observations support the protocol analysis
-without asserting a universal detector ranking.
+cross-dataset-comparable calibration evidence (\secref{sec:limitations}). These
+observations support the protocol analysis without asserting a universal detector
+ranking.
 
 \begin{table}[t]
 \centering
@@ -311,14 +308,13 @@ in the generated CSV/JSON artifacts.
 \begin{table}[t]
 \centering
 \small
-\caption{Compact stream and contamination summary, split into stateless baselines
-(top: $\Delta$B-I${=}0$ is expected by construction---frozen scoring makes the
-score of $x$ order-independent---so these rows validate that the harness introduces
-no order artifact, not a finding) and the state-updating RareCLIP (bottom: the
-non-trivial $\Delta$B-I$\approx$0 with active SCS memory updates). \(\Delta\)B-I is
-bursty minus i.i.d.\ AUROC; \(\Delta\epsilon\) is \(\epsilon=0.05\) minus
-\(\epsilon=0\) AUROC. State-updating positive controls are in
-\tabref{tab:online-memory-detector-comparison}.}
+\caption{Compact stream and contamination summary. \emph{Stateless} block (top):
+$\Delta$B-I${=}0$ is expected by construction (frozen scoring is order-independent),
+so these rows validate that the harness adds no order artifact---not a finding.
+\emph{State-updating} block (bottom): the non-trivial RareCLIP $\Delta$B-I$\approx$0
+with active SCS updates. \(\Delta\)B-I is bursty minus i.i.d.\ AUROC;
+\(\Delta\epsilon\) is \(\epsilon{=}0.05\) minus \(\epsilon{=}0\) AUROC; positive
+controls in \tabref{tab:online-memory-detector-comparison}.}
 \label{tab:paper-candidate-stream-epsilon-breakdown}
 \resizebox{0.96\textwidth}{!}{\input{../results/latest/tables/paper_candidate_stream_epsilon_breakdown_none.tex}}
 \end{table}
@@ -396,9 +392,9 @@ run the centroid drift decays $6.9\times$ from the first to the last third of th
 stream (all 30 runs): the coreset stabilises quickly, but to an
 order-\emph{dependent} state.
 
-The same pattern replicates on a focused VisA slice
-(candle/macaroni1/macaroni2; same seeds, $\epsilon=0$, length~64, default SCS),
-itself deterministic (zero same-order floor across all 30 pairs): image AUROC is
+The same pattern replicates on a focused VisA slice (candle, macaroni1,
+macaroni2; same seeds, $\epsilon=0$, length~64, default SCS), itself
+deterministic (zero same-order floor across all 30 pairs): image AUROC is
 unchanged ($0.865$ i.i.d.\ vs $0.867$ bursty; $\Delta$B-I $= +0.001$) and the
 within-run drift decays $5.7\times$. These VisA categories have no significant
 positive control (\secref{sec:limitations}); here the bank-trace itself---not a
@@ -414,11 +410,11 @@ and hardware) are deterministic, with a zero run-to-run floor.
 
 \begin{table}[t]\centering\small
 \caption{Order-induced perturbation in the stationary single-category regime
-(mean over 30 category/seed cells; i.i.d.\ vs.\ bursty). Same-environment runs are
-deterministic (run-to-run floor $=0$; emitted scores bit-identical, 0/1920
-mismatches under a fixed commit, libraries, and hardware). The cross-environment
-reproducibility floor ($\approx$1.3e-3, MVTec, $n{=}64$) is reported only to show
-the order effect exceeds version-level noise, not as an effect-size scale.}
+(mean over 30 category/seed cells, i.i.d.\ vs.\ bursty). Same-environment runs are
+deterministic (run-to-run floor $=0$; scores bit-identical, 0/1920, under fixed
+commit/libraries/hardware). The cross-environment floor ($\approx$1.3e-3, MVTec) is
+shown only to confirm the effect exceeds version-level noise, not as an effect-size
+scale.}
 \label{tab:order-effect-size}
 \begin{tabular}{lcc}
 \toprule
@@ -486,13 +482,11 @@ memory corrupt it.
 \begin{table}[t]
 \centering
 \small
-\caption{RareCLIP SCS order-sensitivity on focused MVTec AD
-(bottle/cable/capsule) and VisA (candle/macaroni1/macaroni2) slices (seeds
-0--9, $\epsilon=0$, length~64, default SCS). Same-order repeats give a zero
-noise floor; on both datasets the memory and per-image scores are
-order-sensitive while AUROC ($\Delta$B-I) is invariant. Under category-boundary
-distribution shift (concatenated streams) this rank-invariance breaks
-(\secref{sec:order-mechanism}, in text).}
+\caption{RareCLIP SCS order-sensitivity on focused MVTec AD and VisA slices
+(seeds 0--9, $\epsilon{=}0$, length~64, default SCS). Same-order repeats give a
+zero noise floor; on both datasets memory and per-image scores are order-sensitive
+while AUROC ($\Delta$B-I) is invariant. Under category-boundary distribution shift
+this rank-invariance breaks (\secref{sec:order-mechanism}).}
 \label{tab:order-mechanism}
 \input{../results/latest/tables/order_mechanism_summary.tex}
 \end{table}
@@ -500,13 +494,13 @@ distribution shift (concatenated streams) this rank-invariance breaks
 \begin{table}[t]
 \centering
 \small
-\caption{Same-category-fill control isolating the \emph{cause} of the concatenation
-collapse (VisA; target block 50 normal + 25 anomaly held identical across conditions;
-normal-only prefix of length~50; 3 categories $\times$ 5 seeds; within-block AUROC, mean
-and 95\% CI by bootstrap over the 15 cells). Same-cat and cross-cat differ only in the
-prefix's category identity. Absolute AUROC and $\Delta$ are not directly comparable to the
-concatenated-stream setting (different block prevalence, length, and anomaly count); this
-control isolates causation, not effect magnitude.}
+\caption{Same-category-fill control isolating the \emph{cause} of the
+concatenation collapse (VisA; identical target block 50 normal + 25 anomaly;
+normal-only prefix length~50; 3 categories $\times$ 5 seeds; within-block AUROC,
+95\% CI by bootstrap over the 15 cells). Same-cat and cross-cat differ only in the
+prefix's category identity. Absolute AUROC/$\Delta$ are not comparable to the
+concatenated setting (different prevalence, length, anomaly count); this isolates
+causation, not magnitude.}
 \label{tab:concat-control}
 \begin{tabular}{lc}
 \toprule
