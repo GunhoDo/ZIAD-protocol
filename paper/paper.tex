@@ -426,7 +426,18 @@ Per-image score shift $/$ cross-env floor     & 11$\times$   & 7$\times$ \\
 The mechanism is thus not order-invariant memory but order-invariant
 \emph{ranking}: SCS produces an order-sensitive coreset and order-sensitive
 per-image scores whose perturbation is rank-preserving, leaving the AUROC-based
-$\Delta$B-I invariant. This explains how a detector can update memory every
+$\Delta$B-I invariant. The perturbation is predominantly monotone: across the 30
+i.i.d./bursty pairs per dataset the two score orders are consistently positively
+concordant (Kendall $\tau = 0.67$ mean, range $[0.50, 0.86]$; Spearman
+$\rho \approx 0.85$), and the anomaly/normal ordering is preserved far more than
+the within-class ordering---between the two orders the cross-class
+(anomaly,\,normal) pair discordance is only $4.7\%$ versus $19.9\%$ within-class
+(58/60 streams), so the discordances are local same-label swaps that do not cross
+the decision boundary. More tellingly, the concordance tracks $|\Delta\text{B-I}|$
+across the two datasets (MVTec $\tau{=}0.72$, $|\Delta\text{B-I}|{=}0.010$; VisA
+$\tau{=}0.62$, $0.030$): $\Delta$B-I$\approx$0 is a structural consequence of this
+predominantly monotone, boundary-preserving perturbation, not a slice-specific
+coincidence. This explains how a detector can update memory every
 sample yet register $\Delta$B-I $\approx 0$, and it is precisely the behaviour
 separation that single-number reporting hides. This rank-preservation, however,
 is a property of a \emph{stationary} stream.
