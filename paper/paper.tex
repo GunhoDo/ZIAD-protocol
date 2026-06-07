@@ -278,11 +278,14 @@ answers the latter two with controlled positive probes.
 \tabref{tab:paper-candidate-baseline-comparison} summarizes the current
 focused comparison for the calibration-none setting (the no-post-hoc-calibration
 configuration of the Metrics section). PatchCore has the
-highest mean AUROC and AUPR on both datasets; ECE and latency leaders differ
-by dataset. ECE is a secondary within-dataset diagnostic only---scores are
-min--max normalized per baseline, so it is not comparable across datasets.
-These observations support the protocol analysis without asserting a universal
-detector ranking.
+highest mean AUROC and AUPR on both datasets; latency leaders differ by dataset.
+ECE is reported only as a secondary within-dataset diagnostic and is omitted from
+\tabref{tab:paper-candidate-baseline-comparison}: it is computed after per-baseline
+min--max normalization, so it is a within-dataset diagnostic, not
+cross-dataset-comparable calibration evidence (\secref{sec:limitations}). The
+protocol still measures ECE as one of its diagnostic axes; we simply do not place
+it in the main comparison. These observations support the protocol analysis
+without asserting a universal detector ranking.
 
 \begin{table}[t]
 \centering
@@ -299,27 +302,35 @@ evaluation. Latency values are local-runtime averages (see
 \label{sec:stream-contamination}
 The aggregate table above averages over two stream types and two contamination
 settings. \tabref{tab:paper-candidate-stream-epsilon-breakdown} keeps these
-axes visible with one row per dataset and baseline. It reports mean AUROC,
-the AUROC shift from i.i.d. to bursty streams, the AUROC shift from
-\(\epsilon=0\) to \(\epsilon=0.05\), the matching ECE shift, and mean latency;
-the full 32-row breakdown remains in the generated CSV/JSON artifacts.
+axes visible with one row per dataset and baseline, and separates the stateless
+baselines (top block) from the state-updating RareCLIP (bottom block). It reports
+mean AUROC, the AUROC shift from i.i.d. to bursty streams, the AUROC shift from
+\(\epsilon=0\) to \(\epsilon=0.05\), and mean latency; the full breakdown remains
+in the generated CSV/JSON artifacts.
 
 \begin{table}[t]
 \centering
 \small
-\caption{Compact stream and contamination summary. \(\Delta\)B-I is bursty
-minus i.i.d. AUROC; \(\Delta\epsilon\) is \(\epsilon=0.05\) minus
-\(\epsilon=0\) AUROC.}
+\caption{Compact stream and contamination summary, split into stateless baselines
+(top: $\Delta$B-I${=}0$ is expected by construction---frozen scoring makes the
+score of $x$ order-independent---so these rows validate that the harness introduces
+no order artifact, not a finding) and the state-updating RareCLIP (bottom: the
+non-trivial $\Delta$B-I$\approx$0 with active SCS memory updates). \(\Delta\)B-I is
+bursty minus i.i.d.\ AUROC; \(\Delta\epsilon\) is \(\epsilon=0.05\) minus
+\(\epsilon=0\) AUROC. State-updating positive controls are in
+\tabref{tab:online-memory-detector-comparison}.}
 \label{tab:paper-candidate-stream-epsilon-breakdown}
 \resizebox{0.96\textwidth}{!}{\input{../results/latest/tables/paper_candidate_stream_epsilon_breakdown_none.tex}}
 \end{table}
 
 The near-zero $\Delta$B-I values in
 \tabref{tab:paper-candidate-stream-epsilon-breakdown} are a \emph{baseline
-characterization}. WinCLIP, AnomalyCLIP, and PatchCore are stateless
-(order-invariance expected). RareCLIP updates memory per sample yet also
-yields near-zero $\Delta$B-I under its default SCS policy on the evaluated
-slice. ZIAD therefore separates two behaviors that a static benchmark would
+characterization}. WinCLIP, AnomalyCLIP, and PatchCore are stateless, so their
+$\Delta$B-I${=}0$ is expected by construction (frozen scoring makes the score of
+$x$ order-independent); these rows validate that the harness introduces no order
+artifact rather than constituting a finding. RareCLIP updates memory per sample
+yet also yields near-zero $\Delta$B-I under its default SCS policy on the
+evaluated slice. ZIAD therefore separates two behaviors that a static benchmark would
 merge: frozen scoring is empirically order invariant, and a state-updating
 method need not translate its order-sensitive internal updates into an
 order-sensitive \emph{ranking}: on the focused slice RareCLIP's SCS memory and

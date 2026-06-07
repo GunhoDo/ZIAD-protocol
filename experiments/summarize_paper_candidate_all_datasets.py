@@ -277,6 +277,12 @@ def write_tex(summary: dict[str, Any], path: Path) -> None:
         ("total_rows", "Rows"),
         ("mean_image_auroc", "AUROC"),
         ("mean_aupr", "AUPR"),
+        # NOTE: The ECE column is intentionally excluded from the paper table
+        # (removed by hand from the generated .tex; re-remove after regeneration).
+        # ECE is demoted to a secondary within-dataset diagnostic (computed after
+        # per-baseline min-max normalization, not cross-dataset-comparable); see
+        # the Results text and Limitation 5. This emit is left unchanged so the
+        # artifact/data path stays intact.
         ("mean_ece", "ECE"),
         ("mean_latency_ms", "Lat. (ms)"),
         # NOTE: The CRD-lite column is intentionally excluded from the paper

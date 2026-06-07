@@ -67,6 +67,12 @@ COMPACT_TEX_COLUMNS = [
     ("mean_image_auroc", "AUROC"),
     ("delta_bursty_iid_auroc", "$\\Delta$B-I"),
     ("delta_eps_0p05_0_auroc", "$\\Delta\\epsilon$"),
+    # NOTE: The $\Delta$ECE column is intentionally excluded from the paper table
+    # (removed by hand from the generated .tex; re-remove after regeneration), and
+    # the .tex is hand-restructured into two blocks (stateless = harness validation;
+    # state-updating RareCLIP = main result). ECE is demoted to a secondary
+    # within-dataset diagnostic; see the Results text and Limitation 5. This emit is
+    # left unchanged so the artifact/data path stays intact.
     ("delta_eps_0p05_0_ece", "$\\Delta$ECE"),
     ("mean_latency_ms", "Lat. (ms)"),
 ]
