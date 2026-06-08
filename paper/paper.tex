@@ -26,7 +26,11 @@
 Industrial anomaly detection is commonly evaluated on static image sets, yet
 inspection systems receive ordered samples and must handle contamination,
 reliability, and latency. We present ZIAD, a streaming
-evaluation protocol for industrial anomaly detection. ZIAD converts static
+evaluation protocol for industrial anomaly detection. Its strongest finding: an
+online detector updating memory every sample can be order-invariant in
+\emph{ranking} (near-zero $\Delta$B-I) while its memory and per-image scores are
+order-sensitive, and this rank-invariance is \emph{stationarity-conditional},
+collapsing under category-boundary distribution shift. ZIAD converts static
 benchmarks into controlled i.i.d.\ and bursty streams, executes
 category-sharded evaluations, and reports discrimination, expected calibration
 error (ECE), latency, contamination sensitivity, and stream-order sensitivity.
@@ -34,12 +38,10 @@ On MVTec AD and VisA with PatchCore,
 WinCLIP, AnomalyCLIP, and RareCLIP, ZIAD's diagnostics expose behaviour a single
 AUROC (area under the ROC curve) hides. The four main baselines are nearly order-invariant in $\Delta$B-I---a
 measurable but expected property of frozen scoring---and accuracy, ECE, and
-latency rankings differ within datasets. The non-trivial case is RareCLIP: a
-read-only memory diagnostic shows its near-zero $\Delta$B-I is order-invariant
-\emph{ranking}, not order-invariant memory (its SCS coreset and per-image scores
-shift with order while AUROC does not within a stationary stream), and this
-invariance is \emph{stationarity-conditional}---under category-boundary
-distribution shift (concatenated streams) the within-category ranking collapses.
+latency rankings differ within datasets. RareCLIP is the non-trivial case: a
+read-only memory diagnostic shows the rank-preserving, order-sensitive-memory
+perturbation behind its near-zero $\Delta$B-I on the stationary slices---an
+invariance that does not survive category-boundary shift.
 State-updating positive controls confirm the $\Delta$B-I estimator detects order
 effects when present.
 \end{abstract}
@@ -60,9 +62,11 @@ contamination sensitivity (the AUROC/AUPR shift under added contamination), and 
 baseline state and memory metadata, with memory-policy sweeps left to future
 work. PatchCore provides a training-light reference; WinCLIP,
 AnomalyCLIP, and RareCLIP represent CLIP-style zero-shot baselines.
-\figref{fig:concept} previews the central finding: whether a single AUROC
-reading reveals a detector's online-memory order- and distribution-shift
-sensitivity depends on the regime.
+\figref{fig:concept} previews the central finding: an online detector that
+updates memory every sample can be order-invariant in \emph{ranking} (near-zero
+$\Delta$B-I) while its memory and per-image scores are order-sensitive, and this
+rank-invariance is \emph{stationarity-conditional}---it collapses under
+category-boundary distribution shift.
 
 The main contributions are:
 \begin{itemize}
@@ -359,7 +363,9 @@ confirms the RareCLIP finding where the estimator is known to detect order
 effects: OnlinePatchCoreLite yields $\Delta\text{B-I} = +0.014$
 (95\% CI $[{+0.002},{+0.027}]$, excludes zero), while RareCLIP with default
 SCS memory yields $\Delta\text{B-I} = 0.000$
-(95\% CI $[{-0.006},{+0.006}]$, includes zero).
+(95\% CI $[{-0.006},{+0.006}]$, includes zero). Both runs use the same
+configuration~(b) full-test-set length (applied~83 samples per run), so the
+OPCLite-significant and RareCLIP-null results are measured at identical power.
 Effects of magnitude $|\delta| \geq 0.006$ are excluded for RareCLIP at
 full-test-set length, so the near-zero $\Delta$B-I is not attributable to
 insufficient stream length. It does \emph{not}, however, mean stream order has
@@ -442,9 +448,9 @@ the within-class ordering---between the two orders the cross-class
 (58/60 streams), so the discordances are local same-label swaps that do not cross
 the decision boundary. More tellingly, the concordance tracks $|\Delta\text{B-I}|$
 across the two datasets (MVTec $\tau{=}0.72$, $|\Delta\text{B-I}|{=}0.010$; VisA
-$\tau{=}0.62$, $0.030$): $\Delta$B-I$\approx$0 is a structural consequence of this
-predominantly monotone, boundary-preserving perturbation, not a slice-specific
-coincidence. This explains how a detector can update memory every
+$\tau{=}0.62$, $0.030$): on both evaluated slices $\Delta$B-I$\approx$0 is
+consistent with a rank-preserving (predominantly monotone, boundary-preserving)
+perturbation whose degree of concordance tracks $|\Delta\text{B-I}|$. This explains how a detector can update memory every
 sample yet register $\Delta$B-I $\approx 0$, and it is precisely the behaviour
 separation that single-number reporting hides. This rank-preservation, however,
 is a property of a \emph{stationary} stream.
@@ -544,9 +550,12 @@ datasets.}
 \end{figure}
 
 \section{Discussion}
-A single AUROC hides two behaviours ZIAD surfaces: (a) the order- and
-distribution-shift sensitivity of online memory (\secref{sec:order-mechanism}),
-and (b) operational accuracy--latency trade-offs (\secref{sec:acc-latency}).
+The core behaviour ZIAD surfaces is the order- and distribution-shift
+sensitivity of online memory that a single AUROC hides
+(\secref{sec:order-mechanism}). Accuracy--latency trade-offs
+(\secref{sec:acc-latency}) are a secondary operational illustration; like ECE,
+latency is a local within-setup diagnostic, not a method-level ranking
+(\secref{sec:limitations}).
 For practitioners, the value of separating these axes is operational: a
 deployment can pick an operating point on the accuracy--latency--reliability
 surface rather than inheriting whichever detector tops a static AUROC
