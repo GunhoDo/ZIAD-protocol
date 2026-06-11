@@ -265,3 +265,36 @@ Pre-registered decision (locked):
 - **same-cat fill ALSO drops** → it is a position/saturation effect → RETRACT the
   cross-contamination causal claim and reframe §5.2 accordingly.
 No outcome-dependent §5.2 rewrite until the Part-B numbers are in and reviewed.
+
+## LOCKED RULE 9 — RareCLIP policy-swap probe ("SCS-specific" asserted→measured; pre-registered, before data)
+Tests whether RareCLIP's order-invariant ranking is specific to its own SCS policy by
+swapping ONLY the memory policy (FIFO, Reservoir) on the existing MVTec bottle/cable/capsule
+L64 slice. Clean drop-in: `_install_{fifo,reservoir}_sampler` replaces `model.sample` only;
+`process_image_and_update` (scoring) is untouched, so scoring_path_modified=false (CODE
+identity, NOT score identity --- scores SHOULD differ from SCS by design). Reuse the SCS L64
+streams (no regeneration) and the existing SCS ΔB-I baseline (no SCS re-run). Scope: FIFO +
+Reservoir x 3 cat x seeds 0-9 x {iid, bursty, bursty-repeat} = 180 cells, bank-trace on.
+Reservoir uses a fixed reservoir_seed per cell so base and same-order repeat are reproducible
+(d_rep re-checked in Gate1). This is an ILLUSTRATIVE single-slice policy probe (does the
+policy axis respond), NOT a benchmark or champion search; the full sweep stays future work.
+
+Threshold (mirrors the positive-control bar): aggregate ΔB-I 95% CI by bootstrap over cells;
+detectable = CI excludes 0; ≈0 = CI includes 0 AND |mean| < 0.006.
+
+Pre-registered decision (locked):
+- **P1 (strengthen)**: FIFO/Reservoir ΔB-I CI excludes 0 AND SCS ≈0 → "order-invariant
+  ranking is specific to SCS; other RareCLIP policies are order-sensitive in ranking";
+  §5.2 / Limitation 2 asserted→measured.
+- **P2 (broaden, cautious) --- CONDITIONAL ON BANK-TRACE**: FIFO/Reservoir ΔB-I≈0 AND their
+  bank-trace shows memory/score DO move (same separation as SCS: order-sensitive memory,
+  preserved ranking) → remove "SCS-specific"; "rank-preservation appears across the evaluated
+  policies on this slice (illustrative; full sweep future work)"; reword §5.2 + Limitation 2.
+- **P2b (different mechanism)**: FIFO/Reservoir ΔB-I≈0 BUT bank-trace shows memory/score
+  barely move (policy is order-insensitive at the memory level, e.g. order-blind convergence)
+  → do NOT merge with SCS's separation; report as "order-insensitive at the memory level on
+  this slice, mechanistically distinct from SCS's order-sensitive-memory / order-invariant-
+  ranking case"; KEEP "SCS-specific" for the separation claim; Limitation 2 stays.
+- **P3 (ambiguous)**: CI straddles 0 / policies disagree → "illustrative sweep, full sweep
+  future work"; no existing claim changed; Limitation 2 as-is.
+Gate JSON paper_allowed=false until sign-off; no paper.tex edit until the rule that fired is
+reported and signed off.
