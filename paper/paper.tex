@@ -606,7 +606,16 @@ $\Delta$B-I on the focused MVTec AD and VisA slices (the with-CI result is given
 (\secref{sec:order-mechanism}) shows this is order-invariant \emph{ranking}, not
 order-invariant memory: the SCS coreset and per-image scores do shift with
 order. This finding is specific to SCS diversity sampling and the evaluated
-categories and lengths.
+categories and lengths. An illustrative single-slice policy probe (RareCLIP with
+FIFO and Reservoir memory policies on bottle/cable/capsule, reusing the same
+streams) found these off-SCS policies markedly more order-sensitive at the
+\emph{memory} level---roughly $2$--$5\times$ larger centroid drift and per-image
+score change than SCS (per-policy figures in the generated artifacts): SCS
+diversity sampling stabilises the coreset against order more than these
+alternatives. Whether this memory-level stability translates to a policy-specific
+\emph{ranking} effect was inconclusive at this slice's power---the $\Delta$B-I
+confidence intervals spanned zero for both policies---so a full memory-policy
+sweep remains future work.
 
 \item \textbf{Positive controls.} OWK and OPCLite results are reported in
 \tabref{tab:online-memory-detector-comparison}; the detailed per-length
