@@ -26,3 +26,4 @@ data/
 - All paths under `data/` are gitignored except this README.
 - The smoke run targets `data/mvtec_ad/bottle/` by default (configurable in `experiments/configs/smoke.yaml`).
 - Real data must be present before running first success gate A.
+- Datasets are only one part of setup: see the top-level [`README.md`](../README.md) for Python dependencies (`requirements.txt`) and baseline clones/checkpoints ([`external/README.md`](../external/README.md)), then [`docs/reproduction.md`](../docs/reproduction.md) for the per-experiment commands.

@@ -1,0 +1,24 @@
+# ZIAD Protocol — Python dependencies
+#
+# HONESTY NOTE: the versions below mirror OUR experiment environment
+# (docs/runtime_environment.md). They are a *record of what we ran*, NOT a
+# verified minimal dependency set, and not all are independently re-validated.
+#
+#   * torch==1.13.1 was built as 1.13.1+cu116 in our environment. The CUDA build
+#     is platform-specific — install the torch build that matches YOUR CUDA
+#     version, or a CPU-only build. The harness falls back to CPU automatically
+#     when CUDA is unavailable.
+#   * Baseline-specific dependencies (torchvision, open_clip / CLIP, the
+#     PatchCore/WinCLIP/AnomalyCLIP/RareCLIP stacks) are NOT listed here; they
+#     come from each external baseline repo under external/. See
+#     external/README.md and experiments/configs/baselines.yaml.
+#
+# This file pins only the packages the harness code itself imports.
+
+torch==1.13.1          # +cu116 in our env; choose the build matching your CUDA/CPU
+numpy==1.26.4
+scikit-learn==1.6.1
+matplotlib==3.10.1
+Pillow==11.1.0
+PyYAML==6.0.2
+scipy                  # used (bootstrap CIs); exact version not recorded in our env log — any recent 1.x
