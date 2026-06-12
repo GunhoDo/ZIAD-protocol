@@ -1,0 +1,15 @@
+\begin{tabular}{llccrrr}
+\toprule
+Dataset & Baseline & Cat. & Rows & AUROC & AUPR & Lat. (ms) \\
+\midrule
+\multirow{4}{*}{\shortstack[c]{MVTec\\AD}} & WinCLIP & \multirow{4}{*}{15/15} & \multirow{4}{*}{180} & 0.716 & 0.720 & 1336.7 \\
+ & AnomalyCLIP &  &  & 0.917 & 0.900 & 4282.2 \\
+ & RareCLIP &  &  & 0.987 & 0.985 & 4412.5 \\
+ & PatchCore &  &  & 0.993 & 0.994 & 642.5 \\
+\addlinespace[0.3em]
+\multirow{4}{*}{VisA} & WinCLIP & \multirow{4}{*}{12/12} & \multirow{4}{*}{144} & 0.639 & 0.357 & 1298.1 \\
+ & AnomalyCLIP &  &  & 0.864 & 0.633 & 4418.1 \\
+ & RareCLIP &  &  & 0.930 & 0.754 & 4359.7 \\
+ & PatchCore &  &  & 0.950 & 0.845 & 1839.7 \\
+\bottomrule
+\end{tabular}

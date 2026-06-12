@@ -1,0 +1,13 @@
+\begin{tabular}{llccc}
+\toprule
+Dataset & Axis & Same-order floor & i.i.d.\ vs bursty & Order-inv.? \\
+\midrule
+\multirow{3}{*}{MVTec AD} & SCS memory (centroid $L_2$) & 0.000 & 0.011 & no \\
+ & Per-image score (mean $|\Delta|$) & 0.000 & 0.030 & no \\
+ & AUROC ($\Delta$B-I) & --- & $-0.002$ & yes \\
+\midrule
+\multirow{3}{*}{VisA} & SCS memory (centroid $L_2$) & 0.000 & 0.012 & no \\
+ & Per-image score (mean $|\Delta|$) & 0.000 & 0.020 & no \\
+ & AUROC ($\Delta$B-I) & --- & $+0.001$ & yes \\
+\bottomrule
+\end{tabular}

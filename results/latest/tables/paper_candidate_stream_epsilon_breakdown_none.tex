@@ -1,0 +1,18 @@
+\begin{tabular}{llrrrr}
+\toprule
+Dataset & Baseline & AUROC & $\Delta$B-I & $\Delta\epsilon$ & Lat. (ms) \\
+\midrule
+\multicolumn{6}{l}{\emph{Stateless baselines --- harness validation ($\Delta$B-I${=}0$ by construction)}}\\
+\multirow{3}{*}{\shortstack[c]{MVTec\\AD}} & WinCLIP & 0.716 & +0.000 & +0.003 & 1336.7 \\
+ & AnomalyCLIP & 0.917 & +0.000 & +0.002 & 4282.2 \\
+ & PatchCore & 0.993 & +0.000 & -0.000 & 642.5 \\
+\addlinespace[0.2em]
+\multirow{3}{*}{VisA} & WinCLIP & 0.639 & +0.000 & +0.002 & 1298.1 \\
+ & AnomalyCLIP & 0.864 & +0.000 & +0.008 & 4418.1 \\
+ & PatchCore & 0.950 & +0.000 & +0.000 & 1839.7 \\
+\midrule
+\multicolumn{6}{l}{\emph{State-updating --- main result (active SCS memory updates)}}\\
+MVTec AD & RareCLIP & 0.987 & -0.001 & -0.000 & 4412.5 \\
+VisA & RareCLIP & 0.930 & -0.002 & -0.005 & 4359.7 \\
+\bottomrule
+\end{tabular}

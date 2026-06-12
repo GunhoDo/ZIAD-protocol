@@ -24,6 +24,19 @@ build/
 # Results — generated locally, not committed
 results/**
 !results/README.md
+# Paper-referenced artifacts (needed to compile the paper from the repo)
+!results/latest/
+!results/latest/tables/
+!results/latest/figures/
+!results/latest/tables/paper_candidate_baseline_comparison_all_datasets_none.tex
+!results/latest/tables/paper_candidate_stream_epsilon_breakdown_none.tex
+!results/latest/tables/online_memory_detector_comparison.tex
+!results/latest/tables/order_mechanism_summary.tex
+!results/latest/tables/focused_evaluation_ci_summary.tex
+!results/latest/figures/paper_candidate_accuracy_latency_tradeoff.pdf
+
+# Root-level build/run logs — never commit
+/*.log
 
 # Paper build artifacts — keep source/template files tracked
 paper/*.pdf

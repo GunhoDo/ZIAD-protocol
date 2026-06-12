@@ -1,0 +1,15 @@
+\begin{tabular}{lccccccr}
+\toprule
+Detector & Len & Rows & Strata & \multicolumn{2}{c}{$\Delta$B-I} & Sig. & Lat. (ms) \\
+\cmidrule(lr){5-6}
+& & & & Mean & 95\% CI & & \\
+\midrule
+OnlinePrototypeEMA & 128 & 60 & 30 & +0.004 & $[-0.008, +0.016]$ & no & 23.44 \\
+\midrule
+OnlineWindowKNN & 256 & 120 & 60 & \textbf{+0.014} & \textbf{[+0.005, +0.022]} & yes & 23.46 \\
+OnlineWindowKNN & 64 & 120 & 60 & \textbf{+0.021} & \textbf{[+0.002, +0.039]} & yes & 24.02 \\
+\midrule
+OnlinePatchCoreLite $K{=}8$ & 256 & 120 & 60 & \textbf{+0.014} & \textbf{[+0.006, +0.023]} & yes & 23.88 \\
+OnlinePatchCoreLite $K{=}8$ & 64 & 120 & 60 & +0.021 & $[-0.001, +0.042]$ & no & 23.83 \\
+\bottomrule
+\end{tabular}
